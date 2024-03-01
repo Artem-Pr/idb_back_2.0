@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AppService } from './app.service';
 import { KeywordsModule } from './keywords/keywords.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
+import { PathsModule } from './paths/paths.module';
 
 @Module({
   imports: [
@@ -34,8 +33,7 @@ import { join } from 'path';
       inject: [ConfigService],
     }),
     KeywordsModule,
+    PathsModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}

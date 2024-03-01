@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Keyword } from './entities/keywords.entity';
 import { Repository } from 'typeorm';
 import { ObjectId } from 'mongodb';
+import { DBConfigConstants } from 'src/common/constants';
 
 describe('KeywordsService', () => {
   let service: KeywordsService;
@@ -39,7 +40,7 @@ describe('KeywordsService', () => {
     const keywords = ['nestjs', 'typeorm', 'testing'];
     jest.spyOn(repository, 'findOne').mockResolvedValueOnce({
       _id: new ObjectId(),
-      name: 'keywords',
+      name: DBConfigConstants.keywords,
       keywordsArr: keywords,
     });
     expect(await service.getKeywords()).toEqual(keywords);

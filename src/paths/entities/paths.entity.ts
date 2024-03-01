@@ -2,7 +2,7 @@ import { DBCollections } from 'src/common/constants';
 import { Entity, ObjectIdColumn, Column, ObjectId } from 'typeorm';
 
 @Entity(DBCollections.config)
-export class Keyword {
+export class Paths {
   @ObjectIdColumn()
   _id: ObjectId;
 
@@ -10,5 +10,5 @@ export class Keyword {
   name: string;
 
   @Column('array')
-  keywordsArr: string[];
+  pathsArr: string[];
 }

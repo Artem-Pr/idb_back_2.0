@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Keyword } from './entities/keywords.entity';
+import { DBConfigConstants } from 'src/common/constants';
 
 @Injectable()
 export class KeywordsService {
@@ -13,7 +14,7 @@ export class KeywordsService {
   async getKeywords(): Promise<string[]> {
     const config = await this.keywordsRepository.findOne({
       where: {
-        name: 'keywords',
+        name: DBConfigConstants.keywords,
       },
     });
     return config ? config.keywordsArr : [];

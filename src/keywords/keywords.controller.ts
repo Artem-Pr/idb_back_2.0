@@ -1,7 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
 import { KeywordsService } from './keywords.service';
+import { ControllerPrefix } from 'src/common/constants';
 
-@Controller('keywords')
+@Controller(ControllerPrefix.keywords)
 export class KeywordsController {
   constructor(private readonly keywordsService: KeywordsService) {}
 
