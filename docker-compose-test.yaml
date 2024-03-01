@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  mongo-test:
+    image : mongo:4.4
+    container_name: IDB_2.0_mongodb_test
+    user: nobody
+    volumes:
+      - /Users/artempriadkin/Documents/IDBVolume/mongodb:/data/db
+      # - /Users/artempriadkin/Development/test-data/mongo:/data/db
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
