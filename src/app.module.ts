@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppService } from './app.service';
-import { MediaModule } from './media/media.module';
 import { KeywordsModule } from './keywords/keywords.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
@@ -34,7 +33,6 @@ import { join } from 'path';
       },
       inject: [ConfigService],
     }),
-    MediaModule,
     KeywordsModule,
   ],
   controllers: [AppController],
