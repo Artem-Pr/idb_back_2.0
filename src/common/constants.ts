@@ -11,4 +11,5 @@ export enum DBConfigConstants {
 export enum ControllerPrefix {
   keywords = 'keywords',
   paths = 'paths',
+  unusedKeywords = 'unused-keywords',
 }
