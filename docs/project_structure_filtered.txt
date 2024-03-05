@@ -1,0 +1,48 @@
+--- Folder Structure ---
+.eslintrc.js
+.prettierrc
+[.vscode]
+    └── settings.json
+README.md
+docker-compose-test.yaml
+[docs]
+    └── project_structure_filtered.txt
+jest.config.js
+mongo-test.sh
+nest-cli.json
+package-lock.json
+package.json
+[src]
+    ├── app.module.ts
+    ├── [common]
+        ├── constants.ts
+        └── utils.ts
+    ├── [keywords]
+        ├── [entities]
+            └── keywords.entity.ts
+        ├── keywords.controller.spec.ts
+        ├── keywords.controller.ts
+        ├── keywords.module.ts
+        ├── keywords.service.spec.ts
+        └── keywords.service.ts
+    ├── main.ts
+    ├── [media]
+        └── [entities]
+            └── media.entity.ts
+    └── [paths]
+        ├── [dto]
+            ├── check-directory-input.dto.ts
+            └── check-directory-output.dto.ts
+        ├── [entities]
+            └── paths.entity.ts
+        ├── paths.controller.spec.ts
+        ├── paths.controller.ts
+        ├── paths.module.ts
+        ├── paths.service.spec.ts
+        └── paths.service.ts
+stop-all-dockers.sh
+tsconfig.build.json
+tsconfig.json
+yarn.lock
+
+--- File Contents ---

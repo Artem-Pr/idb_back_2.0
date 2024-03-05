@@ -12,4 +12,5 @@ export enum ControllerPrefix {
   keywords = 'keywords',
   paths = 'paths',
   unusedKeywords = 'unused-keywords',
+  checkDirectory = 'check-directory',
 }
