@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  image_db_backend:
+    build: ../image_store_service
+    container_name: image_store_service
+    ports:
+      - "3005:3005"
+    volumes:
+      - /Users/artempriadkin/Development/test-data/temp:/app/temp
+    restart: unless-stopped

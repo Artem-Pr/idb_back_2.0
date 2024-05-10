@@ -4,19 +4,67 @@
 [.vscode]
     └── settings.json
 README.md
+[Users]
+    └── [artempriadkin]
+        └── [Development]
+            ├── [IDBase]
+                ├── [idb_back_2.0]
+                    └── [test-data]
+                        └── [temp]
+                └── [test-data]
+                    └── [temp]
+            └── [test-data]
+                └── [temp]
 docker-compose-test.yaml
+docker-compose.yaml
 [docs]
     └── project_structure_filtered.txt
 jest.config.js
 mongo-test.sh
 nest-cli.json
-package-lock.json
 package.json
+[some]
+    └── [temp]
+        └── [path]
 [src]
+    ├── app.module.spec.ts
     ├── app.module.ts
     ├── [common]
         ├── constants.ts
+        ├── datasHelper.spec.ts
+        ├── datesHelper.ts
+        ├── types.ts
+        ├── utils.spec.ts
         └── utils.ts
+    ├── [config]
+        ├── config.module.spec.ts
+        ├── config.module.ts
+        ├── config.service.spec.ts
+        └── config.service.ts
+    ├── [files]
+        ├── [__mocks__]
+            └── mocks.ts
+        ├── [entities]
+            ├── media-temp.entity.ts
+            └── media.entity.ts
+        ├── file.interceptor.spec.ts
+        ├── file.interceptor.ts
+        ├── files.controller.spec.ts
+        ├── files.controller.ts
+        ├── files.module.ts
+        ├── files.service.spec.ts
+        ├── files.service.ts
+        ├── mediaDB.service.spec.ts
+        └── mediaDB.service.ts
+    ├── global.d.ts
+    ├── [jobs]
+        ├── [dto]
+            ├── image-store-service-input.ts
+            └── image-store-service-output.ts
+        ├── exif.processor.spec.ts
+        ├── exif.processor.ts
+        ├── file.processor.spec.ts
+        └── files.processor.ts
     ├── [keywords]
         ├── [entities]
             └── keywords.entity.ts
@@ -25,11 +73,15 @@ package.json
         ├── keywords.module.ts
         ├── keywords.service.spec.ts
         └── keywords.service.ts
+    ├── [logger]
+        ├── http-exception.filter.spec.ts
+        ├── http-exception.filter.ts
+        ├── logger.module.ts
+        ├── logger.service.spec.ts
+        └── logger.service.ts
+    ├── main.spec.ts
     ├── main.ts
-    ├── [media]
-        └── [entities]
-            └── media.entity.ts
-    └── [paths]
+    ├── [paths]
         ├── [dto]
             ├── check-directory-input.dto.ts
             └── check-directory-output.dto.ts
@@ -40,9 +92,14 @@ package.json
         ├── paths.module.ts
         ├── paths.service.spec.ts
         └── paths.service.ts
+    └── [queue]
+        └── queue.module.ts
 stop-all-dockers.sh
+[test]
+    └── setup.ts
 tsconfig.build.json
 tsconfig.json
+[uploadTemp]
 yarn.lock
 
 --- File Contents ---

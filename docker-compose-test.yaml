@@ -1,13 +1,33 @@
 version: "3.8"
 
 services:
-  mongo-test:
-    image : mongo:4.4
-    container_name: IDB_2.0_mongodb_test
-    user: nobody
-    volumes:
-      - /Users/artempriadkin/Documents/IDBVolume/mongodb:/data/db
-      # - /Users/artempriadkin/Development/test-data/mongo:/data/db
+  # mongo-test:
+  #   image : mongo:4.4
+  #   container_name: IDB_2.0_mongodb_test
+  #   user: nobody
+  #   volumes:
+  #     # - /Users/artempriadkin/Documents/IDBVolume/mongodb:/data/db
+  #     - /Users/artempriadkin/Development/test-data/mongo:/data/db
+  #   ports:
+  #     - "27017:27017"
+  #   restart: unless-stopped
+
+  # redis:
+  #   image: redis:7.2
+  #   container_name: IDB_redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - /Users/artempriadkin/Development/test-data/redis:/data
+  #   restart: unless-stopped
+
+  image_store_service:
+    build: ../image_store_service
+    container_name: image_store_service
     ports:
-      - "27017:27017"
+      - "3005:3005"
+    volumes:
+      - /Users/artempriadkin/Development/test-data/temp:/app/temp
+      - /Users/artempriadkin/Development/test-data/volumes:/app/volumes
+      - /Users/artempriadkin/Development/test-data/previews:/app/previews
     restart: unless-stopped

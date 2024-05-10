@@ -5,7 +5,7 @@ import { Keyword } from './entities/keywords.entity';
 import { MongoRepository, AggregationCursor } from 'typeorm';
 import { ObjectId } from 'mongodb';
 import { DBConfigConstants } from 'src/common/constants';
-import { Media } from 'src/media/entities/media.entity';
+import { Media } from 'src/files/entities/media.entity';
 
 const keywordsArrMock = ['nestjs', 'typeorm', 'testing'];
 

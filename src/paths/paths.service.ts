@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { MongoRepository } from 'typeorm';
 import { Paths } from './entities/paths.entity';
 import { DBConfigConstants } from 'src/common/constants';
-import { Media } from 'src/media/entities/media.entity';
+import { Media } from 'src/files/entities/media.entity';
 import { CheckDirectoryOutputDto } from './dto/check-directory-output.dto';
 import { removeExtraFirstSlash, removeExtraSlashes } from 'src/common/utils';
 

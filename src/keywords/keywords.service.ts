@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { MongoRepository, Repository } from 'typeorm';
 import { Keyword } from './entities/keywords.entity';
 import { DBConfigConstants } from 'src/common/constants';
-import { Media } from 'src/media/entities/media.entity';
+import { Media } from 'src/files/entities/media.entity';
 import { difference } from 'ramda';
 
 interface AggregatedKeywordsSetResult {

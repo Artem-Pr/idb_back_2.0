@@ -4,7 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Paths } from './entities/paths.entity';
 import { Repository } from 'typeorm';
 import { ObjectId } from 'mongodb';
-import { Media } from 'src/media/entities/media.entity';
+import { Media } from 'src/files/entities/media.entity';
 import { NotFoundException } from '@nestjs/common';
 
 describe('PathsService', () => {

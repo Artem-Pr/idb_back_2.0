@@ -1,39 +1,58 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { KeywordsModule } from './keywords/keywords.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { join } from 'path';
 import { PathsModule } from './paths/paths.module';
+import { FilesModule } from './files/files.module';
+import { QueueModule } from './queue/queue.module';
+import {
+  ServeStaticModule,
+  ServeStaticModuleOptions,
+} from '@nestjs/serve-static';
+import { ConfigService } from './config/config.service';
+import { MainDir } from './common/constants';
+import { ConfigModule } from './config/config.module';
+import { values } from 'ramda';
+import { LoggerModule } from './logger/logger.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
+    ServeStaticModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => {
+        const serveStaticConfig: ServeStaticModuleOptions[] = values(
+          MainDir,
+        ).map((dir) => ({
+          rootPath: configService.rootPaths[dir],
+          serveRoot: `/${dir}`,
+        }));
+        console.log('ServeStatic config: ', serveStaticConfig);
+
+        return serveStaticConfig;
+      },
+      inject: [ConfigService],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
-        console.log({
+        const config: TypeOrmModuleOptions = {
           type: 'mongodb',
-          url: configService.get<string>('MONGODB_URI'),
-          database: configService.get<string>('DB_NAME'),
+          url: configService.mongoDBUrl,
+          database: configService.dbName,
           entities: [join(__dirname, '**/*.entity{.ts,.js}')],
-          synchronize: configService.get<boolean>('DB_SYNCHRONIZE', false),
-        });
-
-        return {
-          type: 'mongodb',
-          url: configService.get<string>('MONGODB_URI'),
-          database: configService.get<string>('DB_NAME'),
-          entities: [join(__dirname, '**/*.entity{.ts,.js}')],
-          synchronize: configService.get<boolean>('DB_SYNCHRONIZE', false),
+          synchronize: configService.dbSynchronize,
         };
+        console.log('TypeOrm config: ', config);
+
+        return config;
       },
       inject: [ConfigService],
     }),
     KeywordsModule,
     PathsModule,
+    FilesModule,
+    QueueModule,
+    LoggerModule,
   ],
 })
 export class AppModule {}
