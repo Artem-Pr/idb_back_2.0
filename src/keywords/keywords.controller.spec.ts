@@ -11,8 +11,14 @@ describe('KeywordsController', () => {
 
   beforeEach(async () => {
     const mockKeywordsService = {
-      getKeywordsList: jest.fn().mockResolvedValue(mockedKeywords),
+      getAllKeywords: jest.fn().mockResolvedValue(mockedKeywords),
       getUnusedKeywords: jest.fn().mockResolvedValue(mockedUnusedKeywords),
+      removeUnusedKeywords: jest.fn().mockResolvedValue({
+        message: `Removed unused keywords: keyword1, keyword2`,
+      }),
+      removeUnusedKeyword: jest.fn().mockResolvedValue({
+        message: `Keyword keyword1 removed from unused keywords`,
+      }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -35,12 +41,26 @@ describe('KeywordsController', () => {
 
   it('should get keywords', async () => {
     await expect(controller.getKeywordsList()).resolves.toEqual(mockedKeywords);
-    expect(service.getKeywordsList).toHaveBeenCalled();
+    expect(service.getAllKeywords).toHaveBeenCalled();
   });
 
   it('should get unused keywords', async () => {
     await expect(controller.getUnusedKeywords()).resolves.toEqual(
       mockedUnusedKeywords,
     );
+  });
+
+  it('should remove unused keywords', async () => {
+    await expect(controller.removeUnusedKeywords()).resolves.toEqual({
+      message: `Removed unused keywords: keyword1, keyword2`,
+    });
+    expect(service.removeUnusedKeywords).toHaveBeenCalled();
+  });
+
+  it('should remove unused keyword', async () => {
+    await expect(controller.removeUnusedKeyword('keyword1')).resolves.toEqual({
+      message: `Keyword keyword1 removed from unused keywords`,
+    });
+    expect(service.removeUnusedKeyword).toHaveBeenCalled();
   });
 });

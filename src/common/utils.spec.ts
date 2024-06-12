@@ -171,7 +171,7 @@ describe('Utils', () => {
     );
 
     it('should return false for unsupported video MIME type', () => {
-      const unsupportedMimeType = 'video/x-msvideo';
+      const unsupportedMimeType = 'video/unsupported-type';
       expect(isSupportedVideoMimeType(unsupportedMimeType)).toBe(false);
     });
 

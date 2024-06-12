@@ -14,8 +14,8 @@ import {
   SupportedMimetypes,
 } from 'src/common/types';
 import { MainDir, PreviewOptions } from 'src/common/constants';
-import type { ImageStoreServiceOutputDto } from './dto/image-store-service-output';
-import type { ImageStoreServiceInputDto } from './dto/image-store-service-input';
+import type { ImageStoreServiceOutputDto } from './dto/image-store-service-output.dto';
+import type { ImageStoreServiceInputDto } from './dto/image-store-service-input.dto';
 import { Job } from 'bull';
 import { BadRequestException } from '@nestjs/common';
 

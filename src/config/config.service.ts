@@ -10,17 +10,21 @@ import {
   DEFAULT_PORT,
   Envs,
   Folders,
+  MainDir,
   MainDirPath,
   MainDirPaths,
   Protocols,
   defaultHost,
 } from 'src/common/constants';
+import type { DBFilePath } from 'src/common/types';
 
 export type Host = `${Protocols}://${typeof defaultHost}`;
 export type StaticHost =
   `${Protocols.HTTP | Protocols.HTTPS}://${typeof defaultHost}`;
 export type Domain = `${Host}${`:${number}` | ''}`;
 export type StaticDomain = `${StaticHost}${`:${number}` | ''}`;
+export type StaticPath<T extends DBFilePath = DBFilePath> =
+  `${StaticDomain}/${MainDir}${T}`;
 
 const isValidPort = (
   port: string | number | undefined,

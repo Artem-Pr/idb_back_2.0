@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import type { FilePaths } from './mediaDB.service';
 import { MediaDB } from './mediaDB.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { MediaTemp } from './entities/media-temp.entity';
@@ -11,6 +10,7 @@ import {
   createMockProcessFile,
   exifDataMock,
 } from './__mocks__/mocks';
+import type { FilePaths, GetSameFilesIfExist } from './types';
 
 describe('MediaDB', () => {
   let service: MediaDB;
@@ -58,7 +58,7 @@ describe('MediaDB', () => {
       jest.spyOn(tempRepository, 'save').mockResolvedValue(mediaTempMock);
 
       const expectedResponse = {
-        changeDate: undefined,
+        changeDate: null,
         description: 'test description',
         exif: {
           DateTimeOriginal: '2020-01-01 00:00:00',
@@ -79,6 +79,7 @@ describe('MediaDB', () => {
         preview: '/path/to-preview.jpg',
         rating: 5,
         size: 1024,
+        timeStamp: '00:00:00.000',
       };
 
       const result = await service.addFileToDBTemp(
@@ -94,7 +95,9 @@ describe('MediaDB', () => {
 
   describe('getSameFilesIfExist', () => {
     it('should return an array of files with the same original name', async () => {
-      const originalNameMock = 'test.jpg';
+      const originalNameMock: GetSameFilesIfExist = {
+        originalName: 'test.jpg',
+      };
       const mediaArrayMock: Media[] = [
         createMediaMock({ name: 'test1', originalNameWithoutExt: 'test' }),
         createMediaMock({ name: 'test2', originalNameWithoutExt: 'test' }),
@@ -105,19 +108,21 @@ describe('MediaDB', () => {
       const result = await service.getSameFilesIfExist(originalNameMock);
 
       expect(mediaRepository.find).toHaveBeenCalledWith({
-        where: { originalName: originalNameMock },
+        where: originalNameMock,
       });
       expect(result).toEqual(mediaArrayMock);
     });
 
     it('should return an empty array if no files with the same original name exist', async () => {
-      const originalNameMock = 'nonexistent.jpg';
+      const originalNameMock: GetSameFilesIfExist = {
+        originalName: 'nonexistent.jpg',
+      };
       jest.spyOn(mediaRepository, 'find').mockResolvedValue([]);
 
       const result = await service.getSameFilesIfExist(originalNameMock);
 
       expect(mediaRepository.find).toHaveBeenCalledWith({
-        where: { originalName: originalNameMock },
+        where: originalNameMock,
       });
       expect(result).toEqual([]);
     });

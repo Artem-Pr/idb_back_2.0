@@ -1,4 +1,4 @@
-import { ImageStoreServiceInputDto } from 'src/jobs/dto/image-store-service-input';
+import { ImageStoreServiceInputDto } from 'src/jobs/dto/image-store-service-input.dto';
 import type { SupportedMimetypes } from './types';
 import { ScreenshotsConfig } from 'fluent-ffmpeg';
 
@@ -19,6 +19,7 @@ export const DEFAULT_HOST = `${Protocols.HTTP}://${defaultHost}`;
 export const DEFAULT_MONGODB_URI = 'mongodb://localhost:27017';
 export const DEFAULT_DB_NAME = 'IDBase';
 export const DEFAULT_DB_SYNCHRONIZE = false;
+export const DEFAULT_TIME_STAMP = '00:00:00.000';
 
 export enum Envs {
   DEV = 'development',
@@ -66,6 +67,8 @@ export enum DBCollections {
   config = 'config',
   photos = 'photos',
   temp = 'temp',
+  keywords = 'keywords',
+  paths = 'paths',
 }
 
 export enum DBConfigConstants {
@@ -75,10 +78,19 @@ export enum DBConfigConstants {
 
 export enum ControllerPrefix {
   keywords = 'keywords',
+  oldKeywords = 'old-keywords',
+  keywordsItem = 'keyword/:keyword', // TODO: rename to unused-keyword/:keyword
   paths = 'paths',
+  pathsOld = 'paths-old',
   unusedKeywords = 'unused-keywords',
+  unusedKeywordsOld = 'unused-keywords-old',
   checkDirectory = 'check-directory',
+  checkDirectoryOld = 'check-directory-old',
+  checkDuplicates = 'check-duplicates',
+  checkDuplicatesByFilePaths = 'check-duplicates-by-file-paths',
   uploadFile = 'uploadItem', // TODO: rename to upload-file
+  moveKeywordsToNewCollection = 'move-keywords-to-new-collection',
+  movePathsToNewCollection = 'move-paths-to-new-collection',
 }
 
 export enum PreviewPostfix {
@@ -153,6 +165,18 @@ export enum SupportedVideoExtensions {
   wmv = 'wmv',
 }
 
+export enum SupportedVideoMimeTypes {
+  mkv = 'video/x-matroska',
+  webm = 'video/webm',
+  mp4 = 'video/mp4',
+  mpeg = 'video/mpeg',
+  ogg = 'video/ogg',
+  flv = 'video/x-flv',
+  mov = 'video/quicktime',
+  avi = 'video/x-msvideo',
+  wmv = 'video/x-ms-wmv',
+}
+
 export const SUPPORTED_IMAGE_EXTENSIONS: Array<
   SupportedImageExtensions | Uppercase<SupportedImageExtensions>
 > = [
@@ -174,10 +198,7 @@ export const SUPPORTED_VIDEO_EXTENSIONS: Array<
 export const SUPPORTED_IMAGE_MIMETYPES = Object.values(
   SupportedImageExtensions,
 ).map((mimetype): SupportedMimetypes['image'] => `image/${mimetype}`);
-
-export const SUPPORTED_VIDEO_MIMETYPES = Object.values(
-  SupportedVideoExtensions,
-).map((mimetype): SupportedMimetypes['video'] => `video/${mimetype}`);
+export const SUPPORTED_VIDEO_MIMETYPES = Object.values(SupportedVideoMimeTypes);
 
 export const SUPPORTED_MIMETYPES = [
   ...SUPPORTED_IMAGE_MIMETYPES,

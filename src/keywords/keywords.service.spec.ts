@@ -1,21 +1,21 @@
 import { Test } from '@nestjs/testing';
 import { KeywordsService } from './keywords.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Keyword } from './entities/keywords.entity';
 import { MongoRepository, AggregationCursor } from 'typeorm';
 import { ObjectId } from 'mongodb';
-import { DBConfigConstants } from 'src/common/constants';
 import { Media } from 'src/files/entities/media.entity';
+import { Keywords } from './entities/keywords.entity';
+import { KeywordOld } from './entities/keywordsOld.entity';
+import { HttpException, HttpStatus } from '@nestjs/common';
 
 const keywordsArrMock = ['nestjs', 'typeorm', 'testing'];
 
 describe('KeywordsService', () => {
   let service: KeywordsService;
-  let keywordsRepositoryMock: MongoRepository<Keyword>;
+  let keywordsRepositoryMock: MongoRepository<Keywords>;
   let mediaMongoRepositoryMock: MongoRepository<Media>;
 
   beforeEach(async () => {
-    // Mock for the MediaMongoRepository
     mediaMongoRepositoryMock = {
       aggregate: jest.fn().mockReturnThis(),
       toArray: jest.fn().mockResolvedValue([
@@ -25,23 +25,32 @@ describe('KeywordsService', () => {
       ]),
     } as any;
 
-    // Mock for the KeywordsRepository
     keywordsRepositoryMock = {
       manager: {
         getMongoRepository: jest.fn(() => mediaMongoRepositoryMock),
       },
       findOne: jest.fn().mockResolvedValue({
         _id: new ObjectId(),
-        name: DBConfigConstants.keywords,
-        keywordsArr: keywordsArrMock,
+        keyword: 'nestjs',
       }),
+      find: jest
+        .fn()
+        .mockResolvedValue(
+          keywordsArrMock.map((keyword) => ({ _id: new ObjectId(), keyword })),
+        ),
+      deleteMany: jest.fn().mockResolvedValue({}),
+      insertMany: jest.fn().mockResolvedValue([]),
     } as any;
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         KeywordsService,
         {
-          provide: getRepositoryToken(Keyword),
+          provide: getRepositoryToken(Keywords),
+          useValue: keywordsRepositoryMock,
+        },
+        {
+          provide: getRepositoryToken(KeywordOld),
           useValue: keywordsRepositoryMock,
         },
       ],
@@ -54,14 +63,16 @@ describe('KeywordsService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('getKeywordsList', () => {
-    it('should return an empty array if no keywords are found', async () => {
-      jest.spyOn(keywordsRepositoryMock, 'findOne').mockResolvedValueOnce(null);
-      expect(await service.getKeywordsList()).toEqual([]);
-    });
+  describe('getAllKeywords', () => {
+    it('should return all keywords', async () => {
+      jest.spyOn(keywordsRepositoryMock, 'find');
 
-    it('should return keywords array if keywords are found', async () => {
-      expect(await service.getKeywordsList()).toEqual(keywordsArrMock);
+      // Call the getAllKeywords method
+      const keywords = await service.getAllKeywords();
+
+      // Assertions
+      expect(keywordsRepositoryMock.find).toHaveBeenCalled();
+      expect(keywords).toEqual(keywordsArrMock);
     });
   });
 
@@ -70,7 +81,7 @@ describe('KeywordsService', () => {
       const unusedKeywords = await service.getUnusedKeywords();
 
       expect(unusedKeywords).toEqual(keywordsArrMock);
-      expect(keywordsRepositoryMock.findOne).toHaveBeenCalled();
+      expect(keywordsRepositoryMock.find).toHaveBeenCalled();
       expect(mediaMongoRepositoryMock.aggregate).toHaveBeenCalled();
       expect((mediaMongoRepositoryMock as any).toArray).toHaveBeenCalled();
     });
@@ -108,6 +119,95 @@ describe('KeywordsService', () => {
       );
 
       expect(await service.getUnusedKeywords()).toEqual([]);
+    });
+  });
+
+  describe('removeUnusedKeywords', () => {
+    it('should remove unused keywords and return a success message', async () => {
+      const unusedKeywordsMock = ['keyword1', 'keyword2'];
+      jest
+        .spyOn(service, 'getUnusedKeywords')
+        .mockResolvedValueOnce(unusedKeywordsMock);
+      jest.spyOn(service, 'removeKeywords');
+
+      const result = await service.removeUnusedKeywords();
+
+      expect(service.getUnusedKeywords).toHaveBeenCalledTimes(1);
+      expect(service.removeKeywords).toHaveBeenCalledWith(unusedKeywordsMock);
+      expect(result).toEqual({
+        message: `Removed unused keywords: ${unusedKeywordsMock.join(', ')}`,
+      });
+    });
+
+    it('should throw an exception when there are no unused keywords', async () => {
+      jest.spyOn(service, 'getUnusedKeywords').mockResolvedValueOnce([]);
+
+      await expect(service.removeUnusedKeywords()).rejects.toThrow(
+        new HttpException('No unused keywords found', HttpStatus.BAD_REQUEST),
+      );
+    });
+  });
+
+  describe('removeUnusedKeyword', () => {
+    it('should remove an unused keyword and return a success message', async () => {
+      const keyword = 'keyword1';
+      jest.spyOn(service, 'getUnusedKeywords').mockResolvedValueOnce([keyword]);
+      jest.spyOn(service, 'removeKeywords');
+
+      const result = await service.removeUnusedKeyword(keyword);
+
+      expect(service.getUnusedKeywords).toHaveBeenCalled();
+      expect(service.removeKeywords).toHaveBeenCalledWith([keyword]);
+      expect(result).toEqual({
+        message: `Keyword ${keyword} removed from unused keywords`,
+      });
+    });
+
+    it('should throw an exception when the keyword is not found among unused keywords', async () => {
+      const keyword = 'keyword1';
+      jest.spyOn(service, 'getUnusedKeywords').mockResolvedValueOnce([]);
+
+      await expect(service.removeUnusedKeyword(keyword)).rejects.toThrow(
+        new HttpException(
+          `Keyword ${keyword} not found in unused keywords`,
+          HttpStatus.BAD_REQUEST,
+        ),
+      );
+    });
+  });
+
+  describe('addKeywords', () => {
+    it('should add new keywords that do not exist yet', async () => {
+      const newKeywords = ['nodejs', 'typescript'];
+      const existedKeywords = keywordsArrMock;
+      const allKeywords = [...newKeywords, ...existedKeywords];
+      jest.spyOn(keywordsRepositoryMock, 'find');
+      jest.spyOn(keywordsRepositoryMock, 'insertMany');
+
+      await service.addKeywords(allKeywords);
+
+      expect(keywordsRepositoryMock.find).toHaveBeenCalledWith({
+        where: {
+          keyword: { $in: allKeywords },
+        },
+      });
+      expect(keywordsRepositoryMock.insertMany).toHaveBeenCalledWith(
+        newKeywords.map((keyword) => ({ keyword })),
+      );
+    });
+
+    it('should not add keywords that already exist', async () => {
+      jest.spyOn(keywordsRepositoryMock, 'find');
+      jest.spyOn(keywordsRepositoryMock, 'insertMany');
+
+      await service.addKeywords(keywordsArrMock);
+
+      expect(keywordsRepositoryMock.find).toHaveBeenCalledWith({
+        where: {
+          keyword: { $in: keywordsArrMock },
+        },
+      });
+      expect(keywordsRepositoryMock.insertMany).not.toHaveBeenCalled();
     });
   });
 });

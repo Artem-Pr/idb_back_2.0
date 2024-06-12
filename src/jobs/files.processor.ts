@@ -29,8 +29,8 @@ import {
   isSupportedVideoMimeType,
 } from 'src/common/utils';
 import { ConfigService } from 'src/config/config.service';
-import type { ImageStoreServiceInputDto } from './dto/image-store-service-input';
-import type { ImageStoreServiceOutputDto } from './dto/image-store-service-output';
+import type { ImageStoreServiceInputDto } from './dto/image-store-service-input.dto';
+import type { ImageStoreServiceOutputDto } from './dto/image-store-service-output.dto';
 import { CustomLogger } from 'src/logger/logger.service';
 
 export interface ImagePreviewJob extends FileProcessingJob {

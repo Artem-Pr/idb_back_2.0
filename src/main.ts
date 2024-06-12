@@ -10,7 +10,7 @@ export async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Strip properties that do not have any decorators
+      whitelist: false, // Strip properties that do not have any decorators
       forbidNonWhitelisted: true, // Throw errors for non-whitelisted properties
       transform: true, // Automatically transform payloads to be objects typed according to their DTO classes
     }),

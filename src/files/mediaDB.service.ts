@@ -1,29 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import type { FileProcessingJob } from 'src/jobs/files.processor';
 import { Repository } from 'typeorm';
 import { MediaTemp } from './entities/media-temp.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Tags } from 'exiftool-vendored';
 import { toDateUTC } from 'src/common/datesHelper';
-import type {
-  DBFilePath,
-  DBFullSizePath,
-  DBPreviewPath,
-  FileNameWithExt,
-} from 'src/common/types';
 import { Media } from './entities/media.entity';
-
-export interface ProcessFile extends Express.Multer.File {
-  filename: FileProcessingJob['fileName'];
-  mimetype: FileProcessingJob['fileType'];
-  originalname: FileNameWithExt;
-}
-
-export interface FilePaths {
-  filePath: DBFilePath;
-  fullSizePath?: DBFullSizePath;
-  previewPath: DBPreviewPath;
-}
+import {
+  getDescriptionFromExif,
+  getKeywordsFromExif,
+  getOriginalDateFromExif,
+} from 'src/common/exifHelpers';
+import { DEFAULT_TIME_STAMP } from 'src/common/constants';
+import type { FilePaths, GetSameFilesIfExist, ProcessFile } from './types';
 
 @Injectable()
 export class MediaDB {
@@ -40,40 +28,32 @@ export class MediaDB {
     file: ProcessFile,
   ): Promise<MediaTemp> {
     // добавляем в filedata дату создания фоточки (при необходимости)
-    // нашел много разных вариантов даты, возможно надо их протестировать
-    const originalDate =
-      exifData.DateTimeOriginal ||
-      exifData.CreationDate || //Видео для iPhone с тайм зоной
-      exifData.CreateDate ||
-      exifData.ModifyDate ||
-      exifData.MediaCreateDate;
+    const originalDate = getOriginalDateFromExif(exifData);
 
     // Create a new instance of MediaTemp
     const mediaTemp: MediaTemp = new MediaTemp();
 
-    // mediaTemp.tempName = file.filename;
-    mediaTemp.originalName = file.originalname;
-    mediaTemp.mimetype = file.mimetype;
-    mediaTemp.size = file.size;
-    mediaTemp.changeDate = (file as any)?.changeDate; // TODO: fix this
-    mediaTemp.megapixels = exifData.Megapixels;
-    mediaTemp.imageSize = exifData.ImageSize;
-    mediaTemp.keywords = exifData.Keywords || [];
-    mediaTemp.originalDate = toDateUTC(originalDate);
-    mediaTemp.filePath = filePaths.filePath;
-    mediaTemp.preview = filePaths.previewPath;
-    mediaTemp.fullSizeJpg = filePaths.fullSizePath;
+    mediaTemp.changeDate = null;
+    mediaTemp.description = getDescriptionFromExif(exifData);
     mediaTemp.exif = exifData;
-
-    // Optional fields - provide default values or logic to calculate
-    mediaTemp.rating = exifData.Rating;
-    mediaTemp.description = exifData.Description;
+    mediaTemp.filePath = filePaths.filePath;
+    mediaTemp.fullSizeJpg = filePaths.fullSizePath || null;
+    mediaTemp.imageSize = exifData.ImageSize || null;
+    mediaTemp.keywords = getKeywordsFromExif(exifData);
+    mediaTemp.megapixels = exifData.Megapixels || null;
+    mediaTemp.mimetype = file.mimetype;
+    mediaTemp.originalDate = toDateUTC(originalDate);
+    mediaTemp.originalName = file.originalname;
+    mediaTemp.preview = filePaths.previewPath;
+    mediaTemp.rating = exifData.Rating || null;
+    mediaTemp.size = file.size;
+    mediaTemp.timeStamp = DEFAULT_TIME_STAMP;
 
     // Save the new MediaTemp entity to the database
     return await this.tempRepository.save(mediaTemp);
   }
 
-  async getSameFilesIfExist(originalName: FileNameWithExt) {
-    return this.mediaRepository.find({ where: { originalName } });
+  async getSameFilesIfExist(where: GetSameFilesIfExist) {
+    return this.mediaRepository.find({ where: where });
   }
 }

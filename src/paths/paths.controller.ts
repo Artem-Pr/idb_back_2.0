@@ -13,9 +13,25 @@ import { CheckDirectoryInputDto } from './dto/check-directory-input.dto';
 export class PathsController {
   constructor(private readonly pathsService: PathsService) {}
 
+  @Get(ControllerPrefix.pathsOld)
+  async getPathsOld() {
+    return await this.pathsService.getPathsOld();
+  }
+
   @Get(ControllerPrefix.paths)
   async getPaths() {
     return await this.pathsService.getPaths();
+  }
+
+  @Get(ControllerPrefix.movePathsToNewCollection)
+  async movePathsToNewCollection() {
+    return await this.pathsService.movePathsToNewCollection();
+  }
+
+  @Get(ControllerPrefix.checkDirectoryOld)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async checkDirectoryOld(@Query() query: CheckDirectoryInputDto) {
+    return await this.pathsService.checkDirectoryOld(query.directory);
   }
 
   @Get(ControllerPrefix.checkDirectory)

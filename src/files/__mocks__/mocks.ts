@@ -1,9 +1,134 @@
 import { Readable } from 'stream';
-import type { ProcessFile } from '../mediaDB.service';
-import type { Tags } from 'exiftool-vendored';
 import { Media } from '../entities/media.entity';
 import { ObjectId } from 'mongodb';
 import { MediaTemp } from '../entities/media-temp.entity';
+import type { ProcessFile } from '../types';
+import type { UploadFileOutputDto } from '../dto/upload-file-output.dto';
+import { omit } from 'ramda';
+
+export const exifDataMock = {
+  DateTimeOriginal: '2020-01-01 00:00:00',
+  Description: 'test description',
+  GPSPosition: '42.5, 42.5',
+  ImageSize: '1920x1080',
+  Megapixels: 12,
+  Rating: 5,
+};
+
+export const uploadFileMock: UploadFileOutputDto = {
+  exif: exifDataMock,
+  properties: {
+    id: '665a0291b9e676b1015cf8b9',
+    changeDate: null,
+    duplicates: [
+      {
+        filePath: '/main/для теста базы/IMG_1728.heic',
+        mimetype: 'image/heic',
+        originalName: 'IMG_1728.heic',
+        staticPreview:
+          'http://localhost:3000/previews/image-heic/preview/2023.07.02 - originalDate/9eec89c3e7cf18920302f4e55d10aa52-preview.jpg',
+        staticPath:
+          'http://localhost:3000/previews/image-heic/fullSize/2023.07.02 - originalDate/9eec89c3e7cf18920302f4e55d10aa52-fullSize.jpg',
+      },
+      {
+        filePath: '/main/SD/IMG_1728.heic',
+        mimetype: 'image/heic',
+        originalName: 'IMG_1728.heic',
+        staticPreview:
+          'http://localhost:3000/previews/image-heic/preview/2023.07.02 - originalDate/f7d6132c59acb526c1df74f438c744fa-preview.jpg',
+        staticPath:
+          'http://localhost:3000/previews/image-heic/fullSize/2023.07.02 - originalDate/f7d6132c59acb526c1df74f438c744fa-fullSize.jpg',
+      },
+    ],
+    description: exifDataMock.Description,
+    filePath: null,
+    imageSize: '2268x4032',
+    keywords: [],
+    megapixels: 9.1,
+    mimetype: 'image/heic',
+    originalDate: new Date('2023-07-02T17:36:33.000Z'),
+    originalName: 'IMG_1728.heic',
+    rating: 4,
+    size: 1950900,
+    staticPath:
+      'http://localhost:3000/previews/5136bc14-512f-47f9-a551-304bb254f528-fullSize.jpg',
+    staticPreview:
+      'http://localhost:3000/temp/5136bc14-512f-47f9-a551-304bb254f528-preview.jpg',
+    timeStamp: '00:00:00.000',
+  },
+};
+
+export class UploadFileMock {
+  _exif: UploadFileOutputDto['exif'] = uploadFileMock.exif;
+  _properties: UploadFileOutputDto['properties'] = uploadFileMock.properties;
+
+  constructor({ exif, properties }: Partial<UploadFileOutputDto> = {}) {
+    exif && (this.exif = exif);
+    properties && (this.properties = properties);
+  }
+
+  set exif(exif: UploadFileOutputDto['exif']) {
+    this._exif = exif;
+  }
+  addExif(exif: UploadFileOutputDto['exif']) {
+    this._exif = { ...this._exif, ...exif };
+  }
+
+  set properties(properties: UploadFileOutputDto['properties']) {
+    this._properties = properties;
+  }
+  addProperties(properties: Partial<UploadFileOutputDto['properties']>) {
+    this._properties = { ...this._properties, ...properties };
+  }
+
+  set duplicates(duplicates: UploadFileOutputDto['properties']['duplicates']) {
+    this._properties.duplicates = duplicates;
+  }
+
+  addDuplicates(duplicates: UploadFileOutputDto['properties']['duplicates']) {
+    this._properties.duplicates = [
+      ...this._properties.duplicates,
+      ...duplicates,
+    ];
+  }
+
+  set staticPath(staticPath: UploadFileOutputDto['properties']['staticPath']) {
+    this._properties.staticPath = staticPath;
+  }
+
+  set staticPreview(
+    staticPreview: UploadFileOutputDto['properties']['staticPreview'],
+  ) {
+    this._properties.staticPreview = staticPreview;
+  }
+
+  updateFromMedia(media: Media) {
+    if (media.exif) {
+      this.addExif(media.exif);
+    }
+
+    const properties: UploadFileOutputDto['properties'] = {
+      id: media._id.toString(),
+      duplicates: [],
+      filePath: null,
+      staticPath: this._properties.staticPath,
+      staticPreview: this._properties.staticPreview,
+      ...omit(['exif', 'filePath', 'preview', 'fullSizeJpg', '_id'], media),
+    };
+
+    this.properties = {
+      ...this._properties,
+      ...properties,
+    };
+  }
+
+  get uploadFile(): UploadFileOutputDto {
+    return {
+      exif: this._exif,
+      properties: this._properties,
+    };
+  }
+}
 
 export function createMockProcessFile(): ProcessFile {
   const mock: ProcessFile = {
@@ -24,15 +149,6 @@ export function createMockProcessFile(): ProcessFile {
   return mock;
 }
 
-export const exifDataMock: Tags = {
-  DateTimeOriginal: '2020-01-01 00:00:00',
-  Description: 'test description',
-  GPSPosition: '42.5, 42.5',
-  ImageSize: '1920x1080',
-  Megapixels: 12,
-  Rating: 5,
-};
-
 export function createMediaMock({
   id = new ObjectId(),
   name = 'mockFile',
@@ -51,7 +167,7 @@ export function createMediaMock({
   media.megapixels = exifDataMock.Megapixels;
   media.imageSize = exifDataMock.ImageSize;
   media.keywords = ['test', 'media'];
-  media.changeDate = Date.now();
+  media.changeDate = new Date('2023-07-02T17:36:33.000Z').getTime();
   media.originalDate = new Date(
     typeof exifDataMock.DateTimeOriginal === 'string'
       ? exifDataMock.DateTimeOriginal

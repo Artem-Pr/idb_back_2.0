@@ -13,7 +13,6 @@ describe('PathsController', () => {
     directory: 'main/nestjs',
   };
   const mockCheckDirectoryResponse: CheckDirectoryOutputDto = {
-    success: true,
     numberOfFiles: 0,
     numberOfSubdirectories: 0,
   };

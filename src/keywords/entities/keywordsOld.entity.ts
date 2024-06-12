@@ -1,11 +1,14 @@
 import { DBCollections } from 'src/common/constants';
 import { Entity, ObjectIdColumn, Column, ObjectId } from 'typeorm';
 
-@Entity(DBCollections.keywords)
-export class Keywords {
+@Entity(DBCollections.config)
+export class KeywordOld {
   @ObjectIdColumn()
   _id: ObjectId;
 
   @Column()
-  keyword: string;
+  name: string;
+
+  @Column('array')
+  keywordsArr: string[];
 }

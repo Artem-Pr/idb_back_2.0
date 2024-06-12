@@ -16,6 +16,9 @@ import type {
   SupportedMimetypes,
 } from './types';
 
+export const deepCopy = <T extends object>(obj: T) =>
+  JSON.parse(JSON.stringify(obj)) as T;
+
 export const removeExtraFirstSlash = (value: string): string =>
   value.replace(/^\/+/, '');
 

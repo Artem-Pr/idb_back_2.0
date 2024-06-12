@@ -9,6 +9,15 @@ import {
 } from 'src/common/types';
 import { Entity, ObjectIdColumn, Column, ObjectId, Index } from 'typeorm';
 
+type WithNullOnly<T> = Exclude<T, undefined> | null;
+type ExifDescription = WithNullOnly<
+  Tags['Description' | 'ImageDescription' | 'UserComment' | 'Caption-Abstract']
+>;
+type ExifMegapixels = WithNullOnly<Tags['Megapixels']>;
+type ExifImageSize = WithNullOnly<Tags['ImageSize']>;
+type ExifKeywords = Exclude<Tags['Keywords' | 'Subject'], string | undefined>;
+type ExifRating = WithNullOnly<Tags['Rating']>;
+
 @Entity(DBCollections.photos)
 export class Media {
   @ObjectIdColumn()
@@ -25,21 +34,21 @@ export class Media {
   size: number;
 
   @Column()
-  megapixels?: number;
+  megapixels: ExifMegapixels;
 
   @Column()
-  imageSize?: string;
+  imageSize: ExifImageSize;
 
   @Column('array')
   @Index()
-  keywords: string | string[];
+  keywords: ExifKeywords;
 
   @Column()
-  changeDate?: number | string;
+  changeDate: number | null;
 
   @Column()
   @Index()
-  originalDate?: Date; // TODO: check type
+  originalDate: Date;
 
   @Column()
   @Index()
@@ -49,16 +58,16 @@ export class Media {
   preview: DBPreviewPath;
 
   @Column()
-  fullSizeJpg?: DBFullSizePath;
+  fullSizeJpg: DBFullSizePath | null;
 
   @Column()
-  rating?: number;
+  rating: ExifRating;
 
   @Column()
-  description?: string;
+  description: ExifDescription;
 
   @Column()
-  timeStamp?: string; // 00:00:00.100
+  timeStamp: string; // default: 00:00:00.000
 
   @Column()
   exif: Tags;

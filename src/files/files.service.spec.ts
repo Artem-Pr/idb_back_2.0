@@ -1,11 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import type {
-  DuplicateFile,
-  ProcessFileResultDeprecated,
-} from './files.service';
 import { FilesService } from './files.service';
 import type { Job, Queue } from 'bull';
-import type { ProcessFile } from './mediaDB.service';
 import { MediaDB } from './mediaDB.service';
 import { getQueueToken } from '@nestjs/bull';
 import { Processors, MainDir } from 'src/common/constants';
@@ -13,69 +8,20 @@ import type { FileProcessingJob } from 'src/jobs/files.processor';
 import type { ExifData, GetExifJob } from 'src/jobs/exif.processor';
 import { ConfigService } from 'src/config/config.service';
 import { MediaTemp } from './entities/media-temp.entity';
-import type { FileNameWithExt } from 'src/common/types';
-import type { ImageStoreServiceOutputDto } from 'src/jobs/dto/image-store-service-output';
+import type { ImageStoreServiceOutputDto } from 'src/jobs/dto/image-store-service-output.dto';
 import * as utils from 'src/common/utils';
 import {
   createMediaMock,
   createMediaTempMock,
   exifDataMock,
+  UploadFileMock,
 } from './__mocks__/mocks';
 import { ObjectId } from 'mongodb';
+import type { GetSameFilesIfExist, ProcessFile } from './types';
+import type { Media } from './entities/media.entity';
 
 const exifJobResult: ExifData = {
   'test.jpg': exifDataMock,
-};
-
-const fileProcessingResult: ProcessFileResultDeprecated = {
-  DBFullPath: '/path/to/mockTempFile-preview.jpg',
-  DBFullPathFullSize: '/path/to/mockTempFile-fullSize.jpg',
-  fullSizeJpg: 'http://localhost:3000/temp/path/to/mockTempFile-fullSize.jpg',
-  fullSizeJpgPath: 'uploadTemp(remove)/path/to/mockTempFile-fullSize.jpg',
-  preview: 'http://localhost:3000/temp/path/to/mockTempFile-preview.jpg',
-  tempPath: `uploadTemp(remove)/test`,
-  existedFilesArr: [
-    {
-      filePath: '/path/to/duplicate1.jpg',
-      fullSizeJpgPath:
-        'http://localhost:3000/previews/path/to/duplicate1-fullSize.jpg',
-      originalName: 'duplicate.jpg',
-      originalPath: 'http://localhost:3000/previews/path/to/duplicate1.jpg',
-      preview:
-        'http://localhost:3000/previews/path/to/mockTempFile-preview.jpg',
-    },
-    {
-      filePath: '/path/to/duplicate2.jpg',
-      fullSizeJpgPath:
-        'http://localhost:3000/previews/path/to/duplicate2-fullSize.jpg',
-      originalName: 'duplicate.jpg',
-      originalPath: 'http://localhost:3000/previews/path/to/duplicate2.jpg',
-      preview:
-        'http://localhost:3000/previews/path/to/mockTempFile-preview.jpg',
-    },
-  ],
-  newResponse: {
-    exif: exifDataMock,
-    existedFilesArr: [
-      {
-        filePath: '/path/to/duplicate1.jpg',
-        originalName: 'duplicate.jpg',
-        staticFullSizeJpg:
-          'http://localhost:3000/previews/path/to/duplicate1-fullSize.jpg',
-      },
-      {
-        filePath: '/path/to/duplicate2.jpg',
-        originalName: 'duplicate.jpg',
-        staticFullSizeJpg:
-          'http://localhost:3000/previews/path/to/duplicate2-fullSize.jpg',
-      },
-    ],
-    id: '662eb6a4aece4209057aa5d0',
-    staticFullSizeJpg:
-      'http://localhost:3000/temp/path/to/mockTempFile-fullSize.jpg',
-    staticPreview:
-      'http://localhost:3000/temp/path/to/mockTempFile-preview.jpg',
-  },
 };
 
 const previewJobResult: ImageStoreServiceOutputDto = {
@@ -104,14 +50,48 @@ const mockDuplicates = [
 const mediaTempResponseMock = createMediaTempMock({
   id: new ObjectId('662eb6a4aece4209057aa5d0'),
 });
+const mockUpload = new UploadFileMock();
+
+const resetMockUpload = () => {
+  mockUpload.updateFromMedia(mediaTempResponseMock);
+  mockUpload.staticPath =
+    'http://localhost:3000/temp/path/to/mockTempFile-fullSize.jpg';
+  mockUpload.staticPreview =
+    'http://localhost:3000/temp/path/to/mockTempFile-preview.jpg';
+  mockUpload.duplicates = [
+    {
+      filePath: '/path/to/duplicate1.jpg',
+      mimetype: 'image/jpeg',
+      originalName: 'duplicate.jpg',
+      staticPath:
+        'http://localhost:3000/previews/path/to/duplicate1-fullSize.jpg',
+      staticPreview:
+        'http://localhost:3000/previews/path/to/duplicate1-preview.jpg',
+    },
+    {
+      filePath: '/path/to/duplicate2.jpg',
+      mimetype: 'image/jpeg',
+      originalName: 'duplicate.jpg',
+      staticPath:
+        'http://localhost:3000/previews/path/to/duplicate2-fullSize.jpg',
+      staticPreview:
+        'http://localhost:3000/previews/path/to/duplicate2-preview.jpg',
+    },
+  ];
+};
 
 describe('FilesService', () => {
   let service: FilesService;
   let fileQueue: Queue<FileProcessingJob>;
   let exifQueue: Queue<GetExifJob>;
   let mediaDB: MediaDB;
+  let addFileToDBTemp: jest.Mock<MediaTemp>;
+  let getSameFilesIfExist: jest.Mock<GetSameFilesIfExist>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
+    addFileToDBTemp = jest.fn().mockReturnValue(mediaTempResponseMock);
+    getSameFilesIfExist = jest.fn().mockReturnValue(mockDuplicates);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FilesService,
@@ -126,8 +106,8 @@ describe('FilesService', () => {
         {
           provide: MediaDB,
           useValue: {
-            getSameFilesIfExist: jest.fn(() => mockDuplicates),
-            addFileToDBTemp: jest.fn(() => mediaTempResponseMock),
+            getSameFilesIfExist,
+            addFileToDBTemp,
           },
         },
         {
@@ -149,8 +129,20 @@ describe('FilesService', () => {
     mediaDB = module.get<MediaDB>(MediaDB);
   });
 
+  beforeEach(() => {
+    jest
+      .spyOn(mediaDB, 'addFileToDBTemp')
+      .mockReturnValue(
+        new Promise((resolve) => resolve(mediaTempResponseMock)),
+      );
+    jest
+      .spyOn(mediaDB, 'getSameFilesIfExist')
+      .mockReturnValue(new Promise((resolve) => resolve(mockDuplicates)));
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
+    resetMockUpload();
   });
 
   it('should be defined', () => {
@@ -187,7 +179,6 @@ describe('FilesService', () => {
       [ProcessFile, ImageStoreServiceOutputDto, ExifData],
       any
     >;
-    let prepareOLDResponse: jest.SpyInstance;
     let resolveAllSettledSpy: jest.SpyInstance;
 
     beforeEach(() => {
@@ -195,13 +186,38 @@ describe('FilesService', () => {
       finishAllQueues = jest.spyOn(service, 'finishAllQueues');
       pushFileToMediaDBTemp = jest.spyOn(service, 'pushFileToMediaDBTemp');
       resolveAllSettledSpy = jest.spyOn(utils, 'resolveAllSettled');
-      prepareOLDResponse = jest.spyOn(service, 'prepareOLDResponse');
     });
 
     it('should process a file correctly and return the result', async () => {
       const result = await service.processFile(file);
 
-      expect(result).toEqual(fileProcessingResult);
+      expect(result).toEqual(mockUpload.uploadFile);
+    });
+
+    it('should process a file and return the result when staticPath creates from filePath', async () => {
+      const newMediaTempResponseMock = {
+        ...mediaTempResponseMock,
+        fullSizeJpg: null,
+      };
+
+      mockUpload.staticPath =
+        'http://localhost:3000/temp/path/to/mockTempFile.jpg';
+
+      jest
+        .spyOn(mediaDB, 'addFileToDBTemp')
+        .mockReturnValue(
+          new Promise((resolve) => resolve(newMediaTempResponseMock)),
+        );
+
+      const fileHeic = {
+        filename: 'test.heic',
+        mimetype: 'image/heic',
+        originalname: 'original_test.heic',
+      } as Partial<ProcessFile> as ProcessFile;
+
+      const result = await service.processFile(fileHeic);
+
+      expect(result).toEqual(mockUpload.uploadFile);
     });
 
     it('should start all queues', async () => {
@@ -247,60 +263,6 @@ describe('FilesService', () => {
         duplicatesPromise,
         mediaTempPromise,
       ]);
-    });
-
-    it('should call prepareOLDResponse with params', async () => {
-      const expectedDuplicates = mockDuplicates.map(
-        ({ filePath, fullSizeJpg, originalName }) => ({
-          filePath,
-          fullSizeJpg,
-          originalName,
-        }),
-      );
-
-      await service.processFile(file);
-
-      expect(prepareOLDResponse).toHaveBeenCalledWith(
-        mediaTempResponseMock,
-        expectedDuplicates,
-        'test.jpg',
-      );
-    });
-  });
-
-  describe('prepareOLDResponse', () => {
-    const mockedAddedMediaTempFile = {
-      fullSizeJpg: '/path/to-fullSize.jpg',
-      preview: '/path/to-preview.jpg',
-    } as Partial<MediaTemp> as Required<MediaTemp>;
-    const duplicates: DuplicateFile[] = []; // Assuming no duplicates for the basic test
-    const filename: FileNameWithExt = 'image_temp.jpg';
-    const filenameWithoutExt = 'image_temp';
-
-    it('should return a deprecated response format', async () => {
-      const expectedResult: ProcessFileResultDeprecated = {
-        DBFullPath: mockedAddedMediaTempFile.preview,
-        DBFullPathFullSize: mockedAddedMediaTempFile.fullSizeJpg,
-        fullSizeJpg: service.getStaticPath(
-          mockedAddedMediaTempFile.fullSizeJpg,
-          MainDir.temp,
-        ),
-        fullSizeJpgPath: `uploadTemp(remove)${mockedAddedMediaTempFile.fullSizeJpg}`,
-        preview: service.getStaticPath(
-          mockedAddedMediaTempFile.preview,
-          MainDir.temp,
-        ),
-        tempPath: `uploadTemp(remove)/${filenameWithoutExt}`,
-        existedFilesArr: [],
-      };
-
-      const result = service.prepareOLDResponse(
-        mockedAddedMediaTempFile,
-        duplicates,
-        filename,
-      );
-
-      expect(result).toEqual(expectedResult);
     });
   });
 
@@ -387,20 +349,114 @@ describe('FilesService', () => {
     });
   });
 
-  describe('getDuplicatesFromMediaDB', () => {
-    it('should call getSameFilesIfExist and return processed duplicates', async () => {
-      const expectedDuplicates = mockDuplicates.map(
-        ({ filePath, fullSizeJpg, originalName }) => ({
-          filePath,
-          fullSizeJpg,
-          originalName,
-        }),
-      );
+  describe('getDuplicatesFromMediaDBByOriginalNames', () => {
+    const originalNameList: Media['originalName'][] = [
+      'duplicate.jpg',
+      'unique.jpg',
+    ];
+
+    it('should return duplicates mapped by original names', async () => {
+      const expectedDuplicatesResult = {
+        'duplicate.jpg': mockUpload.uploadFile.properties.duplicates,
+        'unique.jpg': mockUpload.uploadFile.properties.duplicates,
+      };
 
       const duplicates =
-        await service.getDuplicatesFromMediaDB('duplicate.jpg');
+        await service.getDuplicatesFromMediaDBByOriginalNames(originalNameList);
 
-      expect(mediaDB.getSameFilesIfExist).toHaveBeenCalledWith('duplicate.jpg');
+      expect(duplicates).toEqual(expectedDuplicatesResult);
+      expect(mediaDB.getSameFilesIfExist).toHaveBeenCalledTimes(
+        originalNameList.length,
+      );
+      originalNameList.forEach((originalName) => {
+        expect(mediaDB.getSameFilesIfExist).toHaveBeenCalledWith({
+          originalName,
+        });
+      });
+    });
+  });
+
+  describe('getDuplicatesFromMediaDBByFilePaths', () => {
+    const filePathList: Media['filePath'][] = [
+      '/path/to/duplicate.jpg',
+      '/path/to/unique.jpg',
+    ];
+
+    it('should return duplicates mapped by file paths', async () => {
+      const expectedDuplicatesResult = {
+        '/path/to/duplicate.jpg': mockUpload.uploadFile.properties.duplicates,
+        '/path/to/unique.jpg': mockUpload.uploadFile.properties.duplicates,
+      };
+
+      const duplicates =
+        await service.getDuplicatesFromMediaDBByFilePaths(filePathList);
+
+      expect(duplicates).toEqual(expectedDuplicatesResult);
+      expect(mediaDB.getSameFilesIfExist).toHaveBeenCalledTimes(
+        filePathList.length,
+      );
+      filePathList.forEach((filePath) => {
+        expect(mediaDB.getSameFilesIfExist).toHaveBeenCalledWith({
+          filePath,
+        });
+      });
+    });
+  });
+
+  describe('getDuplicatesFromMediaDB', () => {
+    const whereOriginalName: GetSameFilesIfExist = {
+      originalName: 'duplicate.jpg',
+      // filePath: '/path/to/duplicate.jpg', // can be used instead of originalName
+    };
+
+    const mockDuplicatesWithoutFullSizeJpg = () => {
+      const newMockDuplicates = [
+        createMediaMock({
+          name: 'duplicate1',
+          originalNameWithoutExt: mockDuplicateOriginalname,
+        }),
+        createMediaMock({
+          name: 'duplicate2',
+          originalNameWithoutExt: mockDuplicateOriginalname,
+        }),
+      ];
+
+      newMockDuplicates[0].fullSizeJpg = null;
+
+      jest
+        .spyOn(mediaDB, 'getSameFilesIfExist')
+        .mockReturnValue(new Promise((resolve) => resolve(newMockDuplicates)));
+
+      const expectedDuplicates = utils.deepCopy(
+        mockUpload.uploadFile.properties.duplicates,
+      );
+      expectedDuplicates[0].staticPath =
+        'http://localhost:3000/volumes/path/to/duplicate1.jpg'; // static path without fullSize postfix
+
+      return expectedDuplicates;
+    };
+
+    it('should call getSameFilesIfExist and return processed duplicates', async () => {
+      const expectedDuplicates = mockUpload.uploadFile.properties.duplicates;
+
+      const duplicates =
+        await service.getDuplicatesFromMediaDB(whereOriginalName);
+
+      expect(mediaDB.getSameFilesIfExist).toHaveBeenCalledWith({
+        originalName: 'duplicate.jpg',
+      });
+      expect(duplicates).toEqual(expectedDuplicates);
+    });
+
+    it('should return filePath in StaticPath if fullSizePath is not provided', async () => {
+      const expectedDuplicates = mockDuplicatesWithoutFullSizeJpg();
+
+      const duplicates =
+        await service.getDuplicatesFromMediaDB(whereOriginalName);
+
+      expect(mediaDB.getSameFilesIfExist).toHaveBeenCalledWith({
+        originalName: 'duplicate.jpg',
+      });
       expect(duplicates).toEqual(expectedDuplicates);
     });
   });

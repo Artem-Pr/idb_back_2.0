@@ -2,7 +2,7 @@ import { isExifDateTime, toDateUTC } from './datesHelper';
 import { ExifDateTime } from 'exiftool-vendored';
 
 const mockExifDateTime = {
-  rawValue: '2023:01:01 12:00:00',
+  rawValue: '2023:01:01 12:00:00.000',
 } as ExifDateTime;
 
 describe('dataHelpers', () => {

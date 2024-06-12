@@ -1,14 +1,11 @@
 import { DBCollections } from 'src/common/constants';
 import { Entity, ObjectIdColumn, Column, ObjectId } from 'typeorm';
 
-@Entity(DBCollections.config)
+@Entity(DBCollections.paths)
 export class Paths {
   @ObjectIdColumn()
   _id: ObjectId;
 
   @Column()
-  name: string;
-
-  @Column('array')
-  pathsArr: string[];
+  path: string;
 }

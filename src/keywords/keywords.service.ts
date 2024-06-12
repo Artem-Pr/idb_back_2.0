@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MongoRepository, Repository } from 'typeorm';
-import { Keyword } from './entities/keywords.entity';
+import { MongoRepository } from 'typeorm';
+import { KeywordOld } from './entities/keywordsOld.entity';
 import { DBConfigConstants } from 'src/common/constants';
 import { Media } from 'src/files/entities/media.entity';
 import { difference } from 'ramda';
+import { Keywords } from './entities/keywords.entity';
 
 interface AggregatedKeywordsSetResult {
   results: string[];
@@ -15,15 +16,17 @@ export class KeywordsService {
   private mediaMongoRepository: MongoRepository<Media>;
 
   constructor(
-    @InjectRepository(Keyword)
-    private keywordsRepository: Repository<Keyword>,
+    @InjectRepository(KeywordOld)
+    private keywordsRepositoryOld: MongoRepository<KeywordOld>,
+    @InjectRepository(Keywords)
+    private keywordsRepository: MongoRepository<Keywords>,
   ) {
     this.mediaMongoRepository =
-      this.keywordsRepository.manager.getMongoRepository(Media);
+      this.keywordsRepositoryOld.manager.getMongoRepository(Media);
   }
 
-  async getKeywordsList(): Promise<string[]> {
-    const config = await this.keywordsRepository.findOne({
+  async getKeywordsListFromOldCollection(): Promise<string[]> {
+    const config = await this.keywordsRepositoryOld.findOne({
       where: {
         name: DBConfigConstants.keywords,
       },
@@ -31,8 +34,13 @@ export class KeywordsService {
     return config ? config.keywordsArr : [];
   }
 
-  async getUnusedKeywords(): Promise<string[]> {
-    const allKeywordsPromise = this.getKeywordsList();
+  async getAllKeywords(): Promise<string[]> {
+    const keywordsEntities = await this.keywordsRepository.find();
+    return keywordsEntities.map((keywordEntity) => keywordEntity.keyword);
+  }
+
+  async getUnusedKeywordsOld(): Promise<string[]> {
+    const allKeywordsPromise = this.getKeywordsListFromOldCollection();
 
     const usedKeywordsPromise = this.mediaMongoRepository
       .aggregate(
@@ -71,5 +79,113 @@ export class KeywordsService {
     const unusedKeywords = difference(allKeywords, usedKeywords);
 
     return unusedKeywords;
+  }
+
+  async getUnusedKeywords(): Promise<string[]> {
+    const allKeywordsPromise = this.getAllKeywords();
+
+    const usedKeywordsPromise = this.mediaMongoRepository
+      .aggregate(
+        [
+          {
+            $group: {
+              _id: null,
+              keywordsSet: { $addToSet: '$keywords' },
+            },
+          },
+          {
+            $project: {
+              results: {
+                $reduce: {
+                  input: { $concatArrays: '$keywordsSet' },
+                  initialValue: [],
+                  in: { $setUnion: ['$$value', '$$this'] },
+                },
+              },
+            },
+          },
+          { $unset: '_id' },
+        ],
+        { allowDiskUse: true },
+      )
+      .toArray()
+      .then(
+        (data) => (data as unknown as AggregatedKeywordsSetResult[])[0].results,
+      );
+
+    const [usedKeywords, allKeywords] = await Promise.all([
+      usedKeywordsPromise,
+      allKeywordsPromise,
+    ]);
+
+    const unusedKeywords = difference(allKeywords, usedKeywords);
+
+    return unusedKeywords;
+  }
+
+  async removeUnusedKeywords(): Promise<{ message: string }> {
+    const unusedKeywords = await this.getUnusedKeywords();
+    if (unusedKeywords.length) {
+      await this.removeKeywords(unusedKeywords);
+
+      return {
+        message: `Removed unused keywords: ${unusedKeywords.join(', ')}`,
+      };
+    }
+
+    throw new HttpException('No unused keywords found', HttpStatus.BAD_REQUEST);
+  }
+
+  async removeUnusedKeyword(keyword: string): Promise<{ message: string }> {
+    const unusedKeywords = await this.getUnusedKeywords();
+    if (!unusedKeywords.includes(keyword)) {
+      throw new HttpException(
+        `Keyword ${keyword} not found in unused keywords`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    await this.removeKeywords([keyword]);
+
+    return {
+      message: `Keyword ${keyword} removed from unused keywords`,
+    };
+  }
+
+  async moveKeywordsToNewCollection(): Promise<void> {
+    const keywordsList = await this.getKeywordsListFromOldCollection();
+
+    await this.addKeywords(keywordsList);
+  }
+
+  async addKeywords(keywords: string[]): Promise<void> {
+    // Find which keywords already exist to avoid duplicates
+    const existingKeywords = await this.keywordsRepository.find({
+      where: {
+        keyword: { $in: keywords },
+      },
+    });
+
+    const newKeywords = keywords.filter(
+      (k) => !existingKeywords.map((ek) => ek.keyword).includes(k),
+    );
+
+    // Create an array of Keywords entities for the new keywords
+    const keywordsToInsert = newKeywords.map((keyword) => ({
+      keyword,
+    }));
+
+    // Use insertMany for an efficient bulk insert operation
+    if (keywordsToInsert.length > 0) {
+      await this.keywordsRepository.insertMany(keywordsToInsert);
+    }
+  }
+
+  async removeKeywords(keywords: string[]): Promise<void> {
+    await this.keywordsRepository.deleteMany({
+      keyword: {
+        $in: keywords,
+      },
+    });
   }
 }
