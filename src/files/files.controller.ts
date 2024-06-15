@@ -10,20 +10,27 @@ import {
   ValidationPipe,
   UsePipes,
   Query,
+  Body,
 } from '@nestjs/common';
 import { ControllerPrefix } from 'src/common/constants';
 import { isSupportedExtension, isSupportedMimeType } from 'src/common/utils';
 import { FilesService } from './files.service';
 import { FileMediaInterceptor } from './file.interceptor';
-import type { CheckDuplicatesOriginalNamesInputDto } from './dto/check-duplicates-original-names-input.dto';
-import type { CheckDuplicatesFilePathsInputDto } from './dto/check-duplicates-file-paths-input.dto';
+import { CheckDuplicatesOriginalNamesInputDto } from './dto/check-duplicates-original-names-input.dto';
+import { CheckDuplicatesFilePathsInputDto } from './dto/check-duplicates-file-paths-input.dto';
 import type { UploadFileOutputDto } from './dto/upload-file-output.dto';
 import type { CheckDuplicatesOriginalNamesOutputDto } from './dto/check-duplicates-original-names-output.dto';
 import type { CheckDuplicatesFilePathsOutputDto } from './dto/check-duplicates-file-paths-output.dto';
+import { UpdatedFilesInputDto } from './dto/update-files-input.dto';
 
 @Controller() // TODO : Define a POST endpoint at /files/uploadItem : @Controller('file')
 export class FilesController {
   constructor(private filesService: FilesService) {}
+
+  @Post(ControllerPrefix.saveFiles)
+  async upload(@Body() filesToUpload: UpdatedFilesInputDto) {
+    return { message: 'File update request received', filesToUpload };
+  }
 
   @Post(ControllerPrefix.uploadFile)
   @UseInterceptors(FileMediaInterceptor)

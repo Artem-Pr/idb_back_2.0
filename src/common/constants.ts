@@ -88,6 +88,7 @@ export enum ControllerPrefix {
   checkDirectoryOld = 'check-directory-old',
   checkDuplicates = 'check-duplicates',
   checkDuplicatesByFilePaths = 'check-duplicates-by-file-paths',
+  saveFiles = 'save-files',
   uploadFile = 'uploadItem', // TODO: rename to upload-file
   moveKeywordsToNewCollection = 'move-keywords-to-new-collection',
   movePathsToNewCollection = 'move-paths-to-new-collection',
@@ -177,23 +178,11 @@ export enum SupportedVideoMimeTypes {
   wmv = 'video/x-ms-wmv',
 }
 
-export const SUPPORTED_IMAGE_EXTENSIONS: Array<
-  SupportedImageExtensions | Uppercase<SupportedImageExtensions>
-> = [
-  ...Object.values(SupportedImageExtensions),
-  ...Object.values(SupportedImageExtensions).map(
-    (ext) => ext.toUpperCase() as Uppercase<SupportedImageExtensions>,
-  ),
-];
+export const SUPPORTED_IMAGE_EXTENSIONS: Array<SupportedImageExtensions> =
+  Object.values(SupportedImageExtensions);
 
-export const SUPPORTED_VIDEO_EXTENSIONS: Array<
-  SupportedVideoExtensions | Uppercase<SupportedVideoExtensions>
-> = [
-  ...Object.values(SupportedVideoExtensions),
-  ...Object.values(SupportedVideoExtensions).map(
-    (ext) => ext.toUpperCase() as Uppercase<SupportedVideoExtensions>,
-  ),
-];
+export const SUPPORTED_VIDEO_EXTENSIONS: Array<SupportedVideoExtensions> =
+  Object.values(SupportedVideoExtensions);
 
 export const SUPPORTED_IMAGE_MIMETYPES = Object.values(
   SupportedImageExtensions,
@@ -209,7 +198,6 @@ export type SupportedExtensions =
   | SupportedImageExtensions
   | SupportedVideoExtensions;
 
-// TODO: remove uppercase extensions, use 'i' to check case-insensitive
 export const SUPPORTED_MIMETYPE_REGEX = new RegExp(
   `^(${SUPPORTED_MIMETYPES.join('|')})$`,
   'i', // 'i' for case-insensitive
@@ -218,5 +206,15 @@ export const SUPPORTED_MIMETYPE_REGEX = new RegExp(
 // Adjust the regex to match a dot followed by one of the extensions at the end of a string
 export const SUPPORTED_EXTENSIONS_REGEX = new RegExp(
   `\\.(${[...SUPPORTED_IMAGE_EXTENSIONS, ...SUPPORTED_VIDEO_EXTENSIONS].join('|')})$`,
+  'i', // 'i' for case-insensitive
+);
+
+export const SUPPORTED_IMAGE_EXTENSIONS_REGEX = new RegExp(
+  `\\.(${SUPPORTED_IMAGE_EXTENSIONS.join('|')})$`,
+  'i', // 'i' for case-insensitive
+);
+
+export const SUPPORTED_VIDEO_EXTENSIONS_REGEX = new RegExp(
+  `\\.(${SUPPORTED_VIDEO_EXTENSIONS.join('|')})$`,
   'i', // 'i' for case-insensitive
 );

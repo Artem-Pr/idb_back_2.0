@@ -4,17 +4,6 @@
 [.vscode]
     └── settings.json
 README.md
-[Users]
-    └── [artempriadkin]
-        └── [Development]
-            ├── [IDBase]
-                ├── [idb_back_2.0]
-                    └── [test-data]
-                        └── [temp]
-                └── [test-data]
-                    └── [temp]
-            └── [test-data]
-                └── [temp]
 docker-compose-test.yaml
 docker-compose.yaml
 [docs]
@@ -33,6 +22,8 @@ package.json
         ├── constants.ts
         ├── datasHelper.spec.ts
         ├── datesHelper.ts
+        ├── exifHelpers.spec.ts
+        ├── exifHelpers.ts
         ├── types.ts
         ├── utils.spec.ts
         └── utils.ts
@@ -44,6 +35,13 @@ package.json
     ├── [files]
         ├── [__mocks__]
             └── mocks.ts
+        ├── [dto]
+            ├── check-duplicates-file-paths-input.dto.ts
+            ├── check-duplicates-file-paths-output.dto.ts
+            ├── check-duplicates-original-names-input.dto.ts
+            ├── check-duplicates-original-names-output.dto.ts
+            ├── update-file-input.dto.ts
+            └── upload-file-output.dto.ts
         ├── [entities]
             ├── media-temp.entity.ts
             └── media.entity.ts
@@ -55,19 +53,21 @@ package.json
         ├── files.service.spec.ts
         ├── files.service.ts
         ├── mediaDB.service.spec.ts
-        └── mediaDB.service.ts
+        ├── mediaDB.service.ts
+        └── types.ts
     ├── global.d.ts
     ├── [jobs]
         ├── [dto]
-            ├── image-store-service-input.ts
-            └── image-store-service-output.ts
+            ├── image-store-service-input.dto.ts
+            └── image-store-service-output.dto.ts
         ├── exif.processor.spec.ts
         ├── exif.processor.ts
         ├── file.processor.spec.ts
         └── files.processor.ts
     ├── [keywords]
         ├── [entities]
-            └── keywords.entity.ts
+            ├── keywords.entity.ts
+            └── keywordsOld.entity.ts
         ├── keywords.controller.spec.ts
         ├── keywords.controller.ts
         ├── keywords.module.ts
@@ -86,7 +86,8 @@ package.json
             ├── check-directory-input.dto.ts
             └── check-directory-output.dto.ts
         ├── [entities]
-            └── paths.entity.ts
+            ├── paths.entity.ts
+            └── pathsOLD.entity.ts
         ├── paths.controller.spec.ts
         ├── paths.controller.ts
         ├── paths.module.ts

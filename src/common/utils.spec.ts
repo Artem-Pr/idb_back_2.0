@@ -10,9 +10,11 @@ import {
 import type { FileNameWithExt } from './types';
 import {
   addDestPrefix,
+  isSupportedExtension,
   isSupportedImageExtension,
   isSupportedImageMimeType,
   isSupportedMimeType,
+  isSupportedVideoExtension,
   isSupportedVideoMimeType,
   removeExtension,
   removeExtraFirstSlash,
@@ -114,7 +116,12 @@ describe('Utils', () => {
   });
 
   describe('isSupportedImageExtension', () => {
-    it.each(SUPPORTED_IMAGE_EXTENSIONS)(
+    const listOfSupportedImageExtensions = [
+      ...SUPPORTED_IMAGE_EXTENSIONS,
+      ...SUPPORTED_IMAGE_EXTENSIONS.map((e) => e.toUpperCase()),
+    ];
+
+    it.each(listOfSupportedImageExtensions)(
       'should return true for supported image extension "%s"',
       (ext) => {
         const fileName = `image.${ext}`;
@@ -140,6 +147,66 @@ describe('Utils', () => {
     it('should return true for filename with multiple dots', () => {
       const fileName = 'image.not.jpg';
       expect(isSupportedImageExtension(fileName)).toBe(true);
+    });
+  });
+
+  describe('isSupportedVideoExtension', () => {
+    const listOfSupportedVideoExtensions = [
+      ...SUPPORTED_VIDEO_EXTENSIONS,
+      ...SUPPORTED_VIDEO_EXTENSIONS.map((e) => e.toUpperCase()),
+    ];
+
+    it.each(listOfSupportedVideoExtensions)(
+      'should return true for supported video extension "%s"',
+      (ext) => {
+        const fileName = `video.${ext}`;
+        expect(isSupportedVideoExtension(fileName)).toBe(true);
+      },
+    );
+
+    it('should return false for unsupported video extension', () => {
+      const fileName = 'video.flv';
+      expect(isSupportedVideoExtension(fileName)).toBe(false);
+    });
+
+    it('should be case-insensitive', () => {
+      const fileName = 'VIDEO.MP4';
+      expect(isSupportedVideoExtension(fileName)).toBe(true);
+    });
+
+    it('should return false for filename without an extension', () => {
+      const fileName = 'video';
+      expect(isSupportedVideoExtension(fileName)).toBe(false);
+    });
+
+    it('should return true for filename with multiple dots', () => {
+      const fileName = 'video.not.mp4';
+      expect(isSupportedVideoExtension(fileName)).toBe(true);
+    });
+  });
+
+  describe('isSupportedExtension', () => {
+    const listOfSupportedExtensions = [
+      ...SUPPORTED_IMAGE_EXTENSIONS,
+      ...SUPPORTED_IMAGE_EXTENSIONS.map((e) => e.toUpperCase()),
+      ...SUPPORTED_VIDEO_EXTENSIONS,
+      ...SUPPORTED_VIDEO_EXTENSIONS.map((e) => e.toUpperCase()),
+    ];
+
+    it.each(listOfSupportedExtensions)(
+      'should return true for supported video extension "%s"',
+      (ext) => {
+        const fileName = `video.${ext}`;
+        expect(isSupportedExtension(fileName)).toBe(true);
+      },
+    );
+
+    it('should return false for unsupported video extension', () => {
+      const fileName = 'video.flv';
+      expect(isSupportedExtension(fileName)).toBe(false);
+
+      const fileName2 = 'image.bmp';
+      expect(isSupportedExtension(fileName2)).toBe(false);
     });
   });
 

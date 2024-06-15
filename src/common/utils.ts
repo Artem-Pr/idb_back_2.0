@@ -2,10 +2,10 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import {
   MainDir,
   SUPPORTED_EXTENSIONS_REGEX,
-  SUPPORTED_IMAGE_EXTENSIONS,
+  SUPPORTED_IMAGE_EXTENSIONS_REGEX,
   SUPPORTED_IMAGE_MIMETYPES,
   SUPPORTED_MIMETYPES,
-  SUPPORTED_VIDEO_EXTENSIONS,
+  SUPPORTED_VIDEO_EXTENSIONS_REGEX,
   SUPPORTED_VIDEO_MIMETYPES,
 } from './constants';
 import type {
@@ -50,12 +50,12 @@ export const removeMainDir = <T extends `${MainDir}/${string}`>(
 export const isSupportedImageExtension = (
   fileName: string,
 ): fileName is FileNameWithImageExt =>
-  SUPPORTED_IMAGE_EXTENSIONS.includes(fileName.split('.').pop() || '');
+  SUPPORTED_IMAGE_EXTENSIONS_REGEX.test(fileName);
 
 export const isSupportedVideoExtension = (
   fileName: string,
 ): fileName is FileNameWithVideoExt =>
-  SUPPORTED_VIDEO_EXTENSIONS.includes(fileName.split('.').pop() || '');
+  SUPPORTED_VIDEO_EXTENSIONS_REGEX.test(fileName);
 
 export const isSupportedExtension = (
   fileName: string,
