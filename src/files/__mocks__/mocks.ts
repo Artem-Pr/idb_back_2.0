@@ -16,7 +16,6 @@ export const exifDataMock = {
 };
 
 export const uploadFileMock: UploadFileOutputDto = {
-  exif: exifDataMock,
   properties: {
     id: '665a0291b9e676b1015cf8b9',
     changeDate: null,
@@ -41,6 +40,7 @@ export const uploadFileMock: UploadFileOutputDto = {
       },
     ],
     description: exifDataMock.Description,
+    exif: exifDataMock,
     filePath: null,
     imageSize: '2268x4032',
     keywords: [],
@@ -59,19 +59,17 @@ export const uploadFileMock: UploadFileOutputDto = {
 };
 
 export class UploadFileMock {
-  _exif: UploadFileOutputDto['exif'] = uploadFileMock.exif;
   _properties: UploadFileOutputDto['properties'] = uploadFileMock.properties;
 
-  constructor({ exif, properties }: Partial<UploadFileOutputDto> = {}) {
-    exif && (this.exif = exif);
+  constructor({ properties }: Partial<UploadFileOutputDto> = {}) {
     properties && (this.properties = properties);
   }
 
-  set exif(exif: UploadFileOutputDto['exif']) {
-    this._exif = exif;
+  set exif(exif: UploadFileOutputDto['properties']['exif']) {
+    this._properties.exif = exif;
   }
-  addExif(exif: UploadFileOutputDto['exif']) {
-    this._exif = { ...this._exif, ...exif };
+  addExif(exif: UploadFileOutputDto['properties']['exif']) {
+    this._properties.exif = { ...this._properties.exif, ...exif };
   }
 
   set properties(properties: UploadFileOutputDto['properties']) {
@@ -113,7 +111,7 @@ export class UploadFileMock {
       filePath: null,
       staticPath: this._properties.staticPath,
       staticPreview: this._properties.staticPreview,
-      ...omit(['exif', 'filePath', 'preview', 'fullSizeJpg', '_id'], media),
+      ...omit(['filePath', 'preview', 'fullSizeJpg', '_id'], media),
     };
 
     this.properties = {
@@ -124,7 +122,6 @@ export class UploadFileMock {
 
   get uploadFile(): UploadFileOutputDto {
     return {
-      exif: this._exif,
       properties: this._properties,
     };
   }

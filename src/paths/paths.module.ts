@@ -10,5 +10,6 @@ import { Media } from 'src/files/entities/media.entity';
   imports: [TypeOrmModule.forFeature([Paths, PathsOLD, Media])],
   controllers: [PathsController],
   providers: [PathsService],
+  exports: [PathsService, TypeOrmModule],
 })
 export class PathsModule {}

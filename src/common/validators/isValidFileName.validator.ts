@@ -4,7 +4,7 @@ import {
   registerDecorator,
   ValidationOptions,
 } from 'class-validator';
-import { isSupportedExtension } from '../utils';
+import { isSupportedExtension } from '../fileNameHelpers';
 import type { FileNameWithExt } from '../types';
 
 @ValidatorConstraint({ async: false })

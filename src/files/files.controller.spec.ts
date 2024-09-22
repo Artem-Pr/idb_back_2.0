@@ -10,6 +10,8 @@ import type { CheckDuplicatesOriginalNamesOutputDto } from './dto/check-duplicat
 import { uploadFileMock } from './__mocks__/mocks';
 import type { CheckDuplicatesFilePathsInputDto } from './dto/check-duplicates-file-paths-input.dto';
 import type { CheckDuplicatesFilePathsOutputDto } from './dto/check-duplicates-file-paths-output.dto';
+import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
+import { Media } from './entities/media.entity';
 
 describe('FilesController', () => {
   let controller: FilesController;
@@ -22,9 +24,10 @@ describe('FilesController', () => {
     } as any;
 
     const mockFilesService = {
-      processFile: jest.fn(),
-      getDuplicatesFromMediaDBByOriginalNames: jest.fn(),
       getDuplicatesFromMediaDBByFilePaths: jest.fn(),
+      getDuplicatesFromMediaDBByOriginalNames: jest.fn(),
+      processFile: jest.fn(),
+      saveFiles: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -45,6 +48,31 @@ describe('FilesController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('saveFiles', () => {
+    it('should call filesService.saveFiles and return its result', async () => {
+      const filesToUpload: UpdatedFilesInputDto = {
+        files: [
+          {
+            id: '1',
+            updatedFields: { originalName: 'test.jpg' },
+          },
+          {
+            id: '2',
+            updatedFields: { originalDate: 'test2.jpg' },
+          },
+        ],
+      };
+
+      const response = [new Media(), new Media()];
+
+      jest.spyOn(filesService, 'saveFiles').mockResolvedValue(response);
+
+      const result = await controller.saveFiles(filesToUpload);
+      expect(filesService.saveFiles).toHaveBeenCalledWith(filesToUpload);
+      expect(result).toBe(response);
+    });
   });
 
   describe('uploadFile', () => {

@@ -7,7 +7,8 @@ import {
   FileNameWithExt,
   SupportedMimetypes,
 } from 'src/common/types';
-import { Entity, ObjectIdColumn, Column, ObjectId, Index } from 'typeorm';
+import { Entity, ObjectIdColumn, Column, Index } from 'typeorm';
+import type { ObjectId } from 'mongodb';
 
 type WithNullOnly<T> = Exclude<T, undefined> | null;
 type ExifDescription = WithNullOnly<
@@ -15,7 +16,10 @@ type ExifDescription = WithNullOnly<
 >;
 type ExifMegapixels = WithNullOnly<Tags['Megapixels']>;
 type ExifImageSize = WithNullOnly<Tags['ImageSize']>;
-type ExifKeywords = Exclude<Tags['Keywords' | 'Subject'], string | undefined>;
+export type ExifKeywords = Exclude<
+  Tags['Keywords' | 'Subject'],
+  string | undefined
+>;
 type ExifRating = WithNullOnly<Tags['Rating']>;
 
 @Entity(DBCollections.photos)
@@ -41,7 +45,7 @@ export class Media {
 
   @Column('array')
   @Index()
-  keywords: ExifKeywords;
+  keywords: ExifKeywords | null;
 
   @Column()
   changeDate: number | null;

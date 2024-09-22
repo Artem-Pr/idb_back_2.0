@@ -211,6 +211,7 @@ describe('ConfigService', () => {
       expect(configService.rootPaths).toEqual({
         temp: '../../test-data/temp',
         volumes: '../../test-data/volumes',
+        test: '../../test-data/test',
         previews: '../../test-data/previews',
       });
     });
@@ -218,9 +219,10 @@ describe('ConfigService', () => {
     it('should return test paths when the environment is test', () => {
       configService.nodeEnv = Envs.TEST;
       expect(configService.rootPaths).toEqual({
-        temp: '../../test-data/temp',
-        volumes: '../../test-data/volumes',
-        previews: '../../test-data/previews',
+        temp: 'test-data/temp',
+        volumes: 'test-data/volumes',
+        test: 'test-data/test',
+        previews: 'test-data/previews',
       });
     });
 

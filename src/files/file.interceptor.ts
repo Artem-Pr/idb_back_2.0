@@ -9,7 +9,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { MainDir, SUPPORTED_MIMETYPE_REGEX } from 'src/common/constants';
-import { addDestPrefix } from 'src/common/utils';
+import { addDestPrefix } from 'src/common/fileNameHelpers';
 import { ConfigService } from 'src/config/config.service';
 import { v4 as uuidV4 } from 'uuid';
 

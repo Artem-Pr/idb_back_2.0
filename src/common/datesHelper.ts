@@ -30,3 +30,14 @@ export const toDateUTC = (date: ConfigType | ExifDateTime): Date => {
 
   return dayjs.utc(date).toDate();
 };
+
+export const toMillisecondsUTC = (date: ConfigType): number => {
+  return dayjs.utc(date).valueOf();
+};
+
+export const formatDate = (
+  date: ConfigType,
+  format: string = DATE_FORMAT,
+): string => {
+  return dayjs(date).format(format);
+};

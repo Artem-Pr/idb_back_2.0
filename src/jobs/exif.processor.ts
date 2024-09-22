@@ -9,7 +9,7 @@ import {
   Processors,
   MainDir,
 } from 'src/common/constants';
-import type { FileNameWithExt, NormalizedPath } from 'src/common/types';
+import type { FileNameWithExt, NormalizedMediaPath } from 'src/common/types';
 import { ConfigService } from 'src/config/config.service';
 import { CustomLogger } from 'src/logger/logger.service';
 
@@ -35,17 +35,21 @@ export class ExifProcessor {
 
   @Process({ concurrency: Concurrency[Processors.exifProcessor] })
   async processGetExifJob(job: Job<GetExifJob>): Promise<ExifData> {
-    this.logger.startProcess(job.id, 'getExif 📄', job.data.filePaths);
+    this.logger.startProcess({
+      processId: job.id,
+      processName: 'getExif 📄',
+      data: job.data.filePaths,
+    });
 
     const exifData = await this.getExifFromPhoto(job.data);
 
-    this.logger.finishProcess(
-      job.id,
-      'getExif 📄',
-      keys(exifData).map((key) => ({
+    this.logger.finishProcess({
+      processId: job.id,
+      processName: 'getExif 📄',
+      data: keys(exifData).map((key) => ({
         [key]: `${keys(exifData[key]).length} fields`,
       })),
-    );
+    });
 
     return exifData;
   }
@@ -58,7 +62,7 @@ export class ExifProcessor {
 
     try {
       for (const filePath of filePaths) {
-        const previewPath: NormalizedPath = `${this.configService.mainDirPath}/${mainDir}/${filePath}`;
+        const previewPath: NormalizedMediaPath = `${this.configService.mainDirPath}/${mainDir}/${filePath}`;
 
         const exif = await this.exiftool.read(previewPath);
         exifData[filePath] = exif;

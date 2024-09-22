@@ -23,7 +23,10 @@ describe('CustomLogger', () => {
   it('should start and end a timer correctly', async () => {
     const processId = 'testProcessId';
     const processName = 'testProcess';
-    customLogger.startProcess(processId, processName);
+    const processData = customLogger.startProcess({
+      processId,
+      processName,
+    });
 
     expect(logSpy).toHaveBeenCalledTimes(1);
     expect(logSpy).toHaveBeenCalledWith(
@@ -32,7 +35,7 @@ describe('CustomLogger', () => {
 
     await wait(20);
 
-    customLogger.finishProcess(processId, processName);
+    customLogger.finishProcess(processData);
 
     expect(logSpy).toHaveBeenCalledTimes(2);
     expect(logSpy).toHaveBeenLastCalledWith(
@@ -44,7 +47,7 @@ describe('CustomLogger', () => {
   it('should log an error if the timer was not found', () => {
     const processId = 'invalidProcessId';
     const processName = 'testProcess';
-    customLogger.finishProcess(processId, processName);
+    customLogger.finishProcess({ processId, processName });
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining(
         `❌ Timer for processId '${processId}' was not found.`,
@@ -58,7 +61,7 @@ describe('CustomLogger', () => {
     const errorData = { message: 'Error occurred' };
 
     // with error data
-    customLogger.startProcess(processId, processName);
+    customLogger.startProcess({ processId, processName });
     customLogger.errorProcess({ processId, processName, errorData });
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining(
@@ -67,7 +70,7 @@ describe('CustomLogger', () => {
     );
 
     // and without error data
-    customLogger.startProcess(processId, processName);
+    customLogger.startProcess({ processId, processName });
     customLogger.errorProcess({ processId, processName });
     expect(errorSpy).toHaveBeenLastCalledWith(
       expect.stringContaining(`❌ Process testProcess: testProcessId +`),
@@ -88,13 +91,13 @@ describe('CustomLogger', () => {
     const processName = 'testProcess';
 
     // with data
-    customLogger.startProcess(processId, processName, data);
+    customLogger.startProcess({ processId, processName, data });
     expect(logSpy).toHaveBeenCalledWith(
       '🚀 Process testProcess: testProcessId - {"key":"mocked data"}',
     );
 
     // with data
-    customLogger.finishProcess(processId, processName, data);
+    customLogger.finishProcess({ processId, processName, data });
     expect(logSpy).toHaveBeenLastCalledWith(
       expect.stringContaining(
         `✅ Process testProcess: testProcessId - {"key":"mocked data"} +`,

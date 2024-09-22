@@ -89,26 +89,28 @@ export enum ControllerPrefix {
   checkDuplicates = 'check-duplicates',
   checkDuplicatesByFilePaths = 'check-duplicates-by-file-paths',
   saveFiles = 'save-files',
-  uploadFile = 'uploadItem', // TODO: rename to upload-file
+  uploadFile = 'upload-file',
   moveKeywordsToNewCollection = 'move-keywords-to-new-collection',
   movePathsToNewCollection = 'move-paths-to-new-collection',
 }
 
 export enum PreviewPostfix {
-  preview = '-preview',
-  fullSize = '-fullSize',
+  preview = 'preview',
+  fullSize = 'fullSize',
 }
 
 export enum MainDir {
   temp = 'temp',
   volumes = 'volumes',
   previews = 'previews',
+  test = 'test',
 }
 
 export enum MainDirPath {
   dev = '../../test-data',
   prod = '/Users/artempriadkin/Development/test-data',
   docker = '/app',
+  test = 'test-data',
 }
 
 export const MainDirPaths = Object.freeze({
@@ -123,32 +125,38 @@ export const Folders = Object.freeze({
     [MainDir.temp]: `${MainDirPath.dev}/${MainDir.temp}`,
     [MainDir.volumes]: `${MainDirPath.dev}/${MainDir.volumes}`,
     [MainDir.previews]: `${MainDirPath.dev}/${MainDir.previews}`,
+    [MainDir.test]: `${MainDirPath.dev}/${MainDir.test}`,
   },
   [Envs.TEST]: {
-    [MainDir.temp]: `${MainDirPath.dev}/${MainDir.temp}`,
-    [MainDir.volumes]: `${MainDirPath.dev}/${MainDir.volumes}`,
-    [MainDir.previews]: `${MainDirPath.dev}/${MainDir.previews}`,
+    [MainDir.temp]: `${MainDirPath.test}/${MainDir.temp}`,
+    [MainDir.volumes]: `${MainDirPath.test}/${MainDir.volumes}`,
+    [MainDir.previews]: `${MainDirPath.test}/${MainDir.previews}`,
+    [MainDir.test]: `${MainDirPath.test}/${MainDir.test}`,
   },
   [Envs.PROD]: {
     [MainDir.temp]: `${MainDirPath.prod}/${MainDir.temp}`,
     [MainDir.volumes]: `${MainDirPath.prod}/${MainDir.volumes}`,
     [MainDir.previews]: `${MainDirPath.prod}/${MainDir.previews}`,
+    [MainDir.test]: `${MainDirPath.prod}/${MainDir.test}`,
   },
   [Envs.DOCKER]: {
     [MainDir.temp]: `${MainDirPath.docker}/${MainDir.temp}`,
     [MainDir.volumes]: `${MainDirPath.docker}/${MainDir.volumes}`,
     [MainDir.previews]: `${MainDirPath.docker}/${MainDir.previews}`,
+    [MainDir.test]: `${MainDirPath.docker}/${MainDir.test}`,
   },
 } as const);
 
 export enum Processors {
-  fileProcessor = 'file-processing',
   exifProcessor = 'exif-processing',
+  fileProcessor = 'file-processing',
+  updateFilesProcessor = 'update-files-processing',
 }
 
 export const Concurrency = Object.freeze({
-  [Processors.fileProcessor]: 3,
-  [Processors.exifProcessor]: 3,
+  [Processors.fileProcessor]: 5,
+  [Processors.exifProcessor]: 5,
+  [Processors.updateFilesProcessor]: 5,
 });
 
 export enum SupportedImageExtensions {

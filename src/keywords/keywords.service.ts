@@ -159,23 +159,22 @@ export class KeywordsService {
   }
 
   async addKeywords(keywords: string[]): Promise<void> {
-    // Find which keywords already exist to avoid duplicates
     const existingKeywords = await this.keywordsRepository.find({
       where: {
         keyword: { $in: keywords },
       },
     });
 
+    const existingKeywordsStrings = existingKeywords.map((ek) => ek.keyword);
+
     const newKeywords = keywords.filter(
-      (k) => !existingKeywords.map((ek) => ek.keyword).includes(k),
+      (k) => !existingKeywordsStrings.includes(k),
     );
 
-    // Create an array of Keywords entities for the new keywords
     const keywordsToInsert = newKeywords.map((keyword) => ({
       keyword,
     }));
 
-    // Use insertMany for an efficient bulk insert operation
     if (keywordsToInsert.length > 0) {
       await this.keywordsRepository.insertMany(keywordsToInsert);
     }

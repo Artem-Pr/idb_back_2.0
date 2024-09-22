@@ -1,23 +1,21 @@
 import { Test } from '@nestjs/testing';
-import type {
-  FileProcessingJob,
-  ImagePreviewJob,
-  NameWithPreviewPostfix,
-} from './files.processor';
+import type { FileProcessingJob, ImagePreviewJob } from './files.processor';
 import { FileProcessor } from './files.processor';
 import { ConfigService } from 'src/config/config.service';
 import axios from 'axios';
 import * as ffmpeg from 'fluent-ffmpeg';
-import {
+import type {
   FileNameWithExt,
+  NameWithPreviewPostfix,
   PreviewPath,
   SupportedMimetypes,
 } from 'src/common/types';
-import { MainDir, PreviewOptions } from 'src/common/constants';
+import { MainDir, PreviewOptions, PreviewPostfix } from 'src/common/constants';
 import type { ImageStoreServiceOutputDto } from './dto/image-store-service-output.dto';
 import type { ImageStoreServiceInputDto } from './dto/image-store-service-input.dto';
 import { Job } from 'bull';
 import { BadRequestException } from '@nestjs/common';
+import { addPreviewPostfix } from 'src/common/fileNameHelpers';
 
 jest.mock('fluent-ffmpeg', () => {
   return jest.fn().mockReturnThis();
@@ -171,7 +169,7 @@ describe('FileProcessor', () => {
     it.each(testCases)(
       'should add preview postfix to $fileName',
       ({ fileName, expected }) => {
-        const result = fileProcessor.addPreviewPostfix(fileName);
+        const result = addPreviewPostfix(fileName, PreviewPostfix.preview);
         expect(result).toBe(expected);
       },
     );
@@ -180,7 +178,7 @@ describe('FileProcessor', () => {
       const fileName: FileNameWithExt = 'document.AVI';
       const expected: NameWithPreviewPostfix<FileNameWithExt> =
         'document-preview.jpg';
-      const result = fileProcessor.addPreviewPostfix(fileName);
+      const result = addPreviewPostfix(fileName, PreviewPostfix.preview);
       expect(result).toBe(expected);
     });
 
@@ -188,7 +186,7 @@ describe('FileProcessor', () => {
       const fileName: FileNameWithExt = 'complex.name.image.jpg';
       const expected: NameWithPreviewPostfix<FileNameWithExt> =
         'complex.name.image-preview.jpg';
-      const result = fileProcessor.addPreviewPostfix(fileName);
+      const result = addPreviewPostfix(fileName, PreviewPostfix.preview);
       expect(result).toBe(expected);
     });
   });

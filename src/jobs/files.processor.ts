@@ -11,7 +11,6 @@ import {
   PreviewOptions,
   PreviewPostfix,
   Processors,
-  SupportedImageExtensions,
 } from 'src/common/constants';
 import type {
   FileNameWithExt,
@@ -19,15 +18,15 @@ import type {
   FileNameWithVideoExt,
   NormalizedVideoPath,
   PreviewPath,
-  RemoveExtension,
   SupportedMimetypes,
 } from 'src/common/types';
 import {
+  addPreviewPostfix,
   isSupportedImageExtension,
   isSupportedImageMimeType,
   isSupportedVideoExtension,
   isSupportedVideoMimeType,
-} from 'src/common/utils';
+} from 'src/common/fileNameHelpers';
 import { ConfigService } from 'src/config/config.service';
 import type { ImageStoreServiceInputDto } from './dto/image-store-service-input.dto';
 import type { ImageStoreServiceOutputDto } from './dto/image-store-service-output.dto';
@@ -43,58 +42,13 @@ export interface VideoPreviewJob extends FileProcessingJob {
   fileType: SupportedMimetypes['video'];
 }
 
-export type NameWithPreviewPostfix<T extends FileNameWithExt> =
-  `${RemoveExtension<T>}${PreviewPostfix.preview}.${SupportedImageExtensions.jpg}`;
-
 export interface FileProcessingJob {
   fileName: FileNameWithExt;
   fileType: SupportedMimetypes['allFiles'];
   dirName: MainDir;
 }
-@Processor(Processors.fileProcessor)
-export class FileProcessor {
-  private readonly logger = new CustomLogger(FileProcessor.name);
-  constructor(private configService: ConfigService) {}
 
-  @Process({ concurrency: Concurrency[Processors.fileProcessor] })
-  async ProcessingFileJob(
-    job: Job<FileProcessingJob>,
-  ): Promise<ImageStoreServiceOutputDto> {
-    this.logger.startProcess(job.id, 'FileJob 🌄', job.data.fileName);
-
-    try {
-      if (this.readyForImagePreview(job.data)) {
-        const response = await this.createImagePreview(job.data);
-        this.logger.finishProcess(job.id, 'FileJob 🌄', job.data.fileName);
-        return response;
-      }
-
-      if (this.readyForVideoPreview(job.data)) {
-        const previewPath = await this.createVideoPreview(
-          job.data.fileName,
-          job.data.dirName,
-        );
-        this.logger.finishProcess(job.id, 'FileJob 🌄', job.data.fileName);
-        return { previewPath };
-      }
-
-      throw new BadRequestException('Unsupported file type');
-    } catch (error) {
-      this.logger.errorProcess({
-        processId: job.id,
-        processName: 'Error processing file 🌄',
-        errorData: error,
-      });
-      throw error;
-    }
-  }
-
-  addPreviewPostfix<T extends FileNameWithExt>(
-    fileName: T,
-  ): NameWithPreviewPostfix<T> {
-    return `${fileName.replace(/\.\w+$/, `${PreviewPostfix.preview}.${SupportedImageExtensions.jpg}`)}` as NameWithPreviewPostfix<T>;
-  }
-
+export class FileProcessorBasic {
   readyForImagePreview(jobData: FileProcessingJob): jobData is ImagePreviewJob {
     return (
       isSupportedImageMimeType(jobData.fileType) &&
@@ -107,6 +61,51 @@ export class FileProcessor {
       isSupportedVideoMimeType(jobData.fileType) &&
       isSupportedVideoExtension(jobData.fileName)
     );
+  }
+}
+
+@Processor(Processors.fileProcessor)
+export class FileProcessor extends FileProcessorBasic {
+  private readonly logger = new CustomLogger(FileProcessor.name);
+  constructor(private configService: ConfigService) {
+    super();
+  }
+
+  @Process({ concurrency: Concurrency[Processors.fileProcessor] })
+  async ProcessingFileJob(
+    job: Job<FileProcessingJob>,
+  ): Promise<ImageStoreServiceOutputDto> {
+    const processData = this.logger.startProcess({
+      processId: job.id,
+      processName: 'FileJob 🌄',
+      data: job.data.fileName,
+    });
+
+    try {
+      if (this.readyForImagePreview(job.data)) {
+        const response = await this.createImagePreview(job.data);
+        this.logger.finishProcess(processData);
+        return response;
+      }
+
+      if (this.readyForVideoPreview(job.data)) {
+        const previewPath = await this.createVideoPreview(
+          job.data.fileName,
+          job.data.dirName,
+        );
+        this.logger.finishProcess(processData);
+        return { previewPath };
+      }
+
+      throw new BadRequestException('Unsupported file type');
+    } catch (error) {
+      this.logger.errorProcess({
+        processId: job.id,
+        processName: 'Error processing file 🌄',
+        errorData: error,
+      });
+      throw error;
+    }
   }
 
   async createImagePreview(
@@ -146,9 +145,8 @@ export class FileProcessor {
     mainDir: MainDir,
   ): Promise<PreviewPath> {
     const filePath: NormalizedVideoPath<Envs, MainDir> =
-      `${this.configService.rootPaths[MainDir[mainDir]]}/${videoPath}`;
-    const previewPath =
-      this.addPreviewPostfix<NormalizedVideoPath<Envs, MainDir>>(filePath);
+      `${this.configService.rootPaths[mainDir]}/${videoPath}`;
+    const previewPath = addPreviewPostfix(filePath, PreviewPostfix.preview);
 
     return new Promise((resolve, reject) => {
       ffmpeg(filePath)
@@ -156,11 +154,12 @@ export class FileProcessor {
           timestamps: PreviewOptions.timestamps,
           size: PreviewOptions.thumbnailSize,
           filename: previewPath,
-          folder: this.configService.rootPaths[MainDir[mainDir]],
+          folder: this.configService.rootPaths[mainDir],
         })
         .on('end', () => {
-          const pathWithoutMainRoot = this.addPreviewPostfix(
-            `${MainDir[mainDir]}/${videoPath}`,
+          const pathWithoutMainRoot = addPreviewPostfix(
+            `${mainDir}/${videoPath}`,
+            PreviewPostfix.preview,
           );
           resolve(pathWithoutMainRoot);
         })

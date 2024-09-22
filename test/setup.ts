@@ -5,6 +5,7 @@ jest.mock('src/logger/logger.service', () => ({
     startProcess: jest.fn(),
     finishProcess: jest.fn(),
     errorProcess: jest.fn(),
+    logError: jest.fn(),
   })),
 }));
 

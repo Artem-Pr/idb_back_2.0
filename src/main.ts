@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from './config/config.service';
 import { HttpExceptionFilter } from './logger/http-exception.filter';
+import { setGlobalConfigService } from './common/global-config-accessor';
 
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -17,6 +18,7 @@ export async function bootstrap() {
   );
 
   const configService = app.get(ConfigService);
+  setGlobalConfigService(configService);
   const port = configService.port;
 
   await app.listen(port);

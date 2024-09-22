@@ -1,4 +1,9 @@
-import { isExifDateTime, toDateUTC } from './datesHelper';
+import {
+  formatDate,
+  isExifDateTime,
+  toDateUTC,
+  toMillisecondsUTC,
+} from './datesHelper';
 import { ExifDateTime } from 'exiftool-vendored';
 
 const mockExifDateTime = {
@@ -45,6 +50,58 @@ describe('dataHelpers', () => {
       const date = toDateUTC(inputDate);
       expect(date).toBeInstanceOf(Date);
       expect(date.getTime()).toBe(inputDate.getTime());
+    });
+  });
+
+  describe('toMillisecondsUTC', () => {
+    it('should convert string date to milliseconds UTC', () => {
+      const dateString = '2023-01-01';
+      const date = toMillisecondsUTC(dateString);
+      expect(date).toBe(new Date('2023-01-01T00:00:00.000Z').getTime());
+      expect(date).toBe(1672531200000);
+    });
+
+    it('should convert Date object to milliseconds UTC', () => {
+      const inputDate = new Date('2024-07-13T16:30:39.742Z');
+      const date = toMillisecondsUTC(inputDate);
+      expect(date).toBe(inputDate.getTime());
+      expect(date).toBe(1720888239742);
+      expect(date).toBe(new Date('2024-07-13T16:30:39.742Z').getTime());
+    });
+
+    it('should handle invalid dates correctly', () => {
+      const invalidDate = 'not-a-real-date';
+      const date = toMillisecondsUTC(invalidDate);
+      expect(date).toBeNaN();
+    });
+  });
+
+  describe('formatDate', () => {
+    it('should format string date to the default format', () => {
+      const dateString = '2023-01-02';
+      const formattedDate = formatDate(dateString);
+      // Assuming DATE_FORMAT is 'YYYY.MM.DD'
+      expect(formattedDate).toBe('2023.01.02');
+    });
+
+    it('should format Date object to the default format', () => {
+      const inputDate = new Date('2024-07-13T16:30:39.742Z');
+      const formattedDate = formatDate(inputDate);
+      // Assuming DATE_FORMAT is 'YYYY.MM.DD'
+      expect(formattedDate).toBe('2024.07.13');
+    });
+
+    it('should allow custom format for string date', () => {
+      const dateString = '2024-07-13T16:30:39.742Z';
+      const customFormat = 'DD/MM/YYYY';
+      const formattedDate = formatDate(dateString, customFormat);
+      expect(formattedDate).toBe('13/07/2024');
+    });
+
+    it('should handle invalid dates correctly', () => {
+      const invalidDate = 'not-a-real-date';
+      const formattedDate = formatDate(invalidDate);
+      expect(formattedDate).toBe('Invalid Date');
     });
   });
 });

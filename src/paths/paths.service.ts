@@ -6,7 +6,10 @@ import { PathsOLD } from './entities/pathsOLD.entity';
 import { DBConfigConstants } from 'src/common/constants';
 import { Media } from 'src/files/entities/media.entity';
 import { CheckDirectoryOutputDto } from './dto/check-directory-output.dto';
-import { removeExtraFirstSlash, removeExtraSlashes } from 'src/common/utils';
+import {
+  removeExtraFirstSlash,
+  removeExtraSlashes,
+} from 'src/common/fileNameHelpers';
 
 @Injectable()
 export class PathsService {
@@ -100,6 +103,23 @@ export class PathsService {
 
     if (pathsToInsert.length > 0) {
       await this.pathsRepository.insertMany(pathsToInsert);
+    }
+  }
+
+  private async isPathAlreadyExists(path: string): Promise<boolean> {
+    const existingPaths = await this.pathsRepository.find({
+      where: {
+        path,
+      },
+    });
+
+    return existingPaths.length > 0;
+  }
+
+  async addPath(path: string): Promise<void> {
+    const pathIsExists = await this.isPathAlreadyExists(path);
+    if (!pathIsExists) {
+      await this.pathsRepository.insert({ path });
     }
   }
 

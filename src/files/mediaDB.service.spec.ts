@@ -1,9 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MediaDB } from './mediaDB.service';
+import { NotFoundException } from '@nestjs/common';
+import type { UpdateMedia } from './mediaDB.service';
+import { DBType, MediaDBService } from './mediaDB.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { MediaTemp } from './entities/media-temp.entity';
 import { Media } from './entities/media.entity';
 import { Repository } from 'typeorm';
+import { ObjectId } from 'mongodb';
 import {
   createMediaMock,
   createMediaTempMock,
@@ -11,16 +14,17 @@ import {
   exifDataMock,
 } from './__mocks__/mocks';
 import type { FilePaths, GetSameFilesIfExist } from './types';
+import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
 
 describe('MediaDB', () => {
-  let service: MediaDB;
+  let service: MediaDBService;
   let tempRepository: Repository<MediaTemp>;
   let mediaRepository: Repository<Media>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        MediaDB,
+        MediaDBService,
         {
           provide: getRepositoryToken(MediaTemp),
           useClass: Repository,
@@ -32,7 +36,7 @@ describe('MediaDB', () => {
       ],
     }).compile();
 
-    service = module.get<MediaDB>(MediaDB);
+    service = module.get<MediaDBService>(MediaDBService);
     tempRepository = module.get<Repository<MediaTemp>>(
       getRepositoryToken(MediaTemp),
     );
@@ -93,6 +97,66 @@ describe('MediaDB', () => {
     });
   });
 
+  describe('addMediaToDB', () => {
+    it('should call mediaRepository.save with the correct data', async () => {
+      const mediaMock: Media = createMediaMock();
+      jest.spyOn(mediaRepository, 'save').mockResolvedValue(mediaMock);
+
+      await service.addMediaToDB(mediaMock);
+      expect(mediaRepository.save).toHaveBeenCalledWith(mediaMock);
+    });
+  });
+
+  describe('findMediaByIdsInDB', () => {
+    it('should call mediaRepository.find with the correct data', async () => {
+      const ids = [
+        '507f1f77bcf86cd799439011',
+        '507f1f77bcf86cd799439012',
+        '507f1f77bcf86cd799439013',
+      ];
+      const expectedValue = {
+        where: {
+          _id: {
+            $in: [
+              new ObjectId(ids[0]),
+              new ObjectId(ids[1]),
+              new ObjectId(ids[2]),
+            ],
+          },
+        },
+      };
+      jest.spyOn(mediaRepository, 'find').mockResolvedValue([]);
+
+      await service.findMediaByIdsInDB(ids);
+      expect(mediaRepository.find).toHaveBeenCalledWith(expectedValue);
+    });
+  });
+
+  describe('findMediaByIdsInDBTemp', () => {
+    it('should call tempRepository.find with the correct data', async () => {
+      const ids = [
+        '507f1f77bcf86cd799439011',
+        '507f1f77bcf86cd799439012',
+        '507f1f77bcf86cd799439013',
+      ];
+      const expectedValue = {
+        where: {
+          _id: {
+            $in: [
+              new ObjectId(ids[0]),
+              new ObjectId(ids[1]),
+              new ObjectId(ids[2]),
+            ],
+          },
+        },
+      };
+      jest.spyOn(tempRepository, 'find').mockResolvedValue([]);
+
+      await service.findMediaByIdsInDBTemp(ids);
+      expect(tempRepository.find).toHaveBeenCalledWith(expectedValue);
+    });
+  });
+
   describe('getSameFilesIfExist', () => {
     it('should return an array of files with the same original name', async () => {
       const originalNameMock: GetSameFilesIfExist = {
@@ -125,6 +189,188 @@ describe('MediaDB', () => {
         where: originalNameMock,
       });
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('updateMediaList', () => {
+    const initialMedia1Object = {
+      id: new ObjectId('507f1f77bcf86cd799439011'),
+      name: 'test1',
+      originalNameWithoutExt: 'test1',
+    };
+    const initialMedia2Object = {
+      id: new ObjectId('507f1f77bcf86cd799439012'),
+      name: 'test2',
+      originalNameWithoutExt: 'test2',
+    };
+
+    let media1 = new Media();
+    let media2 = new Media();
+
+    let mediaList: Media[] = [];
+
+    let updatedMedia1 = new Media();
+    let updatedMedia2 = new Media();
+
+    beforeEach(() => {
+      media1 = createMediaMock(initialMedia1Object);
+      media2 = createMediaMock(initialMedia2Object);
+
+      mediaList = [media1, media2];
+      updatedMedia1 = media1;
+      updatedMedia2 = media2;
+    });
+
+    afterEach(() => {
+      media1 = new Media();
+      media2 = new Media();
+
+      mediaList = [];
+
+      updatedMedia1 = new Media();
+      updatedMedia2 = new Media();
+
+      jest.clearAllMocks();
+    });
+
+    it('should update media list in media repository', async () => {
+      const filesToUpload: UpdatedFilesInputDto = {
+        files: [
+          {
+            id: '507f1f77bcf86cd799439011',
+            updatedFields: {
+              description: 'new description',
+            },
+          },
+          {
+            id: '507f1f77bcf86cd799439012',
+            updatedFields: {
+              keywords: ['new keyword'],
+            },
+          },
+        ],
+      };
+
+      updatedMedia1.description = 'new description';
+      updatedMedia2.keywords = ['new keyword'];
+
+      const expectedResult: UpdateMedia[] = [
+        { oldMedia: media1, newMedia: updatedMedia1 },
+        { oldMedia: media2, newMedia: updatedMedia2 },
+      ];
+
+      jest.spyOn(mediaRepository, 'find').mockResolvedValue(mediaList);
+
+      const result = await service.updateMediaList(
+        filesToUpload,
+        DBType.DBMedia,
+      );
+
+      expect(result).toEqual(expectedResult);
+      expect(mediaRepository.find).toHaveBeenCalledTimes(1);
+      expect(mediaRepository.find).toHaveBeenCalledWith({
+        where: {
+          _id: {
+            $in: [
+              new ObjectId('507f1f77bcf86cd799439011'),
+              new ObjectId('507f1f77bcf86cd799439012'),
+            ],
+          },
+        },
+      });
+    });
+
+    it('should update media list in temp repository', async () => {
+      const filesToUpload: UpdatedFilesInputDto = {
+        files: [
+          {
+            id: '507f1f77bcf86cd799439011',
+            updatedFields: {
+              description: 'new description',
+            },
+          },
+          {
+            id: '507f1f77bcf86cd799439012',
+            updatedFields: {
+              keywords: ['new keyword'],
+            },
+          },
+        ],
+      };
+
+      updatedMedia1.description = 'new description';
+      updatedMedia2.keywords = ['new keyword'];
+
+      const expectedResult: UpdateMedia[] = [
+        { oldMedia: media1, newMedia: updatedMedia1 },
+        { oldMedia: media2, newMedia: updatedMedia2 },
+      ];
+
+      jest.spyOn(tempRepository, 'find').mockResolvedValue(mediaList);
+
+      const result = await service.updateMediaList(
+        filesToUpload,
+        DBType.DBTemp,
+      );
+
+      expect(result).toEqual(expectedResult);
+      expect(tempRepository.find).toHaveBeenCalledTimes(1);
+      expect(tempRepository.find).toHaveBeenCalledWith({
+        where: {
+          _id: {
+            $in: [
+              new ObjectId('507f1f77bcf86cd799439011'),
+              new ObjectId('507f1f77bcf86cd799439012'),
+            ],
+          },
+        },
+      });
+    });
+
+    it('should throw an error if ids are not found in database', async () => {
+      const filesToUpload: UpdatedFilesInputDto = {
+        files: [
+          {
+            id: '507f1f77bcf86cd799439011',
+            updatedFields: {
+              description: 'new description',
+            },
+          },
+          {
+            id: '507f1f77bcf86cd799439012',
+            updatedFields: {
+              keywords: ['new keyword'],
+            },
+          },
+        ],
+      };
+
+      jest.spyOn(mediaRepository, 'find').mockResolvedValue([]);
+
+      await expect(
+        service.updateMediaList(filesToUpload, DBType.DBMedia),
+      ).rejects.toThrow(
+        new NotFoundException(
+          `Ids not found in database: 507f1f77bcf86cd799439011, 507f1f77bcf86cd799439012`,
+        ),
+      );
+    });
+  });
+
+  describe('removeMediaFromTempDB', () => {
+    it('should remove media from temp repository', async () => {
+      const idsToRemove = [
+        new ObjectId('507f1f77bcf86cd799439011'),
+        new ObjectId('507f1f77bcf86cd799439012'),
+      ];
+
+      jest
+        .spyOn(tempRepository, 'delete')
+        .mockResolvedValue({ raw: [], affected: 1 });
+
+      await service.removeMediaFromTempDB(idsToRemove);
+
+      expect(tempRepository.delete).toHaveBeenCalledWith(idsToRemove);
     });
   });
 });

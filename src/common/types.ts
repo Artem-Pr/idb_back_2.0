@@ -7,6 +7,11 @@ import {
   SupportedVideoExtensions,
 } from './constants';
 
+type YYYYMMDD = string;
+
+export type ConvertSlashToDash<T> =
+  T extends `${infer Prefix}/${infer Extension}` ? `${Prefix}-${Extension}` : T;
+
 export type SupportedMimetypes = {
   image: `image/${SupportedImageExtensions}`;
   video: `video/${SupportedVideoExtensions}`;
@@ -31,36 +36,61 @@ export type RemoveExtension<T extends FileNameWithExt> =
     ? R
     : T;
 
+type NormalizedMainDir<
+  Env extends Envs = Envs,
+  MainFolder extends MainDir = MainDir,
+> = (typeof Folders)[Env][MainFolder];
+
 export type NormalizedImagePath<
   Env extends Envs = Envs,
   MainFolder extends MainDir = MainDir,
-> = `${(typeof Folders)[Env][MainFolder]}/${FileNameWithImageExt}`;
+> = `${NormalizedMainDir<Env, MainFolder>}/${FileNameWithImageExt}`;
 
 export type NormalizedVideoPath<
   Env extends Envs = Envs,
   MainFolder extends MainDir = MainDir,
-> = `${(typeof Folders)[Env][MainFolder]}/${FileNameWithVideoExt}`;
+> = `${NormalizedMainDir<Env, MainFolder>}/${FileNameWithVideoExt}`;
 
-export type NormalizedPath = NormalizedImagePath | NormalizedVideoPath;
+export type NormalizedMediaPath = NormalizedImagePath | NormalizedVideoPath;
 
-export type PreviewName =
-  `${string}${PreviewPostfix.preview}.${SupportedImageExtensions.jpg}`;
+type PreviewOrFullSizeName<T extends PreviewPostfix> =
+  `${string}-${T}.${SupportedImageExtensions.jpg}`;
+
+export type PreviewName = PreviewOrFullSizeName<PreviewPostfix.preview>;
 export type PreviewPath = `${MainDir}/${PreviewName}`;
 export type PreviewNormalizedPath<
   Env extends Envs = Envs,
   MainFolder extends MainDir = MainDir,
-> = `${(typeof Folders)[Env][MainFolder]}/${PreviewName}`;
+> = `${NormalizedMainDir<Env, MainFolder>}/${PreviewName}`;
 
-export type FullSizeName =
-  `${string}${PreviewPostfix.fullSize}.${SupportedImageExtensions.jpg}`;
+export type FullSizeName = PreviewOrFullSizeName<PreviewPostfix.fullSize>;
 export type FullSizePath = `${MainDir}/${FullSizeName}`;
 export type FullSizeNormalizedPath<
   Env extends Envs = Envs,
   MainFolder extends MainDir = MainDir,
-> = `${(typeof Folders)[Env][MainFolder]}/${FullSizeName}`;
+> = `${NormalizedMainDir<Env, MainFolder>}/${FullSizeName}`;
 
 export type PathWithMainDir = `${MainDir}/${FileNameWithExt}`;
 
 export type DBFilePath = `/${FileNameWithExt}`;
 export type DBPreviewPath = `/${PreviewName}`;
 export type DBFullSizePath = `/${FullSizeName}`;
+export type NameWithPreviewPostfix<
+  T extends FileNameWithExt,
+  P extends PreviewPostfix = PreviewPostfix,
+> = `${RemoveExtension<T>}-${P}.${SupportedImageExtensions.jpg}`;
+
+export type PreviewDirDateName = `${YYYYMMDD} - originalDate`;
+
+export type RelativePreviewDirectory<
+  TMimeType extends
+    SupportedMimetypes['allFiles'] = SupportedMimetypes['allFiles'],
+  TPostFix extends PreviewPostfix = PreviewPostfix,
+> = `/${ConvertSlashToDash<TMimeType>}/${TPostFix}/${PreviewDirDateName}/${PreviewOrFullSizeName<TPostFix>}`;
+
+export type NormalizedPreviewDirectory<
+  TMimeType extends
+    SupportedMimetypes['allFiles'] = SupportedMimetypes['allFiles'],
+  TPostFix extends PreviewPostfix = PreviewPostfix,
+  Env extends Envs = Envs,
+> = `${NormalizedMainDir<Env, MainDir.previews>}${RelativePreviewDirectory<TMimeType, TPostFix>}`;

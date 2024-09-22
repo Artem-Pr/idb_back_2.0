@@ -7,6 +7,7 @@ import type {
 import type { StaticPath } from 'src/config/config.service';
 import type { Media } from './entities/media.entity';
 import type { FileProcessingJob } from 'src/jobs/files.processor';
+import type { UpdatedFieldsInputDto } from './dto/update-files-input.dto';
 
 export interface ProcessFile extends Express.Multer.File {
   filename: FileProcessingJob['fileName'];
@@ -23,6 +24,8 @@ export interface FilePaths {
 export interface GetSameFilesIfExist
   extends Partial<Pick<Media, 'originalName' | 'filePath'>> {}
 
+export interface FindBy extends UpdatedFieldsInputDto {}
+
 export interface StaticPathsObj {
   staticPath: StaticPath<DBFilePath | DBFullSizePath>;
   staticPreview: StaticPath<DBPreviewPath>;
@@ -30,7 +33,7 @@ export interface StaticPathsObj {
 
 export interface FileProperties
   extends StaticPathsObj,
-    Omit<Media, '_id' | 'preview' | 'fullSizeJpg' | 'exif' | 'filePath'> {
+    Omit<Media, '_id' | 'preview' | 'fullSizeJpg' | 'filePath'> {
   id: string;
   duplicates: DuplicateFile[];
   filePath: null; // We dont need it for upload

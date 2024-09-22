@@ -1,98 +1,12 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
-import {
-  MainDir,
-  SUPPORTED_EXTENSIONS_REGEX,
-  SUPPORTED_IMAGE_EXTENSIONS_REGEX,
-  SUPPORTED_IMAGE_MIMETYPES,
-  SUPPORTED_MIMETYPES,
-  SUPPORTED_VIDEO_EXTENSIONS_REGEX,
-  SUPPORTED_VIDEO_MIMETYPES,
-} from './constants';
-import type {
-  FileNameWithExt,
-  FileNameWithImageExt,
-  FileNameWithVideoExt,
-  RemoveExtension,
-  SupportedMimetypes,
-} from './types';
 
 export const deepCopy = <T extends object>(obj: T) =>
   JSON.parse(JSON.stringify(obj)) as T;
 
-export const removeExtraFirstSlash = (value: string): string =>
-  value.replace(/^\/+/, '');
-
-export const removeExtraLastSlash = (value: string): string =>
-  value.replace(/\/+$/, '');
-
-export const removeExtraSlashes = (value: string): string =>
-  value.replace(/^\/+|\/+$/g, '');
-
-type FolderPath = string;
-type DestPrefixedPath = `./${FolderPath}`;
-export const addDestPrefix = (
-  folderPath: FolderPath | DestPrefixedPath,
-): DestPrefixedPath => {
-  if (!folderPath.startsWith('./')) {
-    return `./${folderPath}`;
-  }
-  return folderPath as DestPrefixedPath;
-};
-
-export const removeMainDir = <T extends `${MainDir}/${string}`>(
-  path: T,
-): T extends `${MainDir}/${infer R}` ? `/${R}` : never => {
-  return `/${path.split('/').slice(1).join('/')}` as T extends `${MainDir}/${infer R}`
-    ? `/${R}`
-    : never;
-};
-
-export const isSupportedImageExtension = (
-  fileName: string,
-): fileName is FileNameWithImageExt =>
-  SUPPORTED_IMAGE_EXTENSIONS_REGEX.test(fileName);
-
-export const isSupportedVideoExtension = (
-  fileName: string,
-): fileName is FileNameWithVideoExt =>
-  SUPPORTED_VIDEO_EXTENSIONS_REGEX.test(fileName);
-
-export const isSupportedExtension = (
-  fileName: string,
-): fileName is FileNameWithExt =>
-  isSupportedImageExtension(fileName) || isSupportedVideoExtension(fileName);
-
-export const isSupportedImageMimeType = (
-  mimeType: string,
-): mimeType is SupportedMimetypes['image'] =>
-  SUPPORTED_IMAGE_MIMETYPES.includes(mimeType);
-
-export const isSupportedVideoMimeType = (
-  mimeType: string,
-): mimeType is SupportedMimetypes['video'] =>
-  SUPPORTED_VIDEO_MIMETYPES.includes(mimeType);
-
-export const isSupportedMimeType = (
-  mimeType: string,
-): mimeType is SupportedMimetypes['allFiles'] =>
-  SUPPORTED_MIMETYPES.includes(mimeType);
-
-export const removeExtension = <T extends FileNameWithExt>(
-  filename: T,
-): RemoveExtension<T> => {
-  // Check if the file has a supported extension
-  if (isSupportedExtension(filename)) {
-    // Use a regex to remove the extension from the filename
-    return filename.replace(
-      SUPPORTED_EXTENSIONS_REGEX,
-      '',
-    ) as RemoveExtension<T>;
-  }
-
-  // If the extension is not supported, log an error and return the original filename
-  console.error('removeExtension - not supported extension:', filename);
-  return filename;
-};
+export const getRandomId = (numbers: number): string =>
+  Math.floor(Math.random() * 1000000)
+    .toString()
+    .padStart(numbers, '0');
 
 export async function resolveAllSettled<T extends any[]>(
   promises: [...{ [K in keyof T]: Promise<T[K]> }],

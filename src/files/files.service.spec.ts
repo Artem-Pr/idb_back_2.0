@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FilesService } from './files.service';
 import type { Job, Queue } from 'bull';
-import { MediaDB } from './mediaDB.service';
+import type { UpdateMedia } from './mediaDB.service';
+import { MediaDBService } from './mediaDB.service';
 import { getQueueToken } from '@nestjs/bull';
 import { Processors, MainDir } from 'src/common/constants';
 import type { FileProcessingJob } from 'src/jobs/files.processor';
@@ -18,7 +19,11 @@ import {
 } from './__mocks__/mocks';
 import { ObjectId } from 'mongodb';
 import type { GetSameFilesIfExist, ProcessFile } from './types';
-import type { Media } from './entities/media.entity';
+import { Media } from './entities/media.entity';
+import { DiscStorageService } from './discStorage.service';
+import { PathsService } from 'src/paths/paths.service';
+import { KeywordsService } from 'src/keywords/keywords.service';
+import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
 
 const exifJobResult: ExifData = {
   'test.jpg': exifDataMock,
@@ -81,16 +86,18 @@ const resetMockUpload = () => {
 };
 
 describe('FilesService', () => {
-  let service: FilesService;
-  let fileQueue: Queue<FileProcessingJob>;
-  let exifQueue: Queue<GetExifJob>;
-  let mediaDB: MediaDB;
   let addFileToDBTemp: jest.Mock<MediaTemp>;
+  let exifQueue: Queue<GetExifJob>;
+  let fileQueue: Queue<FileProcessingJob>;
   let getSameFilesIfExist: jest.Mock<GetSameFilesIfExist>;
+  let mediaDB: MediaDBService;
+  let service: FilesService;
+  let updateMediaList: jest.Mock<UpdateMedia[]>;
 
   beforeAll(async () => {
     addFileToDBTemp = jest.fn().mockReturnValue(mediaTempResponseMock);
     getSameFilesIfExist = jest.fn().mockReturnValue(mockDuplicates);
+    updateMediaList = jest.fn().mockReturnValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -104,16 +111,37 @@ describe('FilesService', () => {
           useValue: { add: jest.fn(() => mockExifJob) },
         },
         {
-          provide: MediaDB,
+          provide: MediaDBService,
           useValue: {
-            getSameFilesIfExist,
             addFileToDBTemp,
+            addMediaToDB: jest.fn((mediaList: Media[]) => mediaList),
+            getSameFilesIfExist,
+            removeMediaFromTempDB: jest.fn(),
+            updateMediaList,
           },
         },
         {
           provide: ConfigService,
           useValue: {
             domain: 'http://localhost:3000',
+          },
+        },
+        {
+          provide: DiscStorageService,
+          useValue: {
+            saveFilesArrToDisk: jest.fn(),
+          },
+        },
+        {
+          provide: PathsService,
+          useValue: {
+            addPaths: jest.fn(),
+          },
+        },
+        {
+          provide: KeywordsService,
+          useValue: {
+            addKeywords: jest.fn(),
           },
         },
       ],
@@ -126,7 +154,7 @@ describe('FilesService', () => {
     exifQueue = module.get<Queue<GetExifJob>>(
       getQueueToken(Processors.exifProcessor),
     );
-    mediaDB = module.get<MediaDB>(MediaDB);
+    mediaDB = module.get<MediaDBService>(MediaDBService);
   });
 
   beforeEach(() => {
@@ -138,15 +166,111 @@ describe('FilesService', () => {
     jest
       .spyOn(mediaDB, 'getSameFilesIfExist')
       .mockReturnValue(new Promise((resolve) => resolve(mockDuplicates)));
-  });
 
-  afterEach(() => {
-    jest.clearAllMocks();
     resetMockUpload();
   });
 
+  afterEach(jest.clearAllMocks);
+
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('saveFiles', () => {
+    const filesToUpload: UpdatedFilesInputDto = {
+      files: [
+        {
+          id: '00000001f80f825d51300844',
+          updatedFields: {
+            originalName: 'test1-updated.jpg',
+            keywords: ['keyword1', 'keyword2'],
+          },
+        },
+        {
+          id: '00000001f80f825d51300845',
+          updatedFields: {
+            originalName: 'test2-updated.jpg',
+            originalDate: '2024-09-20T17:00:00.000Z',
+            keywords: [],
+          },
+        },
+      ],
+    };
+
+    const oldMedia1 = createMediaMock({
+      id: new ObjectId('00000001f80f825d51300844'),
+      name: 'test1',
+      originalNameWithoutExt: 'test1',
+    });
+    const newMedia1 = createMediaMock({
+      id: new ObjectId('00000001f80f825d51300844'),
+      name: 'test1-updated',
+      originalNameWithoutExt: 'test1-updated',
+    });
+    newMedia1.keywords = ['keyword1', 'keyword2'];
+
+    const oldMedia2 = createMediaMock({
+      id: new ObjectId('00000001f80f825d51300845'),
+      name: 'test2',
+      originalNameWithoutExt: 'test2',
+    });
+    const newMedia2 = createMediaMock({
+      id: new ObjectId('00000001f80f825d51300845'),
+      name: 'test2-updated',
+      originalNameWithoutExt: 'test2-updated',
+    });
+    newMedia2.originalDate = new Date('2024-09-20T17:00:00.000Z');
+    newMedia2.keywords = [];
+
+    const mediaDB_UpdateMediaList: UpdateMedia[] = [
+      {
+        oldMedia: oldMedia1,
+        newMedia: newMedia1,
+      },
+      {
+        oldMedia: oldMedia2,
+        newMedia: newMedia2,
+      },
+    ];
+
+    beforeEach(() => {
+      jest
+        .spyOn(mediaDB, 'updateMediaList')
+        .mockReturnValue(
+          new Promise((resolve) => resolve(mediaDB_UpdateMediaList)),
+        );
+    });
+
+    it('should save files', async () => {
+      const result = await service.saveFiles(filesToUpload);
+
+      const responseMedia1 = createMediaMock({
+        id: new ObjectId('00000001f80f825d51300844'),
+        name: 'test1-updated',
+        originalNameWithoutExt: 'test1-updated',
+      });
+      responseMedia1.keywords = ['keyword1', 'keyword2'];
+      responseMedia1.fullSizeJpg =
+        '/image-jpeg/fullSize/2020.01.01 - originalDate/test1-updated-fullSize.jpg';
+      responseMedia1.preview =
+        '/image-jpeg/preview/2020.01.01 - originalDate/test1-updated-preview.jpg';
+
+      const responseMedia2 = createMediaMock({
+        id: new ObjectId('00000001f80f825d51300845'),
+        name: 'test2-updated',
+        originalNameWithoutExt: 'test2-updated',
+      });
+      responseMedia2.originalDate = new Date('2024-09-20T17:00:00.000Z');
+      responseMedia2.keywords = [];
+      responseMedia2.fullSizeJpg =
+        '/image-jpeg/fullSize/2024.09.20 - originalDate/test2-updated-fullSize.jpg';
+      responseMedia2.preview =
+        '/image-jpeg/preview/2024.09.20 - originalDate/test2-updated-preview.jpg';
+
+      expect(JSON.stringify(result)).toEqual(
+        JSON.stringify([responseMedia1, responseMedia2]),
+      );
+    });
   });
 
   describe('processFile', () => {
@@ -182,8 +306,8 @@ describe('FilesService', () => {
     let resolveAllSettledSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      startAllQueues = jest.spyOn(service, 'startAllQueues');
-      finishAllQueues = jest.spyOn(service, 'finishAllQueues');
+      startAllQueues = jest.spyOn(service, 'startAllProcessFileQueues');
+      finishAllQueues = jest.spyOn(service, 'finishAllProcessFileQueues');
       pushFileToMediaDBTemp = jest.spyOn(service, 'pushFileToMediaDBTemp');
       resolveAllSettledSpy = jest.spyOn(utils, 'resolveAllSettled');
     });
@@ -271,7 +395,10 @@ describe('FilesService', () => {
       const fileName = 'testFile.jpg';
       const fileType = 'image/jpeg';
 
-      const result = await service.startAllQueues({ fileName, fileType });
+      const result = await service.startAllProcessFileQueues({
+        fileName,
+        fileType,
+      });
 
       expect(result).toHaveProperty('exifJob');
       expect(result).toHaveProperty('previewJob');
@@ -289,7 +416,7 @@ describe('FilesService', () => {
 
   describe('finishAllQueues', () => {
     it('should await the completion of exifJob and previewJob', async () => {
-      const result = await service.finishAllQueues({
+      const result = await service.finishAllProcessFileQueues({
         exifJob: mockExifJob,
         previewJob: mockPreviewJob,
       });

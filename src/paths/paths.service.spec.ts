@@ -30,6 +30,7 @@ describe('PathsService', () => {
     pathsRepository = {
       find: mockPathsFind,
       insertMany: jest.fn(),
+      insert: jest.fn(),
     } as Partial<Repository<Paths>> as any;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -130,6 +131,35 @@ describe('PathsService', () => {
         },
       });
       expect(pathsRepository.insertMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('addPath', () => {
+    it('should add a new path if it does not exist', async () => {
+      const newPath = 'new/path';
+      jest.spyOn(pathsRepository, 'find').mockResolvedValue([]);
+      jest.spyOn(pathsRepository, 'insert');
+
+      await service.addPath(newPath);
+
+      expect(pathsRepository.find).toHaveBeenCalledWith({
+        where: {
+          path: newPath,
+        },
+      });
+      expect(pathsRepository.insert).toHaveBeenCalledWith({ path: newPath });
+    });
+
+    it('should not add a path if it already exists', async () => {
+      const existingPath = 'existing/path';
+      jest
+        .spyOn(pathsRepository, 'find')
+        .mockResolvedValueOnce([{ _id: new ObjectId(), path: existingPath }]);
+      jest.spyOn(pathsRepository, 'insert');
+
+      await service.addPath(existingPath);
+
+      expect(pathsRepository.insert).not.toHaveBeenCalled();
     });
   });
 

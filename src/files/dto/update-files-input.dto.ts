@@ -8,6 +8,7 @@ import {
   IsMongoId,
   IsNumber,
   IsISO8601,
+  IsNotEmptyObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { Media } from '../entities/media.entity';
@@ -17,7 +18,7 @@ import {
   IsValidTimeStamp,
 } from 'src/common/validators';
 
-class UpdatedFieldsInputDto {
+export class UpdatedFieldsInputDto {
   @IsOptional()
   @IsValidFileName()
   originalName?: Media['originalName'];
@@ -28,7 +29,7 @@ class UpdatedFieldsInputDto {
 
   @IsOptional()
   @IsISO8601()
-  originalDate?: Media['originalDate'];
+  originalDate?: string;
 
   @IsOptional()
   @IsArray()
@@ -41,6 +42,7 @@ class UpdatedFieldsInputDto {
 
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   description?: Media['description'];
 
   @IsOptional()
@@ -49,15 +51,15 @@ class UpdatedFieldsInputDto {
 
   @IsOptional()
   @IsISO8601()
-  changeDate?: Media['changeDate'];
+  changeDate?: string;
 }
 
 export class UpdatedFileInputDto {
   @IsNotEmpty()
   @IsMongoId()
-  id: Media['_id'];
+  id: string;
 
-  @IsNotEmpty()
+  @IsNotEmptyObject()
   @ValidateNested({ each: true })
   @Type(() => UpdatedFieldsInputDto)
   updatedFields: Partial<UpdatedFieldsInputDto>;

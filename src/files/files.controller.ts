@@ -13,7 +13,10 @@ import {
   Body,
 } from '@nestjs/common';
 import { ControllerPrefix } from 'src/common/constants';
-import { isSupportedExtension, isSupportedMimeType } from 'src/common/utils';
+import {
+  isSupportedExtension,
+  isSupportedMimeType,
+} from 'src/common/fileNameHelpers';
 import { FilesService } from './files.service';
 import { FileMediaInterceptor } from './file.interceptor';
 import { CheckDuplicatesOriginalNamesInputDto } from './dto/check-duplicates-original-names-input.dto';
@@ -28,8 +31,8 @@ export class FilesController {
   constructor(private filesService: FilesService) {}
 
   @Post(ControllerPrefix.saveFiles)
-  async upload(@Body() filesToUpload: UpdatedFilesInputDto) {
-    return { message: 'File update request received', filesToUpload };
+  async saveFiles(@Body() filesToUpload: UpdatedFilesInputDto) {
+    return this.filesService.saveFiles(filesToUpload);
   }
 
   @Post(ControllerPrefix.uploadFile)

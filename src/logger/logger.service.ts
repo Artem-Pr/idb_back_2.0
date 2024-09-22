@@ -1,4 +1,15 @@
 import { Injectable, Logger, Scope } from '@nestjs/common';
+import { getRandomId } from 'src/common/utils';
+
+type ProcessData = {
+  processId?: string | number;
+  processName: string;
+  data?: any;
+};
+
+type ProcessDataWithId = Omit<ProcessData, 'processId'> & {
+  processId: string | number;
+};
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class CustomLogger extends Logger {
@@ -16,26 +27,26 @@ export class CustomLogger extends Logger {
       this.startTimes.delete(processId.toString());
       return `+${duration.toFixed()}ms`;
     } else {
-      this.logError(`❌ Timer for processId '${processId}' was not found.`);
+      this.logError({
+        message: `❌ Timer for processId '${processId}' was not found.`,
+      });
       return '';
     }
   }
-  startProcess(
-    processId: string | number,
-    processName: string,
-    data?: any,
-  ): void {
-    this.startTimer(processId);
+  startProcess({
+    data,
+    processId,
+    processName,
+  }: ProcessData): ProcessDataWithId {
+    const id = processId || getRandomId(5);
+    this.startTimer(id);
     super.log(
-      `🚀 Process ${processName}: ${processId}${data ? ` - ${this.formatData(data)}` : ''}`,
+      `🚀 Process ${processName}: ${id}${data ? ` - ${this.formatData(data)}` : ''}`,
     );
+    return { processId: id, processName, data };
   }
 
-  finishProcess(
-    processId: string | number,
-    processName: string,
-    data?: any,
-  ): void {
+  finishProcess({ data, processId, processName }: ProcessDataWithId): void {
     const duration = this.endTimer(processId);
     super.log(
       `✅ Process ${processName}: ${processId}${data ? ` - ${this.formatData(data)}` : ''} ${duration}`,
@@ -46,11 +57,7 @@ export class CustomLogger extends Logger {
     processId,
     processName,
     errorData,
-  }: {
-    processId?: string | number;
-    processName: string;
-    errorData?: any;
-  }): void {
+  }: Omit<ProcessData, 'data'> & { errorData?: any }): void {
     const duration = processId ? this.endTimer(processId) : '';
     super.error(
       processId
@@ -63,8 +70,18 @@ export class CustomLogger extends Logger {
     super.log(`${message} - ${this.formatData(data)}`);
   }
 
-  logError(message: string, errorData?: Record<string, any>): void {
-    super.error(`${message} - ${this.formatData(errorData)}`);
+  logError({
+    message,
+    method,
+    errorData,
+  }: {
+    message: string;
+    method?: string;
+    errorData?: Record<string, any>;
+  }): void {
+    const methodMessage = method ? `${method}: ` : '';
+    const dataMessage = errorData ? ` - ${this.formatData(errorData)}` : '';
+    super.error(`${methodMessage}${message}${dataMessage}`);
   }
 
   private formatData(data?: any): string {

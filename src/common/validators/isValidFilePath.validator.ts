@@ -4,13 +4,13 @@ import {
   registerDecorator,
   ValidationOptions,
 } from 'class-validator';
-import { isSupportedExtension } from '../utils';
+import { isSupportedExtension } from '../fileNameHelpers';
 import type { DBFilePath } from '../types';
 
 @ValidatorConstraint({ async: false })
 export class IsValidFilePathConstraint implements ValidatorConstraintInterface {
-  validate(fileName: DBFilePath) {
-    return isSupportedExtension(fileName) && fileName.startsWith('/');
+  validate(filePath: DBFilePath) {
+    return isSupportedExtension(filePath) && filePath.startsWith('/');
   }
 
   defaultMessage() {
