@@ -1,17 +1,19 @@
-import { Test } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import { KeywordsService } from './keywords.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { MongoRepository, AggregationCursor } from 'typeorm';
+import { MongoRepository } from 'typeorm';
 import { ObjectId } from 'mongodb';
 import { Media } from 'src/files/entities/media.entity';
 import { Keywords } from './entities/keywords.entity';
 import { KeywordOld } from './entities/keywordsOld.entity';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { MediaDBService } from 'src/files/mediaDB.service';
 
 const keywordsArrMock = ['nestjs', 'typeorm', 'testing'];
 
 describe('KeywordsService', () => {
   let service: KeywordsService;
+  let mediaDB: MediaDBService;
   let keywordsRepositoryMock: MongoRepository<Keywords>;
   let mediaMongoRepositoryMock: MongoRepository<Media>;
 
@@ -42,9 +44,15 @@ describe('KeywordsService', () => {
       insertMany: jest.fn().mockResolvedValue([]),
     } as any;
 
-    const moduleRef = await Test.createTestingModule({
+    const module: TestingModule = await Test.createTestingModule({
       providers: [
         KeywordsService,
+        {
+          provide: MediaDBService,
+          useValue: {
+            getUsedKeywordsList: jest.fn().mockResolvedValue([]),
+          },
+        },
         {
           provide: getRepositoryToken(Keywords),
           useValue: keywordsRepositoryMock,
@@ -56,7 +64,8 @@ describe('KeywordsService', () => {
       ],
     }).compile();
 
-    service = moduleRef.get(KeywordsService);
+    service = module.get(KeywordsService);
+    mediaDB = module.get(MediaDBService);
   });
 
   it('should be defined', () => {
@@ -67,10 +76,8 @@ describe('KeywordsService', () => {
     it('should return all keywords', async () => {
       jest.spyOn(keywordsRepositoryMock, 'find');
 
-      // Call the getAllKeywords method
       const keywords = await service.getAllKeywords();
 
-      // Assertions
       expect(keywordsRepositoryMock.find).toHaveBeenCalled();
       expect(keywords).toEqual(keywordsArrMock);
     });
@@ -82,41 +89,24 @@ describe('KeywordsService', () => {
 
       expect(unusedKeywords).toEqual(keywordsArrMock);
       expect(keywordsRepositoryMock.find).toHaveBeenCalled();
-      expect(mediaMongoRepositoryMock.aggregate).toHaveBeenCalled();
-      expect((mediaMongoRepositoryMock as any).toArray).toHaveBeenCalled();
+      expect(mediaDB.getUsedKeywordsList).toHaveBeenCalled();
     });
 
     it('should return unused keywords', async () => {
       const usedKeywords = ['nestjs', 'typeorm'];
       const unusedKeywords = ['testing'];
 
-      jest.spyOn(mediaMongoRepositoryMock, 'aggregate').mockImplementation(
-        () =>
-          ({
-            toArray: () =>
-              Promise.resolve([
-                {
-                  results: usedKeywords,
-                },
-              ]),
-          }) as unknown as AggregationCursor<Media>,
-      );
+      jest
+        .spyOn(mediaDB, 'getUsedKeywordsList')
+        .mockResolvedValue(usedKeywords);
 
       expect(await service.getUnusedKeywords()).toEqual(unusedKeywords);
     });
 
     it('should return an empty array if all keywords are used', async () => {
-      jest.spyOn(mediaMongoRepositoryMock, 'aggregate').mockImplementation(
-        () =>
-          ({
-            toArray: () =>
-              Promise.resolve([
-                {
-                  results: keywordsArrMock,
-                },
-              ]),
-          }) as unknown as AggregationCursor<Media>,
-      );
+      jest
+        .spyOn(mediaDB, 'getUsedKeywordsList')
+        .mockResolvedValue(keywordsArrMock);
 
       expect(await service.getUnusedKeywords()).toEqual([]);
     });

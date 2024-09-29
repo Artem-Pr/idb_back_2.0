@@ -4,9 +4,9 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Paths } from './entities/paths.entity';
 import { MongoRepository, Repository } from 'typeorm';
 import { ObjectId } from 'mongodb';
-import { Media } from 'src/files/entities/media.entity';
 import { NotFoundException } from '@nestjs/common';
 import { PathsOLD } from './entities/pathsOLD.entity';
+import { MediaDBService } from 'src/files/mediaDB.service';
 
 describe('PathsService', () => {
   const pathsMock = [
@@ -23,7 +23,7 @@ describe('PathsService', () => {
       pathsMock.map((p) => ({ _id: new ObjectId(), path: p })),
     );
   let service: PathsService;
-  let mediaRepository: Repository<Media>;
+  let mediaDB: MediaDBService;
   let pathsRepository: MongoRepository<Paths>;
 
   beforeEach(async () => {
@@ -37,6 +37,12 @@ describe('PathsService', () => {
       providers: [
         PathsService,
         {
+          provide: MediaDBService,
+          useValue: {
+            countFilesInDirectory: jest.fn(),
+          },
+        },
+        {
           provide: getRepositoryToken(Paths),
           useValue: pathsRepository,
         },
@@ -46,17 +52,11 @@ describe('PathsService', () => {
             findOne: jest.fn(),
           },
         },
-        {
-          provide: getRepositoryToken(Media),
-          useValue: {
-            count: jest.fn(),
-          },
-        },
       ],
     }).compile();
 
     service = module.get<PathsService>(PathsService);
-    mediaRepository = module.get<Repository<Media>>(getRepositoryToken(Media));
+    mediaDB = module.get<MediaDBService>(MediaDBService);
   });
 
   afterEach(jest.clearAllMocks);
@@ -82,7 +82,7 @@ describe('PathsService', () => {
     });
 
     it('should return directory info if directory is found', async () => {
-      jest.spyOn(service, 'countFilesInDirectory').mockResolvedValueOnce(5);
+      jest.spyOn(mediaDB, 'countFilesInDirectory').mockResolvedValueOnce(5);
 
       const result = await service.checkDirectory('main/nestjs');
       expect(result.numberOfFiles).toEqual(5);
@@ -90,7 +90,7 @@ describe('PathsService', () => {
     });
 
     it('should return numberOfSubdirectories === 0 if directory has no subdirectories', async () => {
-      jest.spyOn(service, 'countFilesInDirectory').mockResolvedValueOnce(0);
+      jest.spyOn(mediaDB, 'countFilesInDirectory').mockResolvedValueOnce(0);
 
       const result = await service.checkDirectory(
         'Название папки на русском/subDir',
@@ -160,14 +160,6 @@ describe('PathsService', () => {
       await service.addPath(existingPath);
 
       expect(pathsRepository.insert).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('countFilesInDirectory', () => {
-    it('should return the number of files in a given directory', async () => {
-      jest.spyOn(mediaRepository, 'count').mockResolvedValueOnce(10);
-      const count = await service.countFilesInDirectory('main/nestjs');
-      expect(count).toEqual(10);
     });
   });
 });

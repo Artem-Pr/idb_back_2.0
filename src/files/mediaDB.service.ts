@@ -1,11 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { MongoRepository } from 'typeorm';
+import { uniq } from 'ramda';
 import { MediaTemp } from './entities/media-temp.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Tags } from 'exiftool-vendored';
 import { toDateUTC, toMillisecondsUTC } from 'src/common/datesHelper';
 import { Media } from './entities/media.entity';
-import { ObjectId } from 'mongodb';
 import {
   getDescriptionFromExif,
   getKeywordsFromExif,
@@ -17,6 +21,19 @@ import type {
   UpdatedFieldsInputDto,
   UpdatedFilesInputDto,
 } from './dto/update-files-input.dto';
+import type {
+  MongoAggregationPipeline,
+  MongoFilterCondition,
+} from './mediaDBQueryCreators';
+import { MediaDBQueryCreators } from './mediaDBQueryCreators';
+import {
+  getFullPathWithoutNameAndFirstSlash,
+  removeExtraSlashes,
+} from 'src/common/fileNameHelpers';
+import type { DBFilePath } from 'src/common/types';
+import { CustomLogger } from 'src/logger/logger.service';
+import type { GetFilesInputDto } from './dto/get-files-input.dto';
+import type { GetFilesOutputDto, Pagination } from './dto/get-files-output.dto';
 
 export enum DBType {
   DBTemp = 'temp',
@@ -33,14 +50,28 @@ export interface UpdateMedia {
   newMedia: Media;
 }
 
+export interface GetFilesDBResponse {
+  pagination: [Omit<Pagination, 'nPerPage'>] | [];
+  response: Media[];
+  total: [Pick<GetFilesOutputDto, 'filesSizeSum'>] | [];
+}
+
+export type GetFilesResponse = Promise<
+  (Omit<GetFilesOutputDto, 'files'> & { files: Media[] }) | undefined
+>;
+
 @Injectable()
-export class MediaDBService {
+export class MediaDBService extends MediaDBQueryCreators {
+  private readonly logger = new CustomLogger(MediaDBService.name);
+
   constructor(
     @InjectRepository(MediaTemp)
     private tempRepository: MongoRepository<MediaTemp>,
     @InjectRepository(Media)
     private mediaRepository: MongoRepository<Media>,
-  ) {}
+  ) {
+    super();
+  }
 
   async addFileToDBTemp(
     exifData: Tags,
@@ -78,19 +109,11 @@ export class MediaDBService {
   }
 
   async findMediaByIdsInDB(ids: string[]): Promise<Media[]> {
-    return this.mediaRepository.find({
-      where: {
-        _id: { $in: ids.map((id) => new ObjectId(id)) },
-      },
-    });
+    return this.mediaRepository.find(this.ormFindByIdsQuery(ids));
   }
 
   async findMediaByIdsInDBTemp(ids: string[]): Promise<MediaTemp[]> {
-    return this.tempRepository.find({
-      where: {
-        _id: { $in: ids.map((id) => new ObjectId(id)) },
-      },
-    });
+    return this.tempRepository.find(this.ormFindByIdsQuery(ids));
   }
 
   async getSameFilesIfExist(where: GetSameFilesIfExist) {
@@ -195,5 +218,155 @@ export class MediaDBService {
     ids: Parameters<typeof this.tempRepository.delete>[0],
   ): Promise<void> {
     await this.tempRepository.delete(ids);
+  }
+
+  async countFilesInDirectory(directory: string): Promise<number> {
+    const sanitizedDirectory = removeExtraSlashes(directory);
+
+    const count = await this.mediaRepository.count({
+      filePath: new RegExp(`^/${sanitizedDirectory}/`),
+    });
+
+    return count;
+  }
+
+  private async getFoldersPathsList(
+    conditions?: MongoFilterCondition[],
+  ): Promise<DBFilePath[]> {
+    const filePathListQueryFacet = this.getMongoDynamicFoldersFacet();
+    const aggregation = this.createMongoAggregationPipeline({
+      conditions,
+      facet: filePathListQueryFacet,
+    });
+
+    const mongoResponse = await this.makeAggregationQuery<{
+      response: [{ filePathSet: DBFilePath[] }];
+    }>(aggregation);
+
+    return mongoResponse.response[0]?.filePathSet || [];
+  }
+
+  private getUniqPathsRecursively = (paths: string[]) => {
+    const getArrayOfSubfolders = (fullPath: string): string[] => {
+      const fullPathParts = fullPath.split('/');
+      const fullPathWithoutLastFolder = fullPathParts.slice(0, -1).join('/');
+      return fullPathParts.length === 1
+        ? fullPathParts
+        : [...getArrayOfSubfolders(fullPathWithoutLastFolder), fullPath];
+    };
+
+    const pathsWithSubfolders = paths
+      .reduce<
+        string[]
+      >((accum, currentPath) => [...accum, ...getArrayOfSubfolders(currentPath)], [])
+      .filter(Boolean);
+    return Array.from(new Set(pathsWithSubfolders)).sort();
+  };
+
+  async getDynamicFoldersRecursively(conditions?: MongoFilterCondition[]) {
+    const filePaths = await this.getFoldersPathsList(conditions);
+    const folderPathsWithoutNames = filePaths.map((filePath) =>
+      getFullPathWithoutNameAndFirstSlash(filePath),
+    );
+
+    const dynamicFolders =
+      this.getUniqPathsRecursively(uniq(folderPathsWithoutNames)) || [];
+
+    return dynamicFolders;
+  }
+
+  async getUsedKeywordsList() {
+    const aggregation = this.getMongoUsedKeywordsAggregation();
+
+    const mongoResponse = await this.makeAggregationQuery<{
+      response: string[];
+    }>(aggregation);
+
+    return mongoResponse.response;
+  }
+
+  private getSearchPagination(
+    paginationResponse: GetFilesDBResponse['pagination'],
+    nPerPage: number,
+  ): Pagination {
+    if (paginationResponse.length === 0) {
+      return {
+        currentPage: 1,
+        nPerPage,
+        resultsCount: 0,
+        totalPages: 1,
+      };
+    }
+
+    const { currentPage, resultsCount, totalPages } = paginationResponse[0];
+
+    return {
+      currentPage,
+      nPerPage,
+      resultsCount,
+      totalPages,
+    };
+  }
+
+  async getFiles({
+    filters,
+    folders,
+    sorting: { sort, randomSort },
+    pagination,
+  }: GetFilesInputDto): GetFilesResponse {
+    try {
+      const filtersQuery = this.getMongoFiltersConditions(filters);
+      const foldersQuery = this.getMongoFoldersCondition(folders);
+      const dynamicFolders = folders?.isDynamicFolders
+        ? await this.getDynamicFoldersRecursively(filtersQuery)
+        : [];
+
+      const conditionsArr: MongoFilterCondition[] = [
+        ...filtersQuery,
+        foldersQuery,
+      ];
+
+      const aggregation = this.createMongoAggregationPipeline({
+        conditions: conditionsArr,
+        sorting: sort,
+        sample: randomSort ? { size: pagination.perPage } : undefined,
+        facet: this.getMongoFilesFacet(pagination),
+      });
+
+      const {
+        response,
+        total,
+        pagination: paginationResponse,
+      } = await this.makeAggregationQuery<GetFilesDBResponse>(aggregation);
+
+      const DBResponse = {
+        dynamicFolders,
+        files: response,
+        filesSizeSum: total[0]?.filesSizeSum || 0,
+        searchPagination: this.getSearchPagination(
+          paginationResponse,
+          pagination.perPage,
+        ),
+      };
+
+      return DBResponse;
+    } catch (error) {
+      this.logger.logError({
+        method: 'MediaDBService.getFiles',
+        message: error?.message,
+        errorData: error,
+      });
+      throw new InternalServerErrorException(error?.message);
+    }
+  }
+
+  async makeAggregationQuery<T>(
+    aggregationPipeline: MongoAggregationPipeline,
+  ): Promise<T> {
+    const aggregatedResult = (await this.mediaRepository
+      .aggregate(aggregationPipeline, { allowDiskUse: true })
+      .toArray()) as unknown as [T];
+
+    return aggregatedResult[0];
   }
 }

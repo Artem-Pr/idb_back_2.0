@@ -5,7 +5,7 @@ import type {
   FileNameWithExt,
 } from 'src/common/types';
 import type { StaticPath } from 'src/config/config.service';
-import type { Media } from './entities/media.entity';
+import { Media } from './entities/media.entity';
 import type { FileProcessingJob } from 'src/jobs/files.processor';
 import type { UpdatedFieldsInputDto } from './dto/update-files-input.dto';
 
@@ -26,16 +26,19 @@ export interface GetSameFilesIfExist
 
 export interface FindBy extends UpdatedFieldsInputDto {}
 
+export interface MediaOutput
+  extends StaticPathsObj,
+    Omit<Media, '_id' | 'preview' | 'fullSizeJpg'> {
+  id: string;
+  duplicates: DuplicateFile[];
+}
+
 export interface StaticPathsObj {
   staticPath: StaticPath<DBFilePath | DBFullSizePath>;
   staticPreview: StaticPath<DBPreviewPath>;
 }
 
-export interface FileProperties
-  extends StaticPathsObj,
-    Omit<Media, '_id' | 'preview' | 'fullSizeJpg' | 'filePath'> {
-  id: string;
-  duplicates: DuplicateFile[];
+export interface FileProperties extends Omit<MediaOutput, 'filePath'> {
   filePath: null; // We dont need it for upload
 }
 
@@ -44,3 +47,22 @@ export type DuplicateFile = Pick<
   'filePath' | 'originalName' | 'mimetype'
 > &
   StaticPathsObj;
+
+export enum Sort {
+  ASC = 1,
+  DESC = -1,
+}
+
+export enum SortingFields {
+  id = '_id',
+  originalName = 'originalName',
+  mimetype = 'mimetype',
+  size = 'size',
+  megapixels = 'megapixels',
+  originalDate = 'originalDate',
+  filePath = 'filePath',
+  rating = 'rating',
+  description = 'description',
+}
+
+export type SortingObject = Partial<Record<SortingFields, Sort>>;

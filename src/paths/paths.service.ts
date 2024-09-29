@@ -4,12 +4,12 @@ import { MongoRepository } from 'typeorm';
 import { Paths } from './entities/paths.entity';
 import { PathsOLD } from './entities/pathsOLD.entity';
 import { DBConfigConstants } from 'src/common/constants';
-import { Media } from 'src/files/entities/media.entity';
 import { CheckDirectoryOutputDto } from './dto/check-directory-output.dto';
 import {
   removeExtraFirstSlash,
   removeExtraSlashes,
 } from 'src/common/fileNameHelpers';
+import { MediaDBService } from 'src/files/mediaDB.service';
 
 @Injectable()
 export class PathsService {
@@ -18,8 +18,7 @@ export class PathsService {
     private pathsRepository: MongoRepository<Paths>,
     @InjectRepository(PathsOLD)
     private pathsRepositoryOld: MongoRepository<PathsOLD>,
-    @InjectRepository(Media)
-    private mediaRepository: MongoRepository<Media>,
+    private mediaDB: MediaDBService,
   ) {}
 
   async getPaths(): Promise<string[]> {
@@ -49,7 +48,8 @@ export class PathsService {
       sanitizedDirectory,
       pathsConfig,
     );
-    const numberOfFiles = await this.countFilesInDirectory(sanitizedDirectory);
+    const numberOfFiles =
+      await this.mediaDB.countFilesInDirectory(sanitizedDirectory);
 
     return {
       numberOfFiles,
@@ -68,22 +68,13 @@ export class PathsService {
       sanitizedDirectory,
       pathsConfig,
     );
-    const numberOfFiles = await this.countFilesInDirectory(sanitizedDirectory);
+    const numberOfFiles =
+      await this.mediaDB.countFilesInDirectory(sanitizedDirectory);
 
     return {
       numberOfFiles,
       numberOfSubdirectories: subdirectoriesInfo.numberOfSubdirectories,
     };
-  }
-
-  async countFilesInDirectory(directory: string): Promise<number> {
-    const sanitizedDirectory = removeExtraSlashes(directory);
-
-    const count = await this.mediaRepository.count({
-      filePath: new RegExp(`^/${sanitizedDirectory}/`),
-    });
-
-    return count;
   }
 
   async addPaths(paths: string[]): Promise<void> {

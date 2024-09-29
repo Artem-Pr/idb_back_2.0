@@ -22,3 +22,7 @@ export async function resolveAllSettled<T extends any[]>(
     }
   }) as { [K in keyof T]: T[K] };
 }
+
+export const getEscapedString = (string: string) => {
+  return string.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+};

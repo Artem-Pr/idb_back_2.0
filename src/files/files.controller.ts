@@ -24,11 +24,20 @@ import { CheckDuplicatesFilePathsInputDto } from './dto/check-duplicates-file-pa
 import type { UploadFileOutputDto } from './dto/upload-file-output.dto';
 import type { CheckDuplicatesOriginalNamesOutputDto } from './dto/check-duplicates-original-names-output.dto';
 import type { CheckDuplicatesFilePathsOutputDto } from './dto/check-duplicates-file-paths-output.dto';
-import { UpdatedFilesInputDto } from './dto/update-files-input.dto';
+import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
+import type { GetFilesInputDto } from './dto/get-files-input.dto';
+import type { GetFilesOutputDto } from './dto/get-files-output.dto';
 
 @Controller() // TODO : Define a POST endpoint at /files/uploadItem : @Controller('file')
 export class FilesController {
   constructor(private filesService: FilesService) {}
+
+  @Post(ControllerPrefix.getFiles)
+  async getFiles(
+    @Body() filesQuery: GetFilesInputDto,
+  ): Promise<GetFilesOutputDto> {
+    return this.filesService.getFiles(filesQuery);
+  }
 
   @Post(ControllerPrefix.saveFiles)
   async saveFiles(@Body() filesToUpload: UpdatedFilesInputDto) {

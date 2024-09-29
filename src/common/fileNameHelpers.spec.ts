@@ -6,10 +6,12 @@ import {
   SUPPORTED_MIMETYPES,
   SUPPORTED_VIDEO_EXTENSIONS,
   SUPPORTED_VIDEO_MIMETYPES,
+  SupportedImageMimetypes,
+  SupportedVideoMimeTypes,
 } from './constants';
 import type { DBFilePath, FileNameWithExt } from './types';
 import {
-  getFullPathWithoutName,
+  getFullPathWithoutNameAndFirstSlash,
   getPreviewPath,
   addDestPrefix,
   isSupportedExtension,
@@ -28,35 +30,45 @@ import {
 import { toDateUTC } from './datesHelper';
 
 describe('Utils', () => {
-  describe('getFullPathWithoutName', () => {
+  describe('getFullPathWithoutNameAndFirstSlash', () => {
     it('should return the full path without the filename', () => {
       const filePathWithName: DBFilePath = '/folder/subfolder/file.jpg';
       const expectedPath = 'folder/subfolder';
-      expect(getFullPathWithoutName(filePathWithName)).toBe(expectedPath);
+      expect(getFullPathWithoutNameAndFirstSlash(filePathWithName)).toBe(
+        expectedPath,
+      );
     });
 
     it('should handle paths with multiple subdirectories', () => {
       const filePathWithName: DBFilePath = '/a/b/c/d/file.jpg';
       const expectedPath = 'a/b/c/d';
-      expect(getFullPathWithoutName(filePathWithName)).toBe(expectedPath);
+      expect(getFullPathWithoutNameAndFirstSlash(filePathWithName)).toBe(
+        expectedPath,
+      );
     });
 
     it('should return an empty string if the path contains only the filename', () => {
       const filePathWithName: DBFilePath = '/file.jpg';
       const expectedPath = '';
-      expect(getFullPathWithoutName(filePathWithName)).toBe(expectedPath);
+      expect(getFullPathWithoutNameAndFirstSlash(filePathWithName)).toBe(
+        expectedPath,
+      );
     });
 
     it('should handle paths without a leading slash', () => {
       const filePathWithName: FileNameWithExt = 'folder/subfolder/file.jpg';
       const expectedPath = 'folder/subfolder';
-      expect(getFullPathWithoutName(filePathWithName)).toBe(expectedPath);
+      expect(getFullPathWithoutNameAndFirstSlash(filePathWithName)).toBe(
+        expectedPath,
+      );
     });
 
     it('should handle paths with no subdirectories', () => {
       const filePathWithName: FileNameWithExt = 'file.jpg';
       const expectedPath = '';
-      expect(getFullPathWithoutName(filePathWithName)).toBe(expectedPath);
+      expect(getFullPathWithoutNameAndFirstSlash(filePathWithName)).toBe(
+        expectedPath,
+      );
     });
   });
 
@@ -64,12 +76,12 @@ describe('Utils', () => {
     it('should correctly generate the preview path for an image file', () => {
       const result = getPreviewPath({
         originalName: 'image.jpg',
-        mimeType: 'image/jpeg',
+        mimeType: SupportedImageMimetypes.jpg,
         postFix: PreviewPostfix.preview,
         date: toDateUTC('2023-10-01'),
       });
       const expected =
-        '/image-jpeg/preview/2023.10.01 - originalDate/image-preview.jpg';
+        '/image-jpg/preview/2023.10.01 - originalDate/image-preview.jpg';
 
       expect(result).toBe(expected);
     });
@@ -77,7 +89,7 @@ describe('Utils', () => {
     it('should correctly generate the preview path for a video file', () => {
       const result = getPreviewPath({
         originalName: 'video.mp4',
-        mimeType: 'video/mp4',
+        mimeType: SupportedVideoMimeTypes.mp4,
         postFix: PreviewPostfix.fullSize,
         date: toDateUTC('2023-10-01'),
       });
@@ -90,12 +102,12 @@ describe('Utils', () => {
     it('should handle filenames with multiple dots correctly', () => {
       const result = getPreviewPath({
         originalName: 'complex.name.image.jpg',
-        mimeType: 'image/jpeg',
+        mimeType: SupportedImageMimetypes.jpg,
         postFix: PreviewPostfix.preview,
         date: toDateUTC('2023-10-01'),
       });
       const expected =
-        '/image-jpeg/preview/2023.10.01 - originalDate/complex.name.image-preview.jpg';
+        '/image-jpg/preview/2023.10.01 - originalDate/complex.name.image-preview.jpg';
 
       expect(result).toBe(expected);
     });
@@ -103,12 +115,12 @@ describe('Utils', () => {
     it('should handle different mimeTypes correctly', () => {
       const result = getPreviewPath({
         originalName: 'video.wmv',
-        mimeType: 'video/wmv',
+        mimeType: SupportedVideoMimeTypes.wmv,
         postFix: PreviewPostfix.preview,
         date: toDateUTC('2023-10-01'),
       });
       const expected =
-        '/video-wmv/preview/2023.10.01 - originalDate/video-preview.jpg';
+        '/video-x-ms-wmv/preview/2023.10.01 - originalDate/video-preview.jpg';
 
       expect(result).toBe(expected);
     });

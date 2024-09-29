@@ -8,7 +8,7 @@ type ProcessData = {
 };
 
 type ProcessDataWithId = Omit<ProcessData, 'processId'> & {
-  processId: string | number;
+  processId?: string | number;
 };
 
 @Injectable({ scope: Scope.TRANSIENT })
@@ -47,17 +47,16 @@ export class CustomLogger extends Logger {
   }
 
   finishProcess({ data, processId, processName }: ProcessDataWithId): void {
-    const duration = this.endTimer(processId);
+    const duration = processId ? this.endTimer(processId) : '';
     super.log(
       `✅ Process ${processName}: ${processId}${data ? ` - ${this.formatData(data)}` : ''} ${duration}`,
     );
   }
 
-  errorProcess({
-    processId,
-    processName,
-    errorData,
-  }: Omit<ProcessData, 'data'> & { errorData?: any }): void {
+  errorProcess(
+    { processId, processName }: ProcessDataWithId,
+    errorData?: any,
+  ): void {
     const duration = processId ? this.endTimer(processId) : '';
     super.error(
       processId

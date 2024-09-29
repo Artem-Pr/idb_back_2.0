@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bull';
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import type { Job, Queue } from 'bull';
 import { MainDir, PreviewPostfix, Processors } from 'src/common/constants';
 import type { FileProcessingJob } from 'src/jobs/files.processor';
@@ -12,7 +12,7 @@ import type {
 } from 'src/common/types';
 import { resolveAllSettled } from 'src/common/utils';
 import {
-  getFullPathWithoutName,
+  getFullPathWithoutNameAndFirstSlash,
   getPreviewPath,
   removeMainDir,
 } from 'src/common/fileNameHelpers';
@@ -24,7 +24,12 @@ import type { MediaTemp } from './entities/media-temp.entity';
 import type { UploadFileOutputDto } from './dto/upload-file-output.dto';
 import type { Media } from './entities/media.entity';
 import type { CheckDuplicatesOriginalNamesOutputDto } from './dto/check-duplicates-original-names-output.dto';
-import type { DuplicateFile, GetSameFilesIfExist, ProcessFile } from './types';
+import type {
+  DuplicateFile,
+  GetSameFilesIfExist,
+  MediaOutput,
+  ProcessFile,
+} from './types';
 import type { CheckDuplicatesFilePathsOutputDto } from './dto/check-duplicates-file-paths-output.dto';
 import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
 import { DiscStorageService } from './discStorage.service';
@@ -32,6 +37,9 @@ import { CustomLogger } from 'src/logger/logger.service';
 import { getKeywordsFromMediaList } from 'src/keywords/helpers/keywordsHelpers';
 import { KeywordsService } from 'src/keywords/keywords.service';
 import { PathsService } from 'src/paths/paths.service';
+import type { GetFilesInputDto } from './dto/get-files-input.dto';
+import { omit } from 'ramda';
+import type { GetFilesOutputDto } from './dto/get-files-output.dto';
 
 interface FilePaths {
   filePath: DBFilePath;
@@ -54,6 +62,40 @@ export class FilesService {
     private keywordsService: KeywordsService,
   ) {}
 
+  async getFiles(getFilesInput: GetFilesInputDto): Promise<GetFilesOutputDto> {
+    const process = this.logger.startProcess({
+      processName: 'FilesService.getFiles',
+    });
+    const mediaDBResponse = await this.mediaDB.getFiles(getFilesInput);
+    if (!mediaDBResponse) {
+      return {
+        dynamicFolders: [],
+        files: [],
+        filesSizeSum: 0,
+        searchPagination: {
+          currentPage: 1,
+          nPerPage: 0,
+          resultsCount: 0,
+          totalPages: 1,
+        },
+      };
+    }
+
+    const mediaOutputList = mediaDBResponse.files.map((media) =>
+      this.makeMediaOutputFromMedia({
+        media,
+        mainDirFilePath: MainDir.volumes,
+        mainDirPreview: MainDir.previews,
+      }),
+    );
+
+    this.logger.finishProcess(process);
+    return {
+      ...mediaDBResponse,
+      files: mediaOutputList,
+    };
+  }
+
   async saveFiles(filesToUpload: UpdatedFilesInputDto) {
     try {
       const updatedMediaList: UpdateMedia[] =
@@ -73,7 +115,7 @@ export class FilesService {
       return updatedMediaDBList;
     } catch (error) {
       this.logger.logError({ message: error.message, method: 'saveFiles' });
-      throw error;
+      throw new InternalServerErrorException(error?.message);
     }
   }
 
@@ -111,30 +153,17 @@ export class FilesService {
       throw new Error('Failed to read EXIF data');
     }
 
+    const properties = this.makeMediaOutputFromMedia({
+      media: addedMediaTempFile,
+      mainDirFilePath: MainDir.temp,
+      mainDirPreview: MainDir.temp,
+      customFields: { duplicates },
+    });
+
     const fileData: UploadFileOutputDto = {
       properties: {
-        id: addedMediaTempFile._id.toString(),
-        changeDate: addedMediaTempFile.changeDate,
-        duplicates,
-        description: addedMediaTempFile.description,
-        exif: addedMediaTempFile.exif,
-        filePath: null, // We dont need it for upload
-        imageSize: addedMediaTempFile.imageSize,
-        keywords: addedMediaTempFile.keywords,
-        megapixels: addedMediaTempFile.megapixels,
-        mimetype: addedMediaTempFile.mimetype,
-        originalDate: addedMediaTempFile.originalDate,
-        originalName: addedMediaTempFile.originalName,
-        rating: addedMediaTempFile.rating,
-        size: addedMediaTempFile.size,
-        staticPath: addedMediaTempFile.fullSizeJpg
-          ? this.getStaticPath(addedMediaTempFile.fullSizeJpg, MainDir.temp)
-          : this.getStaticPath(addedMediaTempFile.filePath, MainDir.temp),
-        staticPreview: this.getStaticPath(
-          addedMediaTempFile.preview,
-          MainDir.temp,
-        ),
-        timeStamp: addedMediaTempFile.timeStamp,
+        ...properties,
+        filePath: null,
       },
     };
 
@@ -332,7 +361,9 @@ export class FilesService {
       processName: 'saveNewDirectories',
     });
     const newDirectoriesSet = new Set(
-      mediaList.map(({ filePath }) => getFullPathWithoutName(filePath)),
+      mediaList.map(({ filePath }) =>
+        getFullPathWithoutNameAndFirstSlash(filePath),
+      ),
     );
     await this.pathsService.addPaths(Array.from(newDirectoriesSet));
     this.logger.finishProcess(processData);
@@ -348,5 +379,28 @@ export class FilesService {
     );
     await this.keywordsService.addKeywords(newKeywords);
     this.logger.finishProcess(processData);
+  }
+
+  private makeMediaOutputFromMedia({
+    media,
+    mainDirPreview,
+    mainDirFilePath,
+    customFields,
+  }: {
+    media: Media;
+    mainDirPreview: MainDir;
+    mainDirFilePath: MainDir;
+    customFields?: Partial<MediaOutput>;
+  }): MediaOutput {
+    return {
+      ...omit(['_id', 'preview', 'fullSizeJpg'], media),
+      id: media._id.toString(),
+      staticPath: media.fullSizeJpg
+        ? this.getStaticPath(media.fullSizeJpg, mainDirPreview)
+        : this.getStaticPath(media.filePath, mainDirFilePath),
+      staticPreview: this.getStaticPath(media.preview, mainDirPreview),
+      duplicates: customFields?.duplicates || [],
+      ...customFields,
+    };
   }
 }

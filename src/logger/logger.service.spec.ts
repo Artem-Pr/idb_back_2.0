@@ -62,7 +62,7 @@ describe('CustomLogger', () => {
 
     // with error data
     customLogger.startProcess({ processId, processName });
-    customLogger.errorProcess({ processId, processName, errorData });
+    customLogger.errorProcess({ processId, processName }, errorData);
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining(
         `❌ Process testProcess: testProcessId - {\"message\":\"Error occurred\"} +`,
@@ -105,7 +105,7 @@ describe('CustomLogger', () => {
     );
 
     // with error data
-    customLogger.errorProcess({ processName, errorData });
+    customLogger.errorProcess({ processName }, errorData);
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining(
         `❌ testProcess: {\"message\":\"Error occurred\"}`,

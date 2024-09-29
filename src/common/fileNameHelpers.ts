@@ -24,7 +24,7 @@ import type {
 } from './types';
 import type { ConfigType as DayjsConfigType } from 'dayjs';
 
-export const getFullPathWithoutName = (
+export const getFullPathWithoutNameAndFirstSlash = (
   filePathWithName: DBFilePath | FileNameWithExt,
 ): string => filePathWithName.split('/').filter(Boolean).slice(0, -1).join('/');
 

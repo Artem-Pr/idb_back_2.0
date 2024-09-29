@@ -4,7 +4,9 @@ import {
   MainDir,
   PreviewPostfix,
   SupportedImageExtensions,
+  SupportedImageMimetypes,
   SupportedVideoExtensions,
+  SupportedVideoMimeTypes,
 } from './constants';
 
 type YYYYMMDD = string;
@@ -13,11 +15,9 @@ export type ConvertSlashToDash<T> =
   T extends `${infer Prefix}/${infer Extension}` ? `${Prefix}-${Extension}` : T;
 
 export type SupportedMimetypes = {
-  image: `image/${SupportedImageExtensions}`;
-  video: `video/${SupportedVideoExtensions}`;
-  allFiles:
-    | `image/${SupportedImageExtensions}`
-    | `video/${SupportedVideoExtensions}`;
+  image: SupportedImageMimetypes;
+  video: SupportedVideoMimeTypes;
+  allFiles: SupportedImageMimetypes | SupportedVideoMimeTypes;
 };
 
 export type NormalizedSupportedImageExt =

@@ -12,6 +12,9 @@ import type { CheckDuplicatesFilePathsInputDto } from './dto/check-duplicates-fi
 import type { CheckDuplicatesFilePathsOutputDto } from './dto/check-duplicates-file-paths-output.dto';
 import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
 import { Media } from './entities/media.entity';
+import type { GetFilesInputDto } from './dto/get-files-input.dto';
+import type { GetFilesOutputDto } from './dto/get-files-output.dto';
+import { SupportedImageMimetypes } from 'src/common/constants';
 
 describe('FilesController', () => {
   let controller: FilesController;
@@ -28,6 +31,7 @@ describe('FilesController', () => {
       getDuplicatesFromMediaDBByOriginalNames: jest.fn(),
       processFile: jest.fn(),
       saveFiles: jest.fn(),
+      getFiles: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -48,6 +52,71 @@ describe('FilesController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('getFiles', () => {
+    it('should call filesService.getFiles and return its result', async () => {
+      const filesQuery: GetFilesInputDto = {
+        filters: { includeAllSearchTags: true, searchTags: ['01Cnt-Испания'] },
+        sorting: {
+          sort: {
+            mimetype: -1,
+            _id: 1,
+            originalDate: -1,
+            filePath: -1,
+          },
+          randomSort: true,
+        },
+        folders: { showSubfolders: true, isDynamicFolders: true },
+        pagination: { page: 1, perPage: 50 },
+        settings: { dontSavePreview: true },
+      };
+
+      const response: GetFilesOutputDto = {
+        dynamicFolders: ['folder/1'],
+        files: [
+          {
+            changeDate: 169971439808,
+            description: null,
+            duplicates: [],
+            exif: {},
+            filePath: '/3/2019.09.19 IMG_9046.jpg',
+            id: '66f1bdd4556c15c33c7bdab0',
+            imageSize: '5184x3456',
+            keywords: [
+              '01Cnt-Испания',
+              '02Cty-Валенсия',
+              '16Oth-путешествия',
+              '08Typ-портрет',
+            ],
+            megapixels: 17.9,
+            mimetype: SupportedImageMimetypes.jpeg,
+            originalDate: new Date('1970-01-01T00:00:00.000Z'),
+            originalName: '2019.09.19 IMG_9046.jpg',
+            rating: null,
+            size: 1916910,
+            staticPath:
+              'http://localhost:3000/volumes/3/2019.09.19 IMG_9046.jpg',
+            staticPreview:
+              'http://localhost:3000/previews/image-jpeg/preview/1970.01.01 - originalDate/2019.09.19 IMG_9046-preview.jpg',
+            timeStamp: '00:00:00.000',
+          },
+        ],
+        filesSizeSum: 1916910,
+        searchPagination: {
+          currentPage: 1,
+          nPerPage: 50,
+          resultsCount: 134,
+          totalPages: 3,
+        },
+      };
+
+      jest.spyOn(filesService, 'getFiles').mockResolvedValue(response);
+
+      const result = await controller.getFiles(filesQuery);
+      expect(filesService.getFiles).toHaveBeenCalledWith(filesQuery);
+      expect(result).toBe(response);
+    });
   });
 
   describe('saveFiles', () => {

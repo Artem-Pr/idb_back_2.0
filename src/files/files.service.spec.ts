@@ -1,10 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FilesService } from './files.service';
 import type { Job, Queue } from 'bull';
-import type { UpdateMedia } from './mediaDB.service';
+import type { GetFilesResponse, UpdateMedia } from './mediaDB.service';
 import { MediaDBService } from './mediaDB.service';
 import { getQueueToken } from '@nestjs/bull';
-import { Processors, MainDir } from 'src/common/constants';
+import {
+  Processors,
+  MainDir,
+  SupportedImageMimetypes,
+} from 'src/common/constants';
 import type { FileProcessingJob } from 'src/jobs/files.processor';
 import type { ExifData, GetExifJob } from 'src/jobs/exif.processor';
 import { ConfigService } from 'src/config/config.service';
@@ -24,6 +28,9 @@ import { DiscStorageService } from './discStorage.service';
 import { PathsService } from 'src/paths/paths.service';
 import { KeywordsService } from 'src/keywords/keywords.service';
 import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
+import { GetFilesInputDto } from './dto/get-files-input.dto';
+import { omit } from 'ramda';
+import { InternalServerErrorException } from '@nestjs/common';
 
 const exifJobResult: ExifData = {
   'test.jpg': exifDataMock,
@@ -66,7 +73,7 @@ const resetMockUpload = () => {
   mockUpload.duplicates = [
     {
       filePath: '/path/to/duplicate1.jpg',
-      mimetype: 'image/jpeg',
+      mimetype: SupportedImageMimetypes.jpg,
       originalName: 'duplicate.jpg',
       staticPath:
         'http://localhost:3000/previews/path/to/duplicate1-fullSize.jpg',
@@ -75,7 +82,7 @@ const resetMockUpload = () => {
     },
     {
       filePath: '/path/to/duplicate2.jpg',
-      mimetype: 'image/jpeg',
+      mimetype: SupportedImageMimetypes.jpg,
       originalName: 'duplicate.jpg',
       staticPath:
         'http://localhost:3000/previews/path/to/duplicate2-fullSize.jpg',
@@ -113,6 +120,7 @@ describe('FilesService', () => {
         {
           provide: MediaDBService,
           useValue: {
+            getFiles: jest.fn(),
             addFileToDBTemp,
             addMediaToDB: jest.fn((mediaList: Media[]) => mediaList),
             getSameFilesIfExist,
@@ -174,6 +182,103 @@ describe('FilesService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('getFiles', () => {
+    const mediaDBGetFilesMock: Awaited<GetFilesResponse> = {
+      dynamicFolders: [],
+      files: [
+        createMediaMock({
+          id: new ObjectId('66f7cb092b956392a532e556'),
+          name: 'test1.jpg',
+        }),
+        createMediaMock({
+          id: new ObjectId('66f7cb092b956392a532e557'),
+          name: 'test2.jpg',
+        }),
+      ],
+      filesSizeSum: 1234567,
+      searchPagination: {
+        currentPage: 4,
+        nPerPage: 10,
+        resultsCount: 45,
+        totalPages: 5,
+      },
+    };
+
+    const filesOutput = [
+      {
+        ...omit(
+          ['_id', 'preview', 'fullSizeJpg'],
+          mediaDBGetFilesMock.files[0],
+        ),
+        id: '66f7cb092b956392a532e556',
+        duplicates: [],
+        staticPath:
+          'http://localhost:3000/previews/path/to/test1.jpg-fullSize.jpg',
+        staticPreview:
+          'http://localhost:3000/previews/path/to/test1.jpg-preview.jpg',
+      },
+      {
+        ...omit(
+          ['_id', 'preview', 'fullSizeJpg'],
+          mediaDBGetFilesMock.files[1],
+        ),
+        id: '66f7cb092b956392a532e557',
+        duplicates: [],
+        staticPath:
+          'http://localhost:3000/previews/path/to/test2.jpg-fullSize.jpg',
+        staticPreview:
+          'http://localhost:3000/previews/path/to/test2.jpg-preview.jpg',
+      },
+    ];
+
+    const getFilesOutputMock = {
+      ...mediaDBGetFilesMock,
+      files: filesOutput,
+    };
+
+    const filesInput: GetFilesInputDto = {
+      filters: { rating: 2 },
+      sorting: { sort: { originalDate: -1, filePath: 1 } },
+      folders: { showSubfolders: true },
+      pagination: { page: 1, perPage: 10 },
+      settings: { dontSavePreview: true },
+    };
+
+    it('should return correct response', async () => {
+      jest
+        .spyOn(mediaDB, 'getFiles')
+        .mockReturnValue(
+          new Promise((resolve) => resolve(mediaDBGetFilesMock)),
+        );
+
+      const result = await service.getFiles(filesInput);
+
+      expect(result).toEqual(getFilesOutputMock);
+    });
+
+    it('should return an empty template if no files found', async () => {
+      const mediaDBGetFilesEmptyMock = {
+        dynamicFolders: [],
+        files: [],
+        filesSizeSum: 0,
+        searchPagination: {
+          currentPage: 1,
+          nPerPage: 0,
+          resultsCount: 0,
+          totalPages: 1,
+        },
+      };
+
+      jest
+        .spyOn(mediaDB, 'getFiles')
+        .mockReturnValue(new Promise((resolve) => resolve(undefined)));
+
+      const result = await service.getFiles(filesInput);
+
+      expect(result).toEqual(mediaDBGetFilesEmptyMock);
+    });
   });
 
   describe('saveFiles', () => {
@@ -251,9 +356,9 @@ describe('FilesService', () => {
       });
       responseMedia1.keywords = ['keyword1', 'keyword2'];
       responseMedia1.fullSizeJpg =
-        '/image-jpeg/fullSize/2020.01.01 - originalDate/test1-updated-fullSize.jpg';
+        '/image-jpg/fullSize/2020.01.01 - originalDate/test1-updated-fullSize.jpg';
       responseMedia1.preview =
-        '/image-jpeg/preview/2020.01.01 - originalDate/test1-updated-preview.jpg';
+        '/image-jpg/preview/2020.01.01 - originalDate/test1-updated-preview.jpg';
 
       const responseMedia2 = createMediaMock({
         id: new ObjectId('00000001f80f825d51300845'),
@@ -263,12 +368,22 @@ describe('FilesService', () => {
       responseMedia2.originalDate = new Date('2024-09-20T17:00:00.000Z');
       responseMedia2.keywords = [];
       responseMedia2.fullSizeJpg =
-        '/image-jpeg/fullSize/2024.09.20 - originalDate/test2-updated-fullSize.jpg';
+        '/image-jpg/fullSize/2024.09.20 - originalDate/test2-updated-fullSize.jpg';
       responseMedia2.preview =
-        '/image-jpeg/preview/2024.09.20 - originalDate/test2-updated-preview.jpg';
+        '/image-jpg/preview/2024.09.20 - originalDate/test2-updated-preview.jpg';
 
       expect(JSON.stringify(result)).toEqual(
         JSON.stringify([responseMedia1, responseMedia2]),
+      );
+    });
+
+    it('should throw error if save files failed', async () => {
+      jest
+        .spyOn(mediaDB, 'updateMediaList')
+        .mockRejectedValue(new Error('Failed to save files'));
+
+      await expect(service.saveFiles(filesToUpload)).rejects.toThrow(
+        new InternalServerErrorException('Failed to save files'),
       );
     });
   });
@@ -393,7 +508,7 @@ describe('FilesService', () => {
   describe('startAllQueues', () => {
     it('should add jobs to fileQueue and exifQueue', async () => {
       const fileName = 'testFile.jpg';
-      const fileType = 'image/jpeg';
+      const fileType = SupportedImageMimetypes.jpg;
 
       const result = await service.startAllProcessFileQueues({
         fileName,

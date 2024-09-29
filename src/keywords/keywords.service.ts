@@ -6,6 +6,7 @@ import { DBConfigConstants } from 'src/common/constants';
 import { Media } from 'src/files/entities/media.entity';
 import { difference } from 'ramda';
 import { Keywords } from './entities/keywords.entity';
+import { MediaDBService } from 'src/files/mediaDB.service';
 
 interface AggregatedKeywordsSetResult {
   results: string[];
@@ -20,6 +21,7 @@ export class KeywordsService {
     private keywordsRepositoryOld: MongoRepository<KeywordOld>,
     @InjectRepository(Keywords)
     private keywordsRepository: MongoRepository<Keywords>,
+    private mediaDB: MediaDBService,
   ) {
     this.mediaMongoRepository =
       this.keywordsRepositoryOld.manager.getMongoRepository(Media);
@@ -83,35 +85,7 @@ export class KeywordsService {
 
   async getUnusedKeywords(): Promise<string[]> {
     const allKeywordsPromise = this.getAllKeywords();
-
-    const usedKeywordsPromise = this.mediaMongoRepository
-      .aggregate(
-        [
-          {
-            $group: {
-              _id: null,
-              keywordsSet: { $addToSet: '$keywords' },
-            },
-          },
-          {
-            $project: {
-              results: {
-                $reduce: {
-                  input: { $concatArrays: '$keywordsSet' },
-                  initialValue: [],
-                  in: { $setUnion: ['$$value', '$$this'] },
-                },
-              },
-            },
-          },
-          { $unset: '_id' },
-        ],
-        { allowDiskUse: true },
-      )
-      .toArray()
-      .then(
-        (data) => (data as unknown as AggregatedKeywordsSetResult[])[0].results,
-      );
+    const usedKeywordsPromise = this.mediaDB.getUsedKeywordsList();
 
     const [usedKeywords, allKeywords] = await Promise.all([
       usedKeywordsPromise,

@@ -1,5 +1,4 @@
 import { ImageStoreServiceInputDto } from 'src/jobs/dto/image-store-service-input.dto';
-import type { SupportedMimetypes } from './types';
 import { ScreenshotsConfig } from 'fluent-ffmpeg';
 
 export const defaultHost = 'localhost';
@@ -89,6 +88,7 @@ export enum ControllerPrefix {
   checkDuplicates = 'check-duplicates',
   checkDuplicatesByFilePaths = 'check-duplicates-by-file-paths',
   saveFiles = 'save-files',
+  getFiles = 'filtered-photos',
   uploadFile = 'upload-file',
   moveKeywordsToNewCollection = 'move-keywords-to-new-collection',
   movePathsToNewCollection = 'move-paths-to-new-collection',
@@ -174,15 +174,24 @@ export enum SupportedVideoExtensions {
   wmv = 'wmv',
 }
 
+export enum SupportedImageMimetypes {
+  jpeg = 'image/jpeg',
+  jpg = 'image/jpg',
+  png = 'image/png',
+  heic = 'image/heic',
+  gif = 'image/gif',
+  dng = 'image/x-adobe-dng',
+}
+
 export enum SupportedVideoMimeTypes {
+  avi = 'video/x-msvideo',
+  flv = 'video/x-flv',
   mkv = 'video/x-matroska',
-  webm = 'video/webm',
+  mov = 'video/quicktime',
   mp4 = 'video/mp4',
   mpeg = 'video/mpeg',
   ogg = 'video/ogg',
-  flv = 'video/x-flv',
-  mov = 'video/quicktime',
-  avi = 'video/x-msvideo',
+  webm = 'video/webm',
   wmv = 'video/x-ms-wmv',
 }
 
@@ -192,9 +201,7 @@ export const SUPPORTED_IMAGE_EXTENSIONS: Array<SupportedImageExtensions> =
 export const SUPPORTED_VIDEO_EXTENSIONS: Array<SupportedVideoExtensions> =
   Object.values(SupportedVideoExtensions);
 
-export const SUPPORTED_IMAGE_MIMETYPES = Object.values(
-  SupportedImageExtensions,
-).map((mimetype): SupportedMimetypes['image'] => `image/${mimetype}`);
+export const SUPPORTED_IMAGE_MIMETYPES = Object.values(SupportedImageMimetypes);
 export const SUPPORTED_VIDEO_MIMETYPES = Object.values(SupportedVideoMimeTypes);
 
 export const SUPPORTED_MIMETYPES = [

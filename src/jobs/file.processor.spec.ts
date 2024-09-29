@@ -10,7 +10,13 @@ import type {
   PreviewPath,
   SupportedMimetypes,
 } from 'src/common/types';
-import { MainDir, PreviewOptions, PreviewPostfix } from 'src/common/constants';
+import {
+  MainDir,
+  PreviewOptions,
+  PreviewPostfix,
+  SupportedVideoMimeTypes,
+  SupportedImageMimetypes,
+} from 'src/common/constants';
 import type { ImageStoreServiceOutputDto } from './dto/image-store-service-output.dto';
 import type { ImageStoreServiceInputDto } from './dto/image-store-service-input.dto';
 import { Job } from 'bull';
@@ -195,7 +201,7 @@ describe('FileProcessor', () => {
     it('should return true for supported image mime type and extension', () => {
       const jobData: FileProcessingJob = {
         fileName: 'image.jpg',
-        fileType: 'image/jpeg',
+        fileType: SupportedImageMimetypes.jpg,
         dirName: MainDir.temp,
       };
       expect(fileProcessor.readyForImagePreview(jobData)).toBe(true);
@@ -213,7 +219,7 @@ describe('FileProcessor', () => {
     it('should return false for unsupported image extension', () => {
       const jobData: FileProcessingJob = {
         fileName: 'image.unsupported' as FileNameWithExt,
-        fileType: 'image/jpeg',
+        fileType: SupportedImageMimetypes.jpg,
         dirName: MainDir.temp,
       };
       expect(fileProcessor.readyForImagePreview(jobData)).toBe(false);
@@ -224,7 +230,7 @@ describe('FileProcessor', () => {
     it('should return true for supported video mime type and extension', () => {
       const jobData: FileProcessingJob = {
         fileName: 'image.mp4',
-        fileType: 'video/mp4',
+        fileType: SupportedVideoMimeTypes.mp4,
         dirName: MainDir.temp,
       };
       expect(fileProcessor.readyForVideoPreview(jobData)).toBe(true);
@@ -242,7 +248,7 @@ describe('FileProcessor', () => {
     it('should return false for unsupported video extension', () => {
       const jobData: FileProcessingJob = {
         fileName: 'image.unsupported' as FileNameWithExt,
-        fileType: 'video/mp4',
+        fileType: SupportedVideoMimeTypes.mp4,
         dirName: MainDir.temp,
       };
       expect(fileProcessor.readyForVideoPreview(jobData)).toBe(false);
@@ -252,7 +258,7 @@ describe('FileProcessor', () => {
   describe('createImagePreview', () => {
     const imagePreviewJob: ImagePreviewJob = {
       fileName: 'test.jpg',
-      fileType: 'image/jpeg',
+      fileType: SupportedImageMimetypes.jpg,
       dirName: MainDir.temp,
     };
 

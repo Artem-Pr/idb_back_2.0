@@ -1,0 +1,92 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MediaDB getFiles should return correct files if isDynamicFolders === false 1`] = `
+{
+  "dynamicFolders": [],
+  "files": [
+    Media {
+      "_id": "507f1f77bcf86cd799439011",
+      "changeDate": 1688319393000,
+      "description": "test description",
+      "exif": {
+        "DateTimeOriginal": "2020-01-01 00:00:00",
+        "Description": "test description",
+        "GPSPosition": "42.5, 42.5",
+        "ImageSize": "1920x1080",
+        "Megapixels": 12,
+        "Rating": 5,
+      },
+      "filePath": "/path/to/mockFile.jpg",
+      "fullSizeJpg": "/path/to/mockFile-fullSize.jpg",
+      "imageSize": "1920x1080",
+      "keywords": [
+        "test",
+        "media",
+      ],
+      "megapixels": 12,
+      "mimetype": "image/jpg",
+      "originalDate": 2019-12-31T23:00:00.000Z,
+      "originalName": "original_mock_file.jpg",
+      "preview": "/path/to/mockFile-preview.jpg",
+      "rating": 5,
+      "size": 1024,
+      "timeStamp": "00:00:00.100",
+    },
+  ],
+  "filesSizeSum": 234,
+  "searchPagination": {
+    "currentPage": 1,
+    "nPerPage": 50,
+    "resultsCount": 0,
+    "totalPages": 1,
+  },
+}
+`;
+
+exports[`MediaDB getFiles should return correct files if isDynamicFolders === true 1`] = `
+{
+  "dynamicFolders": [
+    "main",
+    "main/subfolder",
+    "main/subfolder/subfolder2",
+    "main2",
+  ],
+  "files": [
+    Media {
+      "_id": "507f1f77bcf86cd799439011",
+      "changeDate": 1688319393000,
+      "description": "test description",
+      "exif": {
+        "DateTimeOriginal": "2020-01-01 00:00:00",
+        "Description": "test description",
+        "GPSPosition": "42.5, 42.5",
+        "ImageSize": "1920x1080",
+        "Megapixels": 12,
+        "Rating": 5,
+      },
+      "filePath": "/path/to/mockFile.jpg",
+      "fullSizeJpg": "/path/to/mockFile-fullSize.jpg",
+      "imageSize": "1920x1080",
+      "keywords": [
+        "test",
+        "media",
+      ],
+      "megapixels": 12,
+      "mimetype": "image/jpg",
+      "originalDate": 2019-12-31T23:00:00.000Z,
+      "originalName": "original_mock_file.jpg",
+      "preview": "/path/to/mockFile-preview.jpg",
+      "rating": 5,
+      "size": 1024,
+      "timeStamp": "00:00:00.100",
+    },
+  ],
+  "filesSizeSum": 234,
+  "searchPagination": {
+    "currentPage": 1,
+    "nPerPage": 50,
+    "resultsCount": 0,
+    "totalPages": 1,
+  },
+}
+`;

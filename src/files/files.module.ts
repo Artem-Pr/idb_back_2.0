@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import { FilesController } from './files.controller';
 import { FilesService } from './files.service';
@@ -31,8 +31,8 @@ import { KeywordsModule } from 'src/keywords/keywords.module';
       { name: Processors.exifProcessor },
     ),
     TypeOrmModule.forFeature([MediaTemp, Media]),
-    PathsModule,
-    KeywordsModule,
+    forwardRef(() => PathsModule),
+    forwardRef(() => KeywordsModule),
   ],
   controllers: [FilesController],
   providers: [
@@ -44,5 +44,6 @@ import { KeywordsModule } from 'src/keywords/keywords.module';
     MediaDBService,
     PathsService,
   ],
+  exports: [MediaDBService],
 })
 export class FilesModule {}

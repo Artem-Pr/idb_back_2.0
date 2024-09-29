@@ -99,11 +99,13 @@ export class FileProcessor extends FileProcessorBasic {
 
       throw new BadRequestException('Unsupported file type');
     } catch (error) {
-      this.logger.errorProcess({
-        processId: job.id,
-        processName: 'Error processing file 🌄',
-        errorData: error,
-      });
+      this.logger.errorProcess(
+        {
+          processId: job.id,
+          processName: 'Error processing file 🌄',
+        },
+        error,
+      );
       throw error;
     }
   }
@@ -129,10 +131,12 @@ export class FileProcessor extends FileProcessorBasic {
       });
       return response.data;
     } catch (error) {
-      this.logger.errorProcess({
-        processName: 'Error processing file 🌄',
-        errorData: error,
-      });
+      this.logger.errorProcess(
+        {
+          processName: 'Error processing file 🌄',
+        },
+        error,
+      );
       throw new HttpException(
         'Error processing image:',
         HttpStatus.INTERNAL_SERVER_ERROR,

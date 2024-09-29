@@ -5,6 +5,7 @@ import { MediaTemp } from '../entities/media-temp.entity';
 import type { ProcessFile } from '../types';
 import type { UploadFileOutputDto } from '../dto/upload-file-output.dto';
 import { omit } from 'ramda';
+import { SupportedImageMimetypes } from 'src/common/constants';
 
 export const exifDataMock = {
   DateTimeOriginal: '2020-01-01 00:00:00',
@@ -22,7 +23,7 @@ export const uploadFileMock: UploadFileOutputDto = {
     duplicates: [
       {
         filePath: '/main/для теста базы/IMG_1728.heic',
-        mimetype: 'image/heic',
+        mimetype: SupportedImageMimetypes.heic,
         originalName: 'IMG_1728.heic',
         staticPreview:
           'http://localhost:3000/previews/image-heic/preview/2023.07.02 - originalDate/9eec89c3e7cf18920302f4e55d10aa52-preview.jpg',
@@ -31,7 +32,7 @@ export const uploadFileMock: UploadFileOutputDto = {
       },
       {
         filePath: '/main/SD/IMG_1728.heic',
-        mimetype: 'image/heic',
+        mimetype: SupportedImageMimetypes.heic,
         originalName: 'IMG_1728.heic',
         staticPreview:
           'http://localhost:3000/previews/image-heic/preview/2023.07.02 - originalDate/f7d6132c59acb526c1df74f438c744fa-preview.jpg',
@@ -45,7 +46,7 @@ export const uploadFileMock: UploadFileOutputDto = {
     imageSize: '2268x4032',
     keywords: [],
     megapixels: 9.1,
-    mimetype: 'image/heic',
+    mimetype: SupportedImageMimetypes.heic,
     originalDate: new Date('2023-07-02T17:36:33.000Z'),
     originalName: 'IMG_1728.heic',
     rating: 4,
@@ -130,7 +131,7 @@ export class UploadFileMock {
 export function createMockProcessFile(): ProcessFile {
   const mock: ProcessFile = {
     filename: 'mockFile.jpg',
-    mimetype: 'image/jpeg',
+    mimetype: SupportedImageMimetypes.jpg,
     originalname: 'original_mock_file.jpg',
     fieldname: 'file',
     encoding: '7bit',
@@ -159,7 +160,7 @@ export function createMediaMock({
 
   media._id = id;
   media.originalName = `${originalNameWithoutExt}.jpg`;
-  media.mimetype = 'image/jpeg';
+  media.mimetype = SupportedImageMimetypes.jpg;
   media.size = 1024;
   media.megapixels = exifDataMock.Megapixels;
   media.imageSize = exifDataMock.ImageSize;

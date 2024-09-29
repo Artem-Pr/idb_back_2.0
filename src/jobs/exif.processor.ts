@@ -68,11 +68,13 @@ export class ExifProcessor {
         exifData[filePath] = exif;
       }
     } catch (error) {
-      this.logger.errorProcess({
-        processId,
-        processName: 'Error reading EXIF data 📄',
-        errorData: error.message || error,
-      });
+      this.logger.errorProcess(
+        {
+          processId,
+          processName: 'Error reading EXIF data 📄',
+        },
+        error.message || error,
+      );
       throw new Error('Failed to read EXIF data');
     }
 
