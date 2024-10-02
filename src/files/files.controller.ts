@@ -27,12 +27,14 @@ import type { CheckDuplicatesFilePathsOutputDto } from './dto/check-duplicates-f
 import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
 import type { GetFilesInputDto } from './dto/get-files-input.dto';
 import type { GetFilesOutputDto } from './dto/get-files-output.dto';
+import { LogController } from 'src/logger/logger.decorator';
 
 @Controller() // TODO : Define a POST endpoint at /files/uploadItem : @Controller('file')
 export class FilesController {
   constructor(private filesService: FilesService) {}
 
   @Post(ControllerPrefix.getFiles)
+  @LogController(ControllerPrefix.getFiles)
   async getFiles(
     @Body() filesQuery: GetFilesInputDto,
   ): Promise<GetFilesOutputDto> {
@@ -40,12 +42,14 @@ export class FilesController {
   }
 
   @Post(ControllerPrefix.saveFiles)
+  @LogController(ControllerPrefix.saveFiles)
   async saveFiles(@Body() filesToUpload: UpdatedFilesInputDto) {
     return this.filesService.saveFiles(filesToUpload);
   }
 
   @Post(ControllerPrefix.uploadFile)
   @UseInterceptors(FileMediaInterceptor)
+  @LogController(ControllerPrefix.uploadFile)
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
   ): Promise<UploadFileOutputDto> {
@@ -75,6 +79,7 @@ export class FilesController {
 
   @Get(ControllerPrefix.checkDuplicates)
   @UsePipes(new ValidationPipe())
+  @LogController(ControllerPrefix.checkDuplicates)
   async checkDuplicatesByOriginalNames(
     @Query() query: CheckDuplicatesOriginalNamesInputDto,
   ): Promise<CheckDuplicatesOriginalNamesOutputDto> {
@@ -85,6 +90,7 @@ export class FilesController {
 
   @Get(ControllerPrefix.checkDuplicatesByFilePaths)
   @UsePipes(new ValidationPipe())
+  @LogController(ControllerPrefix.checkDuplicatesByFilePaths)
   async checkDuplicatesByFilePaths(
     @Query() query: CheckDuplicatesFilePathsInputDto,
   ): Promise<CheckDuplicatesFilePathsOutputDto> {

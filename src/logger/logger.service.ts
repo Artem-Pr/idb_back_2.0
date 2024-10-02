@@ -7,7 +7,13 @@ type ProcessData = {
   data?: any;
 };
 
-type ProcessDataWithId = Omit<ProcessData, 'processId'> & {
+type EndpointData = {
+  endpoint: string;
+  method: string;
+  data?: any;
+};
+
+type EndpointDataWithId = EndpointData & {
   processId?: string | number;
 };
 
@@ -33,11 +39,7 @@ export class CustomLogger extends Logger {
       return '';
     }
   }
-  startProcess({
-    data,
-    processId,
-    processName,
-  }: ProcessData): ProcessDataWithId {
+  startProcess({ data, processId, processName }: ProcessData): ProcessData {
     const id = processId || getRandomId(5);
     this.startTimer(id);
     super.log(
@@ -46,22 +48,56 @@ export class CustomLogger extends Logger {
     return { processId: id, processName, data };
   }
 
-  finishProcess({ data, processId, processName }: ProcessDataWithId): void {
+  finishProcess({ data, processId, processName }: ProcessData): void {
     const duration = processId ? this.endTimer(processId) : '';
     super.log(
       `✅ Process ${processName}: ${processId}${data ? ` - ${this.formatData(data)}` : ''} ${duration}`,
     );
   }
 
-  errorProcess(
-    { processId, processName }: ProcessDataWithId,
-    errorData?: any,
-  ): void {
+  errorProcess({ processId, processName }: ProcessData, errorData?: any): void {
     const duration = processId ? this.endTimer(processId) : '';
     super.error(
       processId
         ? `❌ Process ${processName}: ${processId}${errorData ? ` - ${this.formatData(errorData)}` : ''} ${duration}`
         : `❌ ${processName}: ${errorData ? this.formatData(errorData) : ''}`,
+    );
+  }
+
+  logEndpointStart({
+    endpoint,
+    method,
+    data,
+  }: EndpointData): EndpointDataWithId {
+    const id = getRandomId(5);
+    this.startTimer(id);
+    super.log(
+      `🚀 Endpoint ${method} (${endpoint}): ${id}${data ? ` - ${this.formatData(data)}` : ''}`,
+    );
+    return { endpoint, method, data, processId: id };
+  }
+
+  logEndpointFinish({
+    endpoint,
+    method,
+    data,
+    processId,
+  }: EndpointDataWithId): void {
+    const duration = processId ? this.endTimer(processId) : '';
+    super.log(
+      `✅ Endpoint ${method} (${endpoint}): ${processId}${data ? ` - ${this.formatData(data)}` : ''} ${duration}`,
+    );
+  }
+
+  logEndpointError({
+    endpoint,
+    method,
+    data: errorData,
+    processId,
+  }: EndpointDataWithId): void {
+    const duration = processId ? this.endTimer(processId) : '';
+    super.error(
+      `❌ Endpoint ${method} (${endpoint}): ${processId}${errorData ? ` - ${this.formatData(errorData)}` : ''} ${duration}`,
     );
   }
 

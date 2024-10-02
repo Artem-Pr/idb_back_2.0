@@ -77,6 +77,50 @@ describe('CustomLogger', () => {
     );
   });
 
+  describe('should log an endpoint', () => {
+    it('should log endpoint start correctly', () => {
+      const endpointData = {
+        endpoint: '/test',
+        method: 'GET',
+        data: { key: 'value' },
+      };
+      const result = customLogger.logEndpointStart(endpointData);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('🚀 Endpoint GET (/test)'),
+      );
+      expect(result).toHaveProperty('processId');
+    });
+
+    it('should log endpoint finish correctly', () => {
+      const endpointDataWithId = {
+        endpoint: '/test',
+        method: 'GET',
+        data: { key: 'value' },
+        processId: '12345',
+      };
+      customLogger.logEndpointFinish(endpointDataWithId);
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('✅ Endpoint GET (/test): 12345'),
+      );
+    });
+
+    it('should log endpoint error correctly', () => {
+      const endpointDataWithId = {
+        endpoint: '/test',
+        method: 'GET',
+        data: { error: 'An error occurred' },
+        processId: '12345',
+      };
+      customLogger.logEndpointError(endpointDataWithId);
+
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('❌ Endpoint GET (/test): 12345'),
+      );
+    });
+  });
+
   it('should log a message', () => {
     const message = 'testMessage';
     const data = { key: 'value' };

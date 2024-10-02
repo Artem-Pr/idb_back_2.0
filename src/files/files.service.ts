@@ -63,9 +63,6 @@ export class FilesService {
   ) {}
 
   async getFiles(getFilesInput: GetFilesInputDto): Promise<GetFilesOutputDto> {
-    const process = this.logger.startProcess({
-      processName: 'FilesService.getFiles',
-    });
     const mediaDBResponse = await this.mediaDB.getFiles(getFilesInput);
     if (!mediaDBResponse) {
       return {
@@ -89,7 +86,6 @@ export class FilesService {
       }),
     );
 
-    this.logger.finishProcess(process);
     return {
       ...mediaDBResponse,
       files: mediaOutputList,
