@@ -255,7 +255,7 @@ export class MediaDBService extends MediaDBQueryCreators {
       response: [{ filePathSet: DBFilePath[] }];
     }>(aggregation);
 
-    return mongoResponse.response[0]?.filePathSet || [];
+    return mongoResponse?.response[0]?.filePathSet || [];
   }
 
   private getUniqPathsRecursively = (paths: string[]) => {
@@ -287,14 +287,14 @@ export class MediaDBService extends MediaDBQueryCreators {
     return dynamicFolders;
   }
 
-  async getUsedKeywordsList() {
+  async getUsedKeywordsList(): Promise<string[]> {
     const aggregation = this.getMongoUsedKeywordsAggregation();
 
     const mongoResponse = await this.makeAggregationQuery<{
       response: string[];
     }>(aggregation);
 
-    return mongoResponse.response;
+    return mongoResponse?.response || [];
   }
 
   private getSearchPagination(
@@ -345,18 +345,15 @@ export class MediaDBService extends MediaDBQueryCreators {
         facet: this.getMongoFilesFacet(pagination),
       });
 
-      const {
-        response,
-        total,
-        pagination: paginationResponse,
-      } = await this.makeAggregationQuery<GetFilesDBResponse>(aggregation);
+      const aggregationResponse =
+        await this.makeAggregationQuery<GetFilesDBResponse>(aggregation);
 
-      const DBResponse = {
+      const DBResponse: Awaited<GetFilesResponse> = {
         dynamicFolders,
-        files: response,
-        filesSizeSum: total[0]?.filesSizeSum || 0,
+        files: aggregationResponse?.response || [],
+        filesSizeSum: aggregationResponse?.total[0]?.filesSizeSum || 0,
         searchPagination: this.getSearchPagination(
-          paginationResponse,
+          aggregationResponse?.pagination || [],
           pagination.perPage,
         ),
       };
@@ -374,7 +371,7 @@ export class MediaDBService extends MediaDBQueryCreators {
 
   async makeAggregationQuery<T>(
     aggregationPipeline: MongoAggregationPipeline,
-  ): Promise<T> {
+  ): Promise<T | undefined> {
     const aggregatedResult = (await this.mediaRepository
       .aggregate(aggregationPipeline, { allowDiskUse: true })
       .toArray()) as unknown as [T];
