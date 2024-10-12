@@ -80,10 +80,10 @@ describe('Utils', () => {
         postFix: PreviewPostfix.preview,
         date: toDateUTC('2023-10-01'),
       });
-      const expected =
-        '/image-jpg/preview/2023.10.01 - originalDate/image-preview.jpg';
+      const expectedPattern =
+        /^\/image-jpg\/preview\/2023\.10\.01 - originalDate\/image-[0-9a-f]{24}-preview\.jpg$/;
 
-      expect(result).toBe(expected);
+      expect(result).toEqual(expect.stringMatching(expectedPattern));
     });
 
     it('should correctly generate the preview path for a video file', () => {
@@ -93,10 +93,11 @@ describe('Utils', () => {
         postFix: PreviewPostfix.fullSize,
         date: toDateUTC('2023-10-01'),
       });
-      const expected =
-        '/video-mp4/fullSize/2023.10.01 - originalDate/video-fullSize.jpg';
 
-      expect(result).toBe(expected);
+      const expectedPattern =
+        /^\/video-mp4\/fullSize\/2023\.10\.01 - originalDate\/video-[0-9a-f]{24}-fullSize\.jpg$/;
+
+      expect(result).toEqual(expect.stringMatching(expectedPattern));
     });
 
     it('should handle filenames with multiple dots correctly', () => {
@@ -106,10 +107,11 @@ describe('Utils', () => {
         postFix: PreviewPostfix.preview,
         date: toDateUTC('2023-10-01'),
       });
-      const expected =
-        '/image-jpg/preview/2023.10.01 - originalDate/complex.name.image-preview.jpg';
 
-      expect(result).toBe(expected);
+      const expectedPattern =
+        /^\/image-jpg\/preview\/2023\.10\.01 - originalDate\/complex.name.image-[0-9a-f]{24}-preview\.jpg$/;
+
+      expect(result).toEqual(expect.stringMatching(expectedPattern));
     });
 
     it('should handle different mimeTypes correctly', () => {
@@ -119,10 +121,11 @@ describe('Utils', () => {
         postFix: PreviewPostfix.preview,
         date: toDateUTC('2023-10-01'),
       });
-      const expected =
-        '/video-x-ms-wmv/preview/2023.10.01 - originalDate/video-preview.jpg';
 
-      expect(result).toBe(expected);
+      const expectedPattern =
+        /^\/video-x-ms-wmv\/preview\/2023\.10\.01 - originalDate\/video-[0-9a-f]{24}-preview\.jpg$/;
+
+      expect(result).toEqual(expect.stringMatching(expectedPattern));
     });
   });
 

@@ -7,11 +7,16 @@ import { Media } from './entities/media.entity';
 import { ConfigService } from 'src/config/config.service';
 import { dirname, resolve } from 'path';
 import type { MoveOptions } from 'fs-extra';
-import { ensureDir, move } from 'fs-extra';
+import { ensureDir, move, readdir, remove } from 'fs-extra';
 import { MainDir } from 'src/common/constants';
 import { CustomLogger } from 'src/logger/logger.service';
 import type { UpdateMedia } from './mediaDB.service';
 import { resolveAllSettled } from 'src/common/utils';
+import {
+  getFullPathWithoutNameAndFirstSlash,
+  removeExtraSlashes,
+} from 'src/common/fileNameHelpers';
+import type { DBFullSizePath, DBPreviewPath } from 'src/common/types';
 
 interface ChangeFileDirectoryProps {
   oldFilePath: Media['filePath'];
@@ -118,5 +123,94 @@ export class DiscStorageService {
 
     await ensureDir(dirname(newPath));
     await move(oldPath, newPath);
+  }
+
+  async removeFile(
+    filePath: string,
+    mainDir: MainDir = MainDir.volumes,
+  ): Promise<void> {
+    const path = resolve(`${this.configService.rootPaths[mainDir]}${filePath}`);
+    try {
+      await remove(path);
+    } catch (error) {
+      this.logger.logError({
+        message: error.message,
+        method: 'removeFile',
+        errorData: { path },
+      });
+      throw new InternalServerErrorException(
+        'Error occurred when removing file.',
+      );
+    }
+  }
+
+  async removeDirectory(
+    directoryPath: string,
+    mainDir: MainDir = MainDir.volumes,
+  ): Promise<void> {
+    const sanitizedDirectory = removeExtraSlashes(directoryPath);
+    const path = resolve(
+      `${this.configService.rootPaths[mainDir]}/${sanitizedDirectory}`,
+    );
+    try {
+      await remove(path);
+    } catch (error) {
+      this.logger.logError({
+        message: error.message,
+        method: 'removeDirectory',
+        errorData: { path },
+      });
+      throw new InternalServerErrorException(
+        'Error occurred when removing directory.',
+      );
+    }
+  }
+
+  private async isEmptyDirectory(
+    directoryPath: string,
+    mainDir: MainDir = MainDir.volumes,
+  ): Promise<boolean> {
+    const sanitizedDirectory = removeExtraSlashes(directoryPath);
+    const pathToCheck = resolve(
+      `${this.configService.rootPaths[mainDir]}/${sanitizedDirectory}`,
+    );
+    try {
+      const files = await readdir(pathToCheck);
+      return files.length === 0;
+    } catch (error) {
+      this.logger.logError({
+        message: error.message,
+        method: 'isEmptyDirectory',
+        errorData: { pathToCheck },
+      });
+      throw new InternalServerErrorException(
+        `Error reading directory: ${error.message || error}`,
+      );
+    }
+  }
+
+  private async removeDirIfEmpty(
+    directoryPath: string,
+    mainDir: MainDir = MainDir.volumes,
+  ): Promise<void> {
+    const isEmpty = await this.isEmptyDirectory(directoryPath, mainDir);
+
+    if (isEmpty) {
+      await this.removeDirectory(directoryPath, mainDir);
+    }
+  }
+
+  async removePreviews(previews: (DBPreviewPath | DBFullSizePath)[]) {
+    const deletePreviewPromises = previews.map((preview) => {
+      return this.removeFile(preview, MainDir.previews);
+    });
+
+    await resolveAllSettled(deletePreviewPromises);
+
+    const removeEmptyDirPromises = previews.map((preview) => {
+      const previewDirectory = getFullPathWithoutNameAndFirstSlash(preview);
+      return this.removeDirIfEmpty(previewDirectory, MainDir.previews);
+    });
+    await resolveAllSettled(removeEmptyDirPromises);
   }
 }

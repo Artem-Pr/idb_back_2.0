@@ -124,7 +124,7 @@ describe('FilesService', () => {
             addFileToDBTemp,
             addMediaToDB: jest.fn((mediaList: Media[]) => mediaList),
             getSameFilesIfExist,
-            removeMediaFromTempDB: jest.fn(),
+            deleteMediaFromTempDB: jest.fn(),
             updateMediaList,
           },
         },
@@ -143,7 +143,8 @@ describe('FilesService', () => {
         {
           provide: PathsService,
           useValue: {
-            addPaths: jest.fn(),
+            addPathsToDB: jest.fn(),
+            getDirAndSubfoldersFromArray: jest.fn(),
           },
         },
         {
@@ -347,34 +348,15 @@ describe('FilesService', () => {
     });
 
     it('should save files', async () => {
+      jest
+        .spyOn(ObjectId.prototype, 'toHexString')
+        .mockReturnValueOnce('00000001f80f825d51300844') // mock preview creation of first file
+        .mockReturnValueOnce('00000001f80f825d51300844') // mock full size creation of first file
+        .mockReturnValueOnce('00000001f80f825d51300845') // mock preview creation of second file
+        .mockReturnValueOnce('00000001f80f825d51300845'); // mock full size creation of second file
+
       const result = await service.saveFiles(filesToUpload);
-
-      const responseMedia1 = createMediaMock({
-        id: new ObjectId('00000001f80f825d51300844'),
-        name: 'test1-updated',
-        originalNameWithoutExt: 'test1-updated',
-      });
-      responseMedia1.keywords = ['keyword1', 'keyword2'];
-      responseMedia1.fullSizeJpg =
-        '/image-jpg/fullSize/2020.01.01 - originalDate/test1-updated-fullSize.jpg';
-      responseMedia1.preview =
-        '/image-jpg/preview/2020.01.01 - originalDate/test1-updated-preview.jpg';
-
-      const responseMedia2 = createMediaMock({
-        id: new ObjectId('00000001f80f825d51300845'),
-        name: 'test2-updated',
-        originalNameWithoutExt: 'test2-updated',
-      });
-      responseMedia2.originalDate = new Date('2024-09-20T17:00:00.000Z');
-      responseMedia2.keywords = [];
-      responseMedia2.fullSizeJpg =
-        '/image-jpg/fullSize/2024.09.20 - originalDate/test2-updated-fullSize.jpg';
-      responseMedia2.preview =
-        '/image-jpg/preview/2024.09.20 - originalDate/test2-updated-preview.jpg';
-
-      expect(JSON.stringify(result)).toEqual(
-        JSON.stringify([responseMedia1, responseMedia2]),
-      );
+      expect(result).toMatchSnapshot();
     });
 
     it('should throw error if save files failed', async () => {

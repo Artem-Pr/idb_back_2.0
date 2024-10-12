@@ -1,0 +1,59 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`FilesService saveFiles should save files 1`] = `
+[
+  {
+    "_id": "00000001f80f825d51300844",
+    "changeDate": 1688319393000,
+    "description": "test description",
+    "exif": {
+      "DateTimeOriginal": "2020-01-01 00:00:00",
+      "Description": "test description",
+      "GPSPosition": "42.5, 42.5",
+      "ImageSize": "1920x1080",
+      "Megapixels": 12,
+      "Rating": 5,
+    },
+    "filePath": "/path/to/test1-updated.jpg",
+    "fullSizeJpg": "/image-jpg/fullSize/2020.01.01 - originalDate/test1-updated-00000001f80f825d51300844-fullSize.jpg",
+    "imageSize": "1920x1080",
+    "keywords": [
+      "keyword1",
+      "keyword2",
+    ],
+    "megapixels": 12,
+    "mimetype": "image/jpg",
+    "originalDate": 2019-12-31T23:00:00.000Z,
+    "originalName": "test1-updated.jpg",
+    "preview": "/image-jpg/preview/2020.01.01 - originalDate/test1-updated-00000001f80f825d51300844-preview.jpg",
+    "rating": 5,
+    "size": 1024,
+    "timeStamp": "00:00:00.100",
+  },
+  {
+    "_id": "00000001f80f825d51300845",
+    "changeDate": 1688319393000,
+    "description": "test description",
+    "exif": {
+      "DateTimeOriginal": "2020-01-01 00:00:00",
+      "Description": "test description",
+      "GPSPosition": "42.5, 42.5",
+      "ImageSize": "1920x1080",
+      "Megapixels": 12,
+      "Rating": 5,
+    },
+    "filePath": "/path/to/test2-updated.jpg",
+    "fullSizeJpg": "/image-jpg/fullSize/2024.09.20 - originalDate/test2-updated-00000001f80f825d51300845-fullSize.jpg",
+    "imageSize": "1920x1080",
+    "keywords": [],
+    "megapixels": 12,
+    "mimetype": "image/jpg",
+    "originalDate": 2024-09-20T17:00:00.000Z,
+    "originalName": "test2-updated.jpg",
+    "preview": "/image-jpg/preview/2024.09.20 - originalDate/test2-updated-00000001f80f825d51300845-preview.jpg",
+    "rating": 5,
+    "size": 1024,
+    "timeStamp": "00:00:00.100",
+  },
+]
+`;

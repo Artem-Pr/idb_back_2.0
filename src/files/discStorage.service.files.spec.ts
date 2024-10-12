@@ -2,10 +2,16 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { DiscStorageService } from './discStorage.service';
 import { ConfigService } from 'src/config/config.service';
-import { copySync, emptyDirSync, existsSync } from 'fs-extra';
+import * as fs from 'fs-extra';
 import { Envs, Folders, MainDir, MainDirPath } from 'src/common/constants';
 import { UpdateMedia } from './mediaDB.service';
 import { Media } from './entities/media.entity';
+import { InternalServerErrorException } from '@nestjs/common';
+import { dirname } from 'path';
+import { resolveAllSettled } from 'src/common/utils';
+import type { DBFullSizePath, DBPreviewPath } from 'src/common/types';
+
+const { copySync, emptyDirSync, ensureDirSync, existsSync, removeSync } = fs;
 
 const SUBDIRECTORY = 'main/subdirectory';
 const SUBDIRECTORY_2 = 'main2/subdirectory';
@@ -25,6 +31,8 @@ const MOCK_DIRECTORY = `${MainDirPath.test}/mock`;
 const TEST_DIRECTORY_VOLUMES = `${MainDirPath.test}/${MainDir.volumes}`;
 const TEST_DIRECTORY_PREVIEWS = `${MainDirPath.test}/${MainDir.previews}`;
 const TEST_DIRECTORY_TEMP = `${MainDirPath.test}/${MainDir.temp}`;
+
+jest.mock('fs-extra', () => jest.requireActual('fs-extra'));
 
 describe('DiscStorageService', () => {
   let service: DiscStorageService;
@@ -51,6 +59,7 @@ describe('DiscStorageService', () => {
     emptyDirSync(TEST_DIRECTORY_VOLUMES);
     emptyDirSync(TEST_DIRECTORY_PREVIEWS);
     emptyDirSync(TEST_DIRECTORY_TEMP);
+    jest.restoreAllMocks();
   });
 
   it('should be defined', () => {
@@ -92,6 +101,41 @@ describe('DiscStorageService', () => {
           DEFAULT_IMAGE_FILENAME_WITH_DIR,
         ),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('removeFile', () => {
+    const fileToRemove = `${TEST_DIRECTORY_VOLUMES}${DEFAULT_IMAGE_FILENAME_WITH_DIR}`;
+
+    beforeEach(() => {
+      copySync(`${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME}`, fileToRemove);
+    });
+
+    it('should remove the file', async () => {
+      expect(existsSync(fileToRemove)).toBeTruthy();
+      await service.removeFile(
+        DEFAULT_IMAGE_FILENAME_WITH_DIR,
+        MainDir.volumes,
+      );
+      expect(existsSync(fileToRemove)).toBeFalsy();
+    });
+
+    it('should not throw an error if the file does not exist', async () => {
+      const nonExistentFilePath = `${SUBDIRECTORY}/nonexistent-file.jpg`;
+      await expect(
+        service.removeFile(nonExistentFilePath),
+      ).resolves.not.toThrow();
+    });
+
+    it('should throw InternalServerErrorException if an error occurs', async () => {
+      jest.spyOn(fs, 'remove').mockImplementation(() => {
+        throw new Error();
+      });
+      const invalidFilePath = '/invalid/path/to/file.jpg';
+
+      await expect(service.removeFile(invalidFilePath)).rejects.toThrow(
+        new InternalServerErrorException('Error occurred when removing file.'),
+      );
     });
   });
 
@@ -305,6 +349,208 @@ describe('DiscStorageService', () => {
       expect(
         existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia2.fullSizeJpg}`),
       ).toBeTruthy();
+    });
+  });
+
+  describe('removeDirectory', () => {
+    const directoryPath = `${TEST_DIRECTORY_VOLUMES}/subDir`;
+
+    beforeEach(() => {
+      ensureDirSync(directoryPath);
+    });
+
+    afterEach(() => {
+      removeSync(directoryPath);
+    });
+
+    it('should remove the directory', async () => {
+      expect(existsSync(directoryPath)).toBeTruthy();
+      await service.removeDirectory('subDir');
+      expect(existsSync(directoryPath)).toBeFalsy();
+    });
+
+    it('should not throw an error if the directory does not exist', async () => {
+      await expect(
+        service.removeDirectory('nonexistent-dir'),
+      ).resolves.not.toThrow();
+    });
+
+    it('should remove nested directories', async () => {
+      const nestedDirectoryPath = `${directoryPath}/nested`;
+      ensureDirSync(nestedDirectoryPath);
+      expect(existsSync(nestedDirectoryPath)).toBeTruthy();
+
+      await service.removeDirectory('subDir/nested');
+      expect(existsSync(nestedDirectoryPath)).toBeFalsy();
+      expect(existsSync(directoryPath)).toBeTruthy();
+    });
+
+    it('should remove subdirectories and files', async () => {
+      const nestedDirectoryPath = `${directoryPath}/nested`;
+      ensureDirSync(nestedDirectoryPath);
+      expect(existsSync(nestedDirectoryPath)).toBeTruthy();
+
+      copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME}`,
+        `${nestedDirectoryPath}/${DEFAULT_IMAGE_FILENAME}`,
+      );
+
+      await service.removeDirectory('subDir');
+      expect(existsSync(nestedDirectoryPath)).toBeFalsy();
+      expect(existsSync(directoryPath)).toBeFalsy();
+    });
+
+    it('should sanitize the directory path', async () => {
+      const unsanitizedPath = `//subDir//nested`;
+      const sanitizedPath = `${directoryPath}/nested`;
+      ensureDirSync(sanitizedPath);
+      expect(existsSync(sanitizedPath)).toBeTruthy();
+
+      await service.removeDirectory(unsanitizedPath);
+      expect(existsSync(sanitizedPath)).toBeFalsy();
+    });
+
+    it('should handle an empty directory path gracefully', async () => {
+      await expect(service.removeDirectory('')).resolves.not.toThrow();
+    });
+
+    it('should throw InternalServerErrorException if an error occurs', async () => {
+      jest.spyOn(fs, 'remove').mockImplementation(() => {
+        throw new Error();
+      });
+
+      await expect(service.removeDirectory('directory')).rejects.toThrow(
+        new InternalServerErrorException(
+          'Error occurred when removing directory.',
+        ),
+      );
+    });
+  });
+
+  describe('isEmptyDirectory', () => {
+    const directoryPath = `${TEST_DIRECTORY_VOLUMES}/subDir`;
+
+    beforeEach(() => {
+      ensureDirSync(directoryPath);
+    });
+
+    afterEach(() => {
+      removeSync(directoryPath);
+    });
+
+    it('should return true for an empty directory', async () => {
+      expect(await service['isEmptyDirectory']('subDir')).toBe(true);
+    });
+
+    it('should return false for a non-empty directory', async () => {
+      const filePath = `${directoryPath}/test-file.txt`;
+      fs.writeFileSync(filePath, 'test content');
+      expect(await service['isEmptyDirectory']('subDir')).toBe(false);
+    });
+
+    it('should throw InternalServerErrorException if an error occurs', async () => {
+      const invalidDirectoryPath = 'invalid/subDir';
+      jest.spyOn(fs, 'readdir').mockImplementation(() => {
+        throw new Error('Test error');
+      });
+
+      await expect(
+        service['isEmptyDirectory'](invalidDirectoryPath),
+      ).rejects.toThrow(
+        new InternalServerErrorException('Error reading directory: Test error'),
+      );
+    });
+  });
+
+  describe('removeDirIfEmpty', () => {
+    const directoryPath = `${TEST_DIRECTORY_VOLUMES}/subDir`;
+
+    beforeEach(() => {
+      ensureDirSync(directoryPath);
+    });
+
+    afterEach(() => {
+      removeSync(directoryPath);
+    });
+
+    it('should remove the directory if it is empty', async () => {
+      expect(existsSync(directoryPath)).toBeTruthy();
+      await service['removeDirIfEmpty']('subDir');
+      expect(existsSync(directoryPath)).toBeFalsy();
+    });
+
+    it('should not remove the directory if it is not empty', async () => {
+      const filePath = `${directoryPath}/test-file.txt`;
+      fs.writeFileSync(filePath, 'test content');
+      expect(existsSync(directoryPath)).toBeTruthy();
+      await service['removeDirIfEmpty']('subDir');
+      expect(existsSync(directoryPath)).toBeTruthy();
+    });
+
+    it('should handle errors gracefully', async () => {
+      jest.spyOn(fs, 'readdir').mockImplementation(() => {
+        throw new Error('Test error');
+      });
+
+      await expect(service['removeDirIfEmpty']('subDir')).rejects.toThrow(
+        new InternalServerErrorException('Error reading directory: Test error'),
+      );
+    });
+  });
+
+  describe('removePreviews', () => {
+    const previews: (DBPreviewPath | DBFullSizePath)[] = [
+      '/dir/test-preview1-preview.jpg',
+      '/dir/test-preview2-fullSize.jpg',
+    ];
+
+    beforeEach(() => {
+      previews.forEach((preview) => {
+        const previewPath = `${TEST_DIRECTORY_PREVIEWS}${preview}`;
+        const previewDir = dirname(previewPath);
+        ensureDirSync(previewDir);
+        fs.writeFileSync(previewPath, 'test content');
+      });
+    });
+
+    afterEach(() => {
+      previews.forEach((preview) => {
+        const previewPath = `${TEST_DIRECTORY_PREVIEWS}${preview}`;
+        const previewDir = dirname(previewPath);
+        removeSync(previewPath);
+        removeSync(previewDir);
+      });
+    });
+
+    it('should remove all preview files and their empty directories', async () => {
+      await service.removePreviews(previews);
+
+      previews.forEach((preview) => {
+        const previewPath = `${TEST_DIRECTORY_PREVIEWS}${preview}`;
+        const previewDir = dirname(previewPath);
+        expect(existsSync(previewPath)).toBeFalsy();
+        expect(existsSync(previewDir)).toBeFalsy();
+      });
+    });
+
+    it('should not throw an error if preview files do not exist', async () => {
+      await resolveAllSettled(
+        previews.map((preview) =>
+          service.removeFile(preview, MainDir.previews),
+        ),
+      );
+
+      await expect(service.removePreviews(previews)).resolves.not.toThrow();
+    });
+
+    it('should handle errors gracefully when removing files', async () => {
+      jest.spyOn(fs, 'remove').mockImplementation(() => {
+        throw new Error('Test error');
+      });
+
+      await expect(service.removePreviews(previews)).rejects.toThrow(
+        new InternalServerErrorException('Error occurred when removing file.'),
+      );
     });
   });
 });

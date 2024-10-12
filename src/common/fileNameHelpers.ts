@@ -1,3 +1,4 @@
+import { ObjectId } from 'mongodb';
 import {
   MainDir,
   PreviewPostfix,
@@ -52,7 +53,7 @@ export const getPreviewPath = <
     '-',
   ) as ConvertSlashToDash<TMimeType>;
   const dateFolderName: PreviewDirDateName = `${formatDate(date)} - originalDate`;
-  const fileName = addPreviewPostfix(originalName, postFix);
+  const fileName = addPreviewPostfix(originalName, postFix, true);
   const previewPath: RelativePreviewDirectory<TMimeType, SPostfix> =
     `/${mimeTypeFolderName}/${postFix}/${dateFolderName}/${fileName}`;
   return previewPath;
@@ -75,8 +76,10 @@ export const addPreviewPostfix = <
 >(
   fileName: T,
   postfix: P,
+  withHash = false,
 ): NameWithPreviewPostfix<T, P> => {
-  return `${fileName.replace(/\.\w+$/, `-${postfix}.${SupportedImageExtensions.jpg}`)}` as NameWithPreviewPostfix<
+  const hash = withHash ? `-${new ObjectId().toHexString()}` : '';
+  return `${fileName.replace(/\.\w+$/, `${hash}-${postfix}.${SupportedImageExtensions.jpg}`)}` as NameWithPreviewPostfix<
     T,
     P
   >;

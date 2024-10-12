@@ -172,6 +172,19 @@ describe('MediaDB', () => {
     });
   });
 
+  describe('findMediaByDirectoryInDB', () => {
+    it('should call mediaRepository.find with the correct data', async () => {
+      const directory = '//path/to/directory//';
+      const expectedValue = {
+        filePath: new RegExp('^/path/to/directory/'),
+      };
+      jest.spyOn(mediaRepository, 'find').mockResolvedValue([]);
+
+      await service.findMediaByDirectoryInDB(directory);
+      expect(mediaRepository.find).toHaveBeenCalledWith(expectedValue);
+    });
+  });
+
   describe('getSameFilesIfExist', () => {
     it('should return an array of files with the same original name', async () => {
       const originalNameMock: GetSameFilesIfExist = {
@@ -372,7 +385,7 @@ describe('MediaDB', () => {
     });
   });
 
-  describe('removeMediaFromTempDB', () => {
+  describe('deleteMediaFromTempDB', () => {
     it('should remove media from temp repository', async () => {
       const idsToRemove = [
         new ObjectId('507f1f77bcf86cd799439011'),
@@ -383,9 +396,26 @@ describe('MediaDB', () => {
         .spyOn(tempRepository, 'delete')
         .mockResolvedValue({ raw: [], affected: 1 });
 
-      await service.removeMediaFromTempDB(idsToRemove);
+      await service.deleteMediaFromTempDB(idsToRemove);
 
       expect(tempRepository.delete).toHaveBeenCalledWith(idsToRemove);
+    });
+  });
+
+  describe('deleteMediaFromDB', () => {
+    it('should remove media from repository', async () => {
+      const idsToRemove = [
+        new ObjectId('507f1f77bcf86cd799439011'),
+        new ObjectId('507f1f77bcf86cd799439012'),
+      ];
+
+      jest
+        .spyOn(mediaRepository, 'delete')
+        .mockResolvedValue({ raw: [], affected: 1 });
+
+      await service.deleteMediaFromDB(idsToRemove);
+
+      expect(mediaRepository.delete).toHaveBeenCalledWith(idsToRemove);
     });
   });
 

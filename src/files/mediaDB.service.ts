@@ -3,7 +3,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { MongoRepository } from 'typeorm';
+import type { DeleteResult, MongoRepository } from 'typeorm';
 import { uniq } from 'ramda';
 import { MediaTemp } from './entities/media-temp.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -116,6 +116,14 @@ export class MediaDBService extends MediaDBQueryCreators {
     return this.tempRepository.find(this.ormFindByIdsQuery(ids));
   }
 
+  async findMediaByDirectoryInDB(directory: string): Promise<Media[]> {
+    const sanitizedDirectory = removeExtraSlashes(directory);
+
+    return this.mediaRepository.find({
+      filePath: new RegExp(`^/${sanitizedDirectory}/`),
+    });
+  }
+
   async getSameFilesIfExist(where: GetSameFilesIfExist) {
     return this.mediaRepository.find({ where });
   }
@@ -214,20 +222,24 @@ export class MediaDBService extends MediaDBQueryCreators {
     });
   }
 
-  async removeMediaFromTempDB(
+  async deleteMediaFromTempDB(
     ids: Parameters<typeof this.tempRepository.delete>[0],
-  ): Promise<void> {
-    await this.tempRepository.delete(ids);
+  ): Promise<DeleteResult> {
+    return this.tempRepository.delete(ids);
+  }
+
+  async deleteMediaFromDB(
+    ids: Parameters<typeof this.tempRepository.delete>[0],
+  ): Promise<DeleteResult> {
+    return this.mediaRepository.delete(ids);
   }
 
   async countFilesInDirectory(directory: string): Promise<number> {
     const sanitizedDirectory = removeExtraSlashes(directory);
 
-    const count = await this.mediaRepository.count({
+    return this.mediaRepository.count({
       filePath: new RegExp(`^/${sanitizedDirectory}/`),
     });
-
-    return count;
   }
 
   private async getFoldersPathsList(

@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PathsController } from './paths.controller';
 import { PathsService } from './paths.service';
-import { CheckDirectoryInputDto } from './dto/check-directory-input.dto';
-import { CheckDirectoryOutputDto } from './dto/check-directory-output.dto';
+import type { CheckDirectoryInputDto } from './dto/check-directory-input.dto';
+import type { CheckDirectoryOutputDto } from './dto/check-directory-output.dto';
 import { NotFoundException } from '@nestjs/common';
+import type { DeleteDirectoryOutputDto } from './dto/delete-directory-output.dto';
 
 describe('PathsController', () => {
   let controller: PathsController;
@@ -16,11 +17,16 @@ describe('PathsController', () => {
     numberOfFiles: 0,
     numberOfSubdirectories: 0,
   };
+  const deleteDirectoryResponse: DeleteDirectoryOutputDto = {
+    directoriesToRemove: mockPaths,
+    mediaList: [],
+  };
 
   beforeEach(async () => {
     const mockPathsService = {
-      getPaths: jest.fn().mockResolvedValue(mockPaths),
+      getAllPathsFromDB: jest.fn().mockResolvedValue(mockPaths),
       checkDirectory: jest.fn().mockResolvedValue(mockCheckDirectoryResponse),
+      deleteDirectory: jest.fn().mockResolvedValue(deleteDirectoryResponse),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -43,7 +49,7 @@ describe('PathsController', () => {
 
   it('should get paths', async () => {
     await expect(controller.getPaths()).resolves.toEqual(mockPaths);
-    expect(service.getPaths).toHaveBeenCalled();
+    expect(service.getAllPathsFromDB).toHaveBeenCalled();
   });
 
   describe('checkDirectory', () => {
@@ -67,6 +73,15 @@ describe('PathsController', () => {
       await expect(controller.checkDirectory(query)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('deleteDirectory', () => {
+    it('should delete directory', async () => {
+      await expect(
+        controller.deleteDirectory(mockDirectoryQuery),
+      ).resolves.toEqual(deleteDirectoryResponse);
+      expect(service.deleteDirectory).toHaveBeenCalledWith('main/nestjs');
     });
   });
 });

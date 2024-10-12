@@ -104,7 +104,7 @@ export class FilesService {
         mediaListWithUpdatedPaths,
       );
       await this.saveNewDirectories(updatedMediaDBList);
-      await this.mediaDB.removeMediaFromTempDB(
+      await this.mediaDB.deleteMediaFromTempDB(
         updatedMediaDBList.map(({ _id }) => _id),
       );
 
@@ -143,11 +143,6 @@ export class FilesService {
       duplicatesPromise,
       addedMediaTempFilePromise,
     ]);
-
-    // TODO: remove this
-    if (addedMediaTempFile.originalName === 'fail.HEIC') {
-      throw new Error('Failed to read EXIF data');
-    }
 
     const properties = this.makeMediaOutputFromMedia({
       media: addedMediaTempFile,
@@ -361,7 +356,11 @@ export class FilesService {
         getFullPathWithoutNameAndFirstSlash(filePath),
       ),
     );
-    await this.pathsService.addPaths(Array.from(newDirectoriesSet));
+    const newDirectoriesWithSubDirs =
+      this.pathsService.getDirAndSubfoldersFromArray(
+        Array.from(newDirectoriesSet),
+      );
+    await this.pathsService.addPathsToDB(newDirectoriesWithSubDirs);
     this.logger.finishProcess(processData);
   }
 

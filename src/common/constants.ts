@@ -92,6 +92,7 @@ export enum ControllerPrefix {
   uploadFile = 'upload-file',
   moveKeywordsToNewCollection = 'move-keywords-to-new-collection',
   movePathsToNewCollection = 'move-paths-to-new-collection',
+  directory = 'directory',
 }
 
 export enum PreviewPostfix {

@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   Query,
   UsePipes,
@@ -7,8 +8,11 @@ import {
 } from '@nestjs/common';
 import { PathsService } from './paths.service';
 import { ControllerPrefix } from 'src/common/constants';
-import { CheckDirectoryInputDto } from './dto/check-directory-input.dto';
 import { LogController } from 'src/logger/logger.decorator';
+import type { CheckDirectoryOutputDto } from './dto/check-directory-output.dto';
+import type { CheckDirectoryInputDto } from './dto/check-directory-input.dto';
+import type { DeleteDirectoryOutputDto } from './dto/delete-directory-output.dto';
+import type { DeleteDirectoryInputDto } from './dto/delete-directory-input.dto';
 
 @Controller()
 export class PathsController {
@@ -17,13 +21,13 @@ export class PathsController {
   @Get(ControllerPrefix.pathsOld)
   @LogController(ControllerPrefix.pathsOld)
   async getPathsOld() {
-    return await this.pathsService.getPathsOld();
+    return await this.pathsService.getAllPathsFromDBoLD();
   }
 
   @Get(ControllerPrefix.paths)
   @LogController(ControllerPrefix.paths)
   async getPaths() {
-    return await this.pathsService.getPaths();
+    return await this.pathsService.getAllPathsFromDB();
   }
 
   @Get(ControllerPrefix.movePathsToNewCollection)
@@ -42,7 +46,17 @@ export class PathsController {
   @Get(ControllerPrefix.checkDirectory)
   @UsePipes(new ValidationPipe({ transform: true }))
   @LogController(ControllerPrefix.checkDirectory)
-  async checkDirectory(@Query() query: CheckDirectoryInputDto) {
+  async checkDirectory(
+    @Query() query: CheckDirectoryInputDto,
+  ): Promise<CheckDirectoryOutputDto> {
     return await this.pathsService.checkDirectory(query.directory);
+  }
+
+  @Delete(ControllerPrefix.directory)
+  @LogController(ControllerPrefix.directory)
+  async deleteDirectory(
+    @Query() query: DeleteDirectoryInputDto,
+  ): Promise<DeleteDirectoryOutputDto> {
+    return await this.pathsService.deleteDirectory(query.directory);
   }
 }
