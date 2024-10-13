@@ -7,7 +7,7 @@ import { Media } from './entities/media.entity';
 import { ConfigService } from 'src/config/config.service';
 import { dirname, resolve } from 'path';
 import type { MoveOptions } from 'fs-extra';
-import { ensureDir, move, readdir, remove } from 'fs-extra';
+import { emptyDir, ensureDir, move, readdir, remove } from 'fs-extra';
 import { MainDir } from 'src/common/constants';
 import { CustomLogger } from 'src/logger/logger.service';
 import type { UpdateMedia } from './mediaDB.service';
@@ -162,6 +162,30 @@ export class DiscStorageService {
       });
       throw new InternalServerErrorException(
         'Error occurred when removing directory.',
+      );
+    }
+  }
+
+  async emptyDirectory(
+    mainDir: MainDir = MainDir.temp,
+    directoryPath?: string,
+  ): Promise<void> {
+    const sanitizedDirectory = directoryPath
+      ? `/${removeExtraSlashes(directoryPath)}`
+      : '';
+    const path = resolve(
+      `${this.configService.rootPaths[mainDir]}${sanitizedDirectory}`,
+    );
+    try {
+      await emptyDir(path);
+    } catch (error) {
+      this.logger.logError({
+        message: error.message,
+        method: 'emptyDirectory',
+        errorData: { path },
+      });
+      throw new InternalServerErrorException(
+        'Error occurred when emptying directory.',
       );
     }
   }

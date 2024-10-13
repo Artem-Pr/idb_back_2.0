@@ -11,7 +11,15 @@ import { dirname } from 'path';
 import { resolveAllSettled } from 'src/common/utils';
 import type { DBFullSizePath, DBPreviewPath } from 'src/common/types';
 
-const { copySync, emptyDirSync, ensureDirSync, existsSync, removeSync } = fs;
+const {
+  copySync,
+  emptyDirSync,
+  ensureDirSync,
+  existsSync,
+  removeSync,
+  writeFileSync,
+  readdirSync,
+} = fs;
 
 const SUBDIRECTORY = 'main/subdirectory';
 const SUBDIRECTORY_2 = 'main2/subdirectory';
@@ -422,6 +430,45 @@ describe('DiscStorageService', () => {
       await expect(service.removeDirectory('directory')).rejects.toThrow(
         new InternalServerErrorException(
           'Error occurred when removing directory.',
+        ),
+      );
+    });
+  });
+
+  describe('emptyDirectory', () => {
+    const directoryPath = 'subDir';
+    const fullTempPath = `${TEST_DIRECTORY_TEMP}/${directoryPath}`;
+    const fullVolumesPath = `${TEST_DIRECTORY_VOLUMES}/${directoryPath}`;
+
+    beforeEach(() => {
+      ensureDirSync(fullTempPath);
+      ensureDirSync(fullVolumesPath);
+      writeFileSync(`${fullTempPath}/test-file.txt`, 'test content');
+      writeFileSync(`${fullVolumesPath}/test-file.txt`, 'test content');
+    });
+
+    it('should empty the directory', async () => {
+      expect(readdirSync(fullVolumesPath).length).toBeGreaterThan(0);
+      await service.emptyDirectory(MainDir.volumes, directoryPath);
+      expect(readdirSync(fullVolumesPath).length).toBe(0);
+    });
+
+    it('should empty the temp directory when mainDir and subDir are not provided', async () => {
+      expect(readdirSync(TEST_DIRECTORY_TEMP).length).toBeGreaterThan(0);
+      await service.emptyDirectory();
+      expect(readdirSync(TEST_DIRECTORY_TEMP).length).toBe(0);
+    });
+
+    it('should throw InternalServerErrorException if an error occurs', async () => {
+      jest.spyOn(fs, 'emptyDir').mockImplementation(() => {
+        throw new Error('Test error');
+      });
+
+      await expect(
+        service.emptyDirectory(MainDir.volumes, directoryPath),
+      ).rejects.toThrow(
+        new InternalServerErrorException(
+          'Error occurred when emptying directory.',
         ),
       );
     });

@@ -11,6 +11,7 @@ import {
   UsePipes,
   Query,
   Body,
+  Delete,
 } from '@nestjs/common';
 import { ControllerPrefix } from 'src/common/constants';
 import {
@@ -28,10 +29,14 @@ import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
 import type { GetFilesInputDto } from './dto/get-files-input.dto';
 import type { GetFilesOutputDto } from './dto/get-files-output.dto';
 import { LogController } from 'src/logger/logger.decorator';
+import { DiscStorageService } from './discStorage.service';
 
 @Controller() // TODO : Define a POST endpoint at /files/uploadItem : @Controller('file')
 export class FilesController {
-  constructor(private filesService: FilesService) {}
+  constructor(
+    private filesService: FilesService,
+    private discStorage: DiscStorageService,
+  ) {}
 
   @Post(ControllerPrefix.getFiles)
   @LogController(ControllerPrefix.getFiles)
@@ -97,5 +102,11 @@ export class FilesController {
     return await this.filesService.getDuplicatesFromMediaDBByFilePaths(
       query.filePaths,
     );
+  }
+
+  @Delete(ControllerPrefix.cleanTemp)
+  @LogController(ControllerPrefix.cleanTemp)
+  async cleanTemp() {
+    return this.discStorage.emptyDirectory();
   }
 }

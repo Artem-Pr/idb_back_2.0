@@ -15,14 +15,16 @@ import { Media } from './entities/media.entity';
 import type { GetFilesInputDto } from './dto/get-files-input.dto';
 import type { GetFilesOutputDto } from './dto/get-files-output.dto';
 import { SupportedImageMimetypes } from 'src/common/constants';
+import { DiscStorageService } from './discStorage.service';
 
 describe('FilesController', () => {
   let controller: FilesController;
   let filesService: FilesService;
-  let mockConfigService: ConfigService;
+  let configService: ConfigService;
+  let discStorageService: DiscStorageService;
 
   beforeEach(async () => {
-    mockConfigService = {
+    configService = {
       get: jest.fn(),
     } as any;
 
@@ -37,17 +39,22 @@ describe('FilesController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [FilesController],
       providers: [
-        { provide: FilesService, useValue: mockFilesService },
         {
           provide: FileMediaInterceptor,
-          useValue: new FileMediaInterceptor(mockConfigService),
+          useValue: new FileMediaInterceptor(configService),
         },
-        { provide: ConfigService, useValue: mockConfigService },
+        { provide: FilesService, useValue: mockFilesService },
+        { provide: ConfigService, useValue: configService },
+        {
+          provide: DiscStorageService,
+          useValue: { emptyDirectory: jest.fn() },
+        },
       ],
     }).compile();
 
     controller = module.get<FilesController>(FilesController);
     filesService = module.get<FilesService>(FilesService);
+    discStorageService = module.get<DiscStorageService>(DiscStorageService);
   });
 
   it('should be defined', () => {
@@ -252,6 +259,14 @@ describe('FilesController', () => {
         filesService.getDuplicatesFromMediaDBByFilePaths,
       ).toHaveBeenCalledWith(duplicatesQuery.filePaths);
       expect(result).toBe(duplicatesResponse);
+    });
+  });
+
+  describe('cleanTemp', () => {
+    it('should call cleanTemp', async () => {
+      await controller.cleanTemp();
+      expect(discStorageService.emptyDirectory).toHaveBeenCalled();
+      expect(discStorageService.emptyDirectory).toHaveBeenCalledWith();
     });
   });
 });

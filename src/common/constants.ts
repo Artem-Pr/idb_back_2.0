@@ -93,6 +93,7 @@ export enum ControllerPrefix {
   moveKeywordsToNewCollection = 'move-keywords-to-new-collection',
   movePathsToNewCollection = 'move-paths-to-new-collection',
   directory = 'directory',
+  cleanTemp = 'clean-temp',
 }
 
 export enum PreviewPostfix {
