@@ -5,19 +5,18 @@ import {
   UploadedFile,
   HttpException,
   HttpStatus,
-  BadRequestException,
   Get,
   ValidationPipe,
   UsePipes,
   Query,
   Body,
   Delete,
+  ParseFilePipeBuilder,
 } from '@nestjs/common';
-import { ControllerPrefix } from 'src/common/constants';
 import {
-  isSupportedExtension,
-  isSupportedMimeType,
-} from 'src/common/fileNameHelpers';
+  ControllerPrefix,
+  SUPPORTED_MIMETYPE_REGEX,
+} from 'src/common/constants';
 import { FilesService } from './files.service';
 import { FileMediaInterceptor } from './file.interceptor';
 import { CheckDuplicatesOriginalNamesInputDto } from './dto/check-duplicates-original-names-input.dto';
@@ -30,6 +29,7 @@ import type { GetFilesInputDto } from './dto/get-files-input.dto';
 import type { GetFilesOutputDto } from './dto/get-files-output.dto';
 import { LogController } from 'src/logger/logger.decorator';
 import { DiscStorageService } from './discStorage.service';
+import type { FileUploadDto } from './dto/upload-file-input.dto';
 
 @Controller() // TODO : Define a POST endpoint at /files/uploadItem : @Controller('file')
 export class FilesController {
@@ -56,22 +56,17 @@ export class FilesController {
   @UseInterceptors(FileMediaInterceptor)
   @LogController(ControllerPrefix.uploadFile)
   async uploadFile(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({ fileType: SUPPORTED_MIMETYPE_REGEX })
+        .build({
+          exceptionFactory(error) {
+            throw new HttpException(error, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+          },
+        }),
+    )
+    file: Express.Multer.File & FileUploadDto,
   ): Promise<UploadFileOutputDto> {
-    if (!file) {
-      throw new BadRequestException('File upload failed');
-    }
-    if (
-      !isSupportedExtension(file.filename) ||
-      !isSupportedMimeType(file.mimetype) ||
-      !isSupportedExtension(file.originalname)
-    ) {
-      throw new HttpException(
-        'Unsupported file type',
-        HttpStatus.UNSUPPORTED_MEDIA_TYPE,
-      );
-    }
-
     return this.filesService
       .processFile({
         ...file,
