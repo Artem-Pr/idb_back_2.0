@@ -1,7 +1,9 @@
 import {
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MongoRepository } from 'typeorm';
@@ -30,6 +32,7 @@ export class PathsService {
     @InjectRepository(PathsOLD)
     private pathsRepositoryOld: MongoRepository<PathsOLD>,
     private mediaDB: MediaDBService,
+    @Inject(forwardRef(() => DiscStorageService))
     private diskStorageService: DiscStorageService,
   ) {}
 
@@ -191,17 +194,7 @@ export class PathsService {
     return directoriesToRemove;
   }
 
-  private async deleteMediaByDirectoryFromDB(
-    sanitizedDirectory: string,
-  ): Promise<Media[]> {
-    const mediaList =
-      await this.mediaDB.findMediaByDirectoryInDB(sanitizedDirectory);
-    await this.mediaDB.deleteMediaFromDB(mediaList.map((media) => media._id));
-
-    return mediaList;
-  }
-
-  private getPreviewsAndFullPathsFormMediaList(mediaList: Media[]) {
+  getPreviewsAndFullPathsFormMediaList(mediaList: Media[]) {
     return mediaList.reduce<(DBPreviewPath | DBFullSizePath)[]>(
       (accum, media) => {
         if (media.fullSizeJpg)
@@ -228,7 +221,7 @@ export class PathsService {
     try {
       directoriesToRemove =
         await this.deleteDirAndSubDirsFromDB(sanitizedDirectory);
-      mediaList = await this.deleteMediaByDirectoryFromDB(sanitizedDirectory);
+      mediaList = await this.mediaDB.deleteMediaByDirectory(sanitizedDirectory);
       await this.diskStorageService.removeDirectory(sanitizedDirectory);
       await this.diskStorageService.removePreviews(
         this.getPreviewsAndFullPathsFormMediaList(mediaList),

@@ -90,3 +90,34 @@ exports[`MediaDB getFiles should return correct files if isDynamicFolders === tr
   },
 }
 `;
+
+exports[`MediaDB updateDBMediaEntity should update the media entity with the provided fields 1`] = `
+Media {
+  "_id": "507f1f77bcf86cd799439011",
+  "changeDate": 1672617600000,
+  "description": "Updated description",
+  "exif": {
+    "DateTimeOriginal": "2020-01-01 00:00:00",
+    "Description": "test description",
+    "GPSPosition": "42.5, 42.5",
+    "ImageSize": "1920x1080",
+    "Megapixels": 12,
+    "Rating": 5,
+  },
+  "filePath": "/updated/path/to/file.jpg",
+  "fullSizeJpg": "/path/to/mockFile-fullSize.jpg",
+  "imageSize": "1920x1080",
+  "keywords": [
+    "updated",
+    "keywords",
+  ],
+  "megapixels": 12,
+  "mimetype": "image/jpg",
+  "originalDate": 2010-10-10T10:10:10.000Z,
+  "originalName": "updated_media.jpg",
+  "preview": "/path/to/mockFile-preview.jpg",
+  "rating": 4,
+  "size": 1024,
+  "timeStamp": "00:00:00.500",
+}
+`;

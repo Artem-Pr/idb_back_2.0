@@ -3,7 +3,11 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import type { GetFilesDBResponse, UpdateMedia } from './mediaDB.service';
+import type {
+  GetFilesDBResponse,
+  UpdateMedia,
+  UpdatedFilesInputObject,
+} from './mediaDB.service';
 import { DBType, MediaDBService } from './mediaDB.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { MediaTemp } from './entities/media-temp.entity';
@@ -17,7 +21,10 @@ import {
   exifDataMock,
 } from './__mocks__/mocks';
 import type { FilePaths, GetSameFilesIfExist } from './types';
-import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
+import type {
+  UpdatedFieldsInputDto,
+  UpdatedFilesInputDto,
+} from './dto/update-files-input.dto';
 import type { MongoFilterCondition } from './mediaDBQueryCreators';
 import type { DBFilePath } from 'src/common/types';
 import type { Pagination } from './dto/get-files-output.dto';
@@ -220,6 +227,173 @@ describe('MediaDB', () => {
     });
   });
 
+  describe('getUpdatedFilesInputObject', () => {
+    it('should return an object with file IDs as keys and updated fields as values', () => {
+      const filesToUpload: UpdatedFilesInputDto = {
+        files: [
+          {
+            id: '507f1f77bcf86cd799439011',
+            updatedFields: { originalName: 'newName1.jpg' },
+          },
+          {
+            id: '507f1f77bcf86cd799439012',
+            updatedFields: { originalName: 'newName2.jpg' },
+          },
+        ],
+      };
+
+      const expectedOutput: UpdatedFilesInputObject = {
+        '507f1f77bcf86cd799439011': { originalName: 'newName1.jpg' },
+        '507f1f77bcf86cd799439012': { originalName: 'newName2.jpg' },
+      };
+
+      const result = service['getUpdatedFilesInputObject'](filesToUpload);
+      expect(result).toEqual(expectedOutput);
+    });
+
+    it('should handle an empty files array gracefully', () => {
+      const filesToUpload: UpdatedFilesInputDto = { files: [] };
+
+      const expectedOutput: UpdatedFilesInputObject = {};
+
+      const result = service['getUpdatedFilesInputObject'](filesToUpload);
+      expect(result).toEqual(expectedOutput);
+    });
+
+    it('should handle files with empty updated fields', () => {
+      const filesToUpload: UpdatedFilesInputDto = {
+        files: [
+          {
+            id: '507f1f77bcf86cd799439013',
+            updatedFields: {},
+          },
+        ],
+      };
+
+      const expectedOutput: UpdatedFilesInputObject = {
+        '507f1f77bcf86cd799439013': {},
+      };
+
+      const result = service['getUpdatedFilesInputObject'](filesToUpload);
+      expect(result).toEqual(expectedOutput);
+    });
+  });
+
+  describe('updateDBMediaEntity', () => {
+    it('should update the media entity with the provided fields', () => {
+      const mediaToUpdate = createMediaMock({
+        id: new ObjectId('507f1f77bcf86cd799439011'),
+        originalNameWithoutExt: 'original_media',
+      });
+
+      const updatedFields: Partial<UpdatedFieldsInputDto> = {
+        originalName: 'updated_media.jpg',
+        filePath: '/updated/path/to/file.jpg',
+        originalDate: '2010-10-10T10:10:10.000Z',
+        description: 'Updated description',
+        keywords: ['updated', 'keywords'],
+        rating: 4,
+        timeStamp: '00:00:00.500',
+        changeDate: '2023-01-02T00:00:00.000Z',
+      };
+
+      const result = service['updateDBMediaEntity'](
+        mediaToUpdate,
+        updatedFields,
+      );
+
+      expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('validateIfMediaExists', () => {
+    it('should return true if all IDs exist', () => {
+      const ids = ['1', '2', '3'];
+      const mediaIdList = ['1', '2', '3', '4', '5'];
+
+      expect(service['validateIfMediaExists'](ids, mediaIdList)).toBe(true);
+    });
+
+    it('should throw NotFoundException if some IDs do not exist', () => {
+      const ids = ['1', '2', '3'];
+      const mediaIdList = ['1', '2'];
+
+      expect(() => {
+        service['validateIfMediaExists'](ids, mediaIdList);
+      }).toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException with correct message if some IDs do not exist', () => {
+      const ids = ['1', '2', '3'];
+      const mediaIdList = ['1'];
+
+      expect(() => {
+        service['validateIfMediaExists'](ids, mediaIdList);
+      }).toThrow(new NotFoundException('Ids not found in database: 2, 3'));
+    });
+
+    it('should return true if no IDs are provided', () => {
+      const ids: string[] = [];
+      const mediaIdList = ['1', '2', '3'];
+
+      expect(service['validateIfMediaExists'](ids, mediaIdList)).toBe(true);
+    });
+
+    it('should throw NotFoundException if no media IDs are provided', () => {
+      const ids = ['1', '2', '3'];
+      const mediaIdList: string[] = [];
+
+      expect(() => {
+        service['validateIfMediaExists'](ids, mediaIdList);
+      }).toThrow(new NotFoundException('Ids not found in database: 1, 2, 3'));
+    });
+  });
+
+  describe('getMediaListByIds', () => {
+    const media1 = createMediaMock({
+      id: new ObjectId('507f1f77bcf86cd799439011'),
+    });
+    const media2 = createMediaMock({
+      id: new ObjectId('507f1f77bcf86cd799439012'),
+    });
+
+    beforeEach(() => {
+      jest.spyOn(mediaRepository, 'find').mockResolvedValue([media1, media2]);
+      jest.spyOn(tempRepository, 'find').mockResolvedValue([media1, media2]);
+    });
+
+    it('should return the media list with the provided IDs if DBType is DBMedia', async () => {
+      const mediaIds = [media1._id.toHexString(), media2._id.toHexString()];
+      const result = await service['getMediaListByIds'](
+        mediaIds,
+        DBType.DBMedia,
+      );
+
+      expect(result).toEqual([media1, media2]);
+    });
+
+    it('should return the media list with the provided IDs if DBType is DBTemp', async () => {
+      const mediaIds = [media1._id.toHexString(), media2._id.toHexString()];
+      const result = await service['getMediaListByIds'](
+        mediaIds,
+        DBType.DBTemp,
+      );
+
+      expect(result).toEqual([media1, media2]);
+    });
+
+    it('should throw NotFoundException if no media is found with the provided IDs', async () => {
+      const mediaIds = ['507f1f77bcf86cd799439013'];
+      await expect(
+        service['getMediaListByIds'](mediaIds, DBType.DBMedia),
+      ).rejects.toThrow(
+        new NotFoundException(
+          'Ids not found in database: 507f1f77bcf86cd799439013',
+        ),
+      );
+    });
+  });
+
   describe('updateMediaList', () => {
     const initialMedia1Object = {
       id: new ObjectId('507f1f77bcf86cd799439011'),
@@ -419,19 +593,23 @@ describe('MediaDB', () => {
     });
   });
 
+  describe('emptyTempDB', () => {
+    it('should call tempRepository.delete with correct parameters', async () => {
+      jest
+        .spyOn(tempRepository, 'delete')
+        .mockResolvedValue({ raw: [], affected: 1 });
+
+      await service.emptyTempDB();
+
+      expect(tempRepository.delete).toHaveBeenCalledWith({});
+    });
+  });
+
   describe('countFilesInDirectory', () => {
     it('should return the number of files in a given directory', async () => {
       jest.spyOn(mediaRepository, 'count').mockResolvedValueOnce(10);
       const count = await service.countFilesInDirectory('main/nestjs');
       expect(count).toEqual(10);
-    });
-  });
-
-  describe('makeAggregationQuery', () => {
-    it('should correct response', async () => {
-      const aggregationQuery = await service.makeAggregationQuery([]);
-
-      expect(aggregationQuery).toEqual(mockedAggregationReturnValue[0]);
     });
   });
 
@@ -705,6 +883,142 @@ describe('MediaDB', () => {
       await expect(service.getFiles(getFilesProps)).rejects.toThrow(
         new InternalServerErrorException(mockedError),
       );
+    });
+  });
+
+  describe('deleteMediaByDirectory', () => {
+    const media1 = new Media();
+    const media2 = new Media();
+    media1._id = new ObjectId('507f1f77bcf86cd799439011');
+    media2._id = new ObjectId('507f1f77bcf86cd799439012');
+    media1.filePath = '/test-directory/file1.jpg';
+    media2.filePath = '/test-directory/file2.jpg';
+
+    it('should successfully delete media by directory', async () => {
+      const sanitizedDirectory = 'test-directory';
+
+      const mediaList = [media1, media2];
+
+      jest
+        .spyOn(service, 'findMediaByDirectoryInDB')
+        .mockResolvedValue(mediaList);
+      jest
+        .spyOn(service, 'deleteMediaFromDB')
+        .mockResolvedValue({ raw: [], affected: mediaList.length });
+
+      const result = await service.deleteMediaByDirectory(sanitizedDirectory);
+
+      expect(service.findMediaByDirectoryInDB).toHaveBeenCalledWith(
+        sanitizedDirectory,
+      );
+      expect(service.deleteMediaFromDB).toHaveBeenCalledWith([
+        new ObjectId('507f1f77bcf86cd799439011'),
+        new ObjectId('507f1f77bcf86cd799439012'),
+      ]);
+      expect(result).toEqual(mediaList);
+    });
+
+    it('should return an empty array if no media is found in the directory', async () => {
+      const sanitizedDirectory = 'empty-directory';
+      const mediaList: Media[] = [];
+
+      jest
+        .spyOn(service, 'findMediaByDirectoryInDB')
+        .mockResolvedValue(mediaList);
+      jest
+        .spyOn(service, 'deleteMediaFromDB')
+        .mockResolvedValue({ raw: [], affected: 0 });
+
+      const result = await service.deleteMediaByDirectory(sanitizedDirectory);
+
+      expect(service.findMediaByDirectoryInDB).toHaveBeenCalledWith(
+        sanitizedDirectory,
+      );
+      expect(service.deleteMediaFromDB).toHaveBeenCalledWith([]);
+      expect(result).toEqual(mediaList);
+    });
+
+    it('should throw an error if deletion fails', async () => {
+      const sanitizedDirectory = 'error-directory';
+      const mediaList = [media1, media2];
+
+      jest
+        .spyOn(service, 'findMediaByDirectoryInDB')
+        .mockResolvedValue(mediaList);
+      jest
+        .spyOn(service, 'deleteMediaFromDB')
+        .mockRejectedValue(new Error('Deletion failed'));
+
+      await expect(
+        service.deleteMediaByDirectory(sanitizedDirectory),
+      ).rejects.toThrow('Deletion failed');
+
+      expect(service.findMediaByDirectoryInDB).toHaveBeenCalledWith(
+        sanitizedDirectory,
+      );
+      expect(service.deleteMediaFromDB).toHaveBeenCalledWith([
+        new ObjectId('507f1f77bcf86cd799439011'),
+        new ObjectId('507f1f77bcf86cd799439012'),
+      ]);
+    });
+  });
+
+  describe('deleteMediaByIds', () => {
+    const media1 = createMediaMock({
+      id: new ObjectId('507f1f77bcf86cd799439011'),
+    });
+    const media2 = createMediaMock({
+      id: new ObjectId('507f1f77bcf86cd799439012'),
+    });
+
+    beforeEach(() => {
+      jest.spyOn(mediaRepository, 'find').mockResolvedValue([media1, media2]);
+      jest
+        .spyOn(mediaRepository, 'delete')
+        .mockResolvedValue({ raw: [], affected: 1 });
+    });
+
+    it('should successfully delete media by ids', async () => {
+      const mediaIds = [media1._id.toHexString(), media2._id.toHexString()];
+      const result = await service.deleteMediaByIds(mediaIds);
+
+      expect(result).toEqual([media1, media2]);
+      expect(mediaRepository.find).toHaveBeenCalledWith({
+        where: {
+          _id: { $in: [media1._id, media2._id] },
+        },
+      });
+      expect(mediaRepository.delete).toHaveBeenCalledWith([
+        media1._id,
+        media2._id,
+      ]);
+    });
+
+    it('should throw an error if ids not exist', async () => {
+      const mediaIds = [
+        new ObjectId('507f1f77bcf86cd799439013').toHexString(),
+        new ObjectId('507f1f77bcf86cd799439014').toHexString(),
+      ];
+      await expect(service.deleteMediaByIds(mediaIds)).rejects.toThrow(
+        new NotFoundException(
+          'Ids not found in database: 507f1f77bcf86cd799439013, 507f1f77bcf86cd799439014',
+        ),
+      );
+      expect(mediaRepository.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('makeAggregationQuery', () => {
+    beforeEach(() => {
+      jest
+        .spyOn(aggregation, 'toArray')
+        .mockResolvedValue(mockedAggregationReturnValue);
+    });
+
+    it('should correct response', async () => {
+      const aggregationQuery = await service.makeAggregationQuery([]);
+
+      expect(aggregationQuery).toEqual(mockedAggregationReturnValue[0]);
     });
   });
 });

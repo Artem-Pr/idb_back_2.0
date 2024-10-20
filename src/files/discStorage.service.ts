@@ -16,7 +16,12 @@ import {
   getFullPathWithoutNameAndFirstSlash,
   removeExtraSlashes,
 } from 'src/common/fileNameHelpers';
-import type { DBFullSizePath, DBPreviewPath } from 'src/common/types';
+import type {
+  DBFilePath,
+  DBFullSizePath,
+  DBPreviewPath,
+} from 'src/common/types';
+import { PathsService } from 'src/paths/paths.service';
 
 interface ChangeFileDirectoryProps {
   oldFilePath: Media['filePath'];
@@ -30,7 +35,10 @@ interface ChangeFileDirectoryProps {
 export class DiscStorageService {
   private readonly logger = new CustomLogger(DiscStorageService.name);
 
-  constructor(private configService: ConfigService) {}
+  constructor(
+    private configService: ConfigService,
+    private pathsService: PathsService,
+  ) {}
 
   async saveFilesArrToDisk(
     updateMediaArr: UpdateMedia[],
@@ -126,7 +134,7 @@ export class DiscStorageService {
   }
 
   async removeFile(
-    filePath: string,
+    filePath: DBFilePath | DBPreviewPath | DBFullSizePath,
     mainDir: MainDir = MainDir.volumes,
   ): Promise<void> {
     const path = resolve(`${this.configService.rootPaths[mainDir]}${filePath}`);
@@ -236,5 +244,50 @@ export class DiscStorageService {
       return this.removeDirIfEmpty(previewDirectory, MainDir.previews);
     });
     await resolveAllSettled(removeEmptyDirPromises);
+  }
+
+  async removeFilesAndPreviews(mediaList: Media[]): Promise<Media[]> {
+    const notDeletedMediaList: Media[] = [];
+
+    const handleRemoveFile = async (media: Media): Promise<Media | null> => {
+      try {
+        await this.removeFile(media.filePath, MainDir.volumes);
+        return media;
+      } catch (error) {
+        this.logger.logError({
+          message: error.message || error,
+          method: 'deleteFilesByIds - diskStorageService.removeFile',
+          errorData: { filePath: media.filePath },
+        });
+
+        notDeletedMediaList.push(media);
+        return null;
+      }
+    };
+
+    try {
+      const deletedMediaList = await resolveAllSettled(
+        mediaList.map(handleRemoveFile),
+      );
+
+      const validDeletedMediaList = deletedMediaList.filter(Boolean);
+
+      const previewsToDelete =
+        this.pathsService.getPreviewsAndFullPathsFormMediaList(
+          validDeletedMediaList,
+        );
+
+      await this.removePreviews(previewsToDelete);
+
+      return notDeletedMediaList;
+    } catch (error) {
+      this.logger.logError({
+        message: error.message || error,
+        method: 'deleteFilesByIds',
+        errorData: { ids: mediaList.map((media) => media._id.toString()) },
+      });
+
+      throw new InternalServerErrorException(error.message || error);
+    }
   }
 }

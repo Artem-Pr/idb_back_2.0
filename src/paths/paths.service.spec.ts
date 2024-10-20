@@ -63,6 +63,7 @@ describe('PathsService', () => {
               .mockResolvedValue(mockMediaList),
             deleteMediaFromDB: jest.fn(),
             addMediaToDB: jest.fn(),
+            deleteMediaByDirectory: jest.fn().mockResolvedValue(mockMediaList),
           },
         },
         {
@@ -394,17 +395,6 @@ describe('PathsService', () => {
     });
   });
 
-  describe('deleteMediaByDirectoryFromDB', () => {
-    it('should call mediaDB.deleteMediaFromDB with correct parameters', async () => {
-      await service['deleteMediaByDirectoryFromDB']('any path');
-
-      expect(mediaDB.deleteMediaFromDB).toHaveBeenCalledWith([
-        media1._id,
-        media2._id,
-      ]);
-    });
-  });
-
   describe('getPreviewsAndFullPathsFormMediaList', () => {
     it('should return previews and full paths if fullSizeJpg is present', () => {
       const result =
@@ -482,15 +472,12 @@ describe('PathsService', () => {
       ]);
     });
 
-    it('should call mediaDB.deleteMediaFromDB with correct parameters', async () => {
-      jest.spyOn(mediaDB, 'deleteMediaFromDB');
+    it('should call mediaDB.deleteMediaByDirectory with correct parameters', async () => {
+      jest.spyOn(mediaDB, 'deleteMediaByDirectory');
 
       await service.deleteDirectory('main');
 
-      expect(mediaDB.deleteMediaFromDB).toHaveBeenCalledWith([
-        media1._id,
-        media2._id,
-      ]);
+      expect(mediaDB.deleteMediaByDirectory).toHaveBeenCalledWith('main');
     });
 
     it('should call diskStorageService.removeDirectory with correct parameters', async () => {

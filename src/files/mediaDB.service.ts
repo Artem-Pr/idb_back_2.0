@@ -184,15 +184,23 @@ export class MediaDBService extends MediaDBQueryCreators {
     ids: string[],
     database: DBType,
   ): Promise<(MediaTemp | Media)[]> {
-    const findMediaByIds =
-      database === DBType.DBMedia
-        ? this.findMediaByIdsInDB.bind(this)
-        : this.findMediaByIdsInDBTemp.bind(this);
-    const tempDBMediaList = await findMediaByIds(ids);
+    const findMediaListByIds = async (): Promise<(Media | MediaTemp)[]> => {
+      if (database === DBType.DBMedia) {
+        return this.findMediaByIdsInDB(ids);
+      }
+
+      if (database === DBType.DBTemp) {
+        return this.findMediaByIdsInDBTemp(ids);
+      }
+
+      return [];
+    };
+
+    const tempDBMediaList = await findMediaListByIds();
 
     this.validateIfMediaExists(
       ids,
-      tempDBMediaList.map(({ _id }) => _id.toString()),
+      tempDBMediaList.map(({ _id }) => _id.toHexString()),
     );
 
     return tempDBMediaList;
@@ -232,6 +240,10 @@ export class MediaDBService extends MediaDBQueryCreators {
     ids: Parameters<typeof this.tempRepository.delete>[0],
   ): Promise<DeleteResult> {
     return this.mediaRepository.delete(ids);
+  }
+
+  async emptyTempDB(): Promise<DeleteResult> {
+    return this.tempRepository.delete({});
   }
 
   async countFilesInDirectory(directory: string): Promise<number> {
@@ -367,6 +379,20 @@ export class MediaDBService extends MediaDBQueryCreators {
       });
       throw new InternalServerErrorException(error?.message);
     }
+  }
+
+  async deleteMediaByDirectory(sanitizedDirectory: string): Promise<Media[]> {
+    const mediaList = await this.findMediaByDirectoryInDB(sanitizedDirectory);
+    await this.deleteMediaFromDB(mediaList.map((media) => media._id));
+
+    return mediaList;
+  }
+
+  async deleteMediaByIds(ids: string[]): Promise<Media[]> {
+    const mediaList = await this.getMediaListByIds(ids, DBType.DBMedia);
+    await this.deleteMediaFromDB(mediaList.map((media) => media._id));
+
+    return mediaList;
   }
 
   async makeAggregationQuery<T>(

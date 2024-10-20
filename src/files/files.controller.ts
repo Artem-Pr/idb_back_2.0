@@ -12,6 +12,7 @@ import {
   Body,
   Delete,
   ParseFilePipeBuilder,
+  HttpCode,
 } from '@nestjs/common';
 import {
   ControllerPrefix,
@@ -30,6 +31,7 @@ import type { GetFilesOutputDto } from './dto/get-files-output.dto';
 import { LogController } from 'src/logger/logger.decorator';
 import { DiscStorageService } from './discStorage.service';
 import type { FileUploadDto } from './dto/upload-file-input.dto';
+import { DeleteFilesInputDto } from './dto/delete-files-input.dto';
 
 @Controller() // TODO : Define a POST endpoint at /files/uploadItem : @Controller('file')
 export class FilesController {
@@ -55,6 +57,7 @@ export class FilesController {
   @Post(ControllerPrefix.uploadFile)
   @UseInterceptors(FileMediaInterceptor)
   @LogController(ControllerPrefix.uploadFile)
+  @HttpCode(HttpStatus.CREATED)
   async uploadFile(
     @UploadedFile(
       new ParseFilePipeBuilder()
@@ -99,9 +102,17 @@ export class FilesController {
     );
   }
 
+  @Post(ControllerPrefix.deleteFiles)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @LogController(ControllerPrefix.deleteFiles)
+  async deleteFiles(@Body() idsQuery: DeleteFilesInputDto): Promise<void> {
+    await this.filesService.deleteFilesByIds(idsQuery.ids);
+  }
+
   @Delete(ControllerPrefix.cleanTemp)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @LogController(ControllerPrefix.cleanTemp)
   async cleanTemp() {
-    return this.discStorage.emptyDirectory();
+    return this.filesService.cleanTemp();
   }
 }

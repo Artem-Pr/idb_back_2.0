@@ -10,6 +10,8 @@ import { InternalServerErrorException } from '@nestjs/common';
 import { dirname } from 'path';
 import { resolveAllSettled } from 'src/common/utils';
 import type { DBFullSizePath, DBPreviewPath } from 'src/common/types';
+import { PathsService } from 'src/paths/paths.service';
+import { ObjectId } from 'mongodb';
 
 const {
   copySync,
@@ -42,8 +44,21 @@ const TEST_DIRECTORY_TEMP = `${MainDirPath.test}/${MainDir.temp}`;
 
 jest.mock('fs-extra', () => jest.requireActual('fs-extra'));
 
+// TODO: mock this function
+const mockGetPreviewsAndFullPathsFormMediaList = (mediaList: Media[]) => {
+  return mediaList.reduce<(DBPreviewPath | DBFullSizePath)[]>(
+    (accum, media) => {
+      if (media.fullSizeJpg)
+        return [...accum, media.preview, media.fullSizeJpg];
+      return [...accum, media.preview];
+    },
+    [],
+  );
+};
+
 describe('DiscStorageService', () => {
   let service: DiscStorageService;
+  let pathsService: PathsService;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -53,10 +68,19 @@ describe('DiscStorageService', () => {
           provide: ConfigService,
           useValue: { rootPaths: Folders[Envs.TEST] },
         },
+        {
+          provide: PathsService,
+          useValue: {
+            getPreviewsAndFullPathsFormMediaList: jest
+              .fn()
+              .mockImplementation(mockGetPreviewsAndFullPathsFormMediaList),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<DiscStorageService>(DiscStorageService);
+    pathsService = module.get<PathsService>(PathsService);
 
     emptyDirSync(TEST_DIRECTORY_VOLUMES);
     emptyDirSync(TEST_DIRECTORY_PREVIEWS);
@@ -74,76 +98,108 @@ describe('DiscStorageService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('renameFile', () => {
+  describe('saveFilesArrToDisk', () => {
+    const oldMedia1 = new Media();
+    oldMedia1.filePath = `/${DEFAULT_IMAGE_FILENAME}`;
+    oldMedia1.preview = `/${DEFAULT_IMAGE_PREVIEW}`;
+    oldMedia1.fullSizeJpg = `/${DEFAULT_IMAGE_FULL_SIZE}`;
+
+    const oldMedia2 = new Media();
+    oldMedia2.filePath = `/${DEFAULT_IMAGE_FILENAME_2}`;
+    oldMedia2.preview = `/${DEFAULT_IMAGE_PREVIEW_2}`;
+    oldMedia2.fullSizeJpg = `/${DEFAULT_IMAGE_FULL_SIZE_2}`;
+
+    const newMedia1 = new Media();
+    newMedia1.filePath = DEFAULT_IMAGE_FILENAME_WITH_DIR;
+    newMedia1.preview = `/${SUBDIRECTORY}/${DEFAULT_IMAGE_PREVIEW}`;
+    newMedia1.fullSizeJpg = `/${SUBDIRECTORY}/${DEFAULT_IMAGE_FULL_SIZE}`;
+
+    const newMedia2 = new Media();
+    newMedia2.filePath = DEFAULT_IMAGE_FILENAME_WITH_DIR_2;
+    newMedia2.preview = `/${SUBDIRECTORY}/${DEFAULT_IMAGE_PREVIEW_2}`;
+    newMedia2.fullSizeJpg = `/${SUBDIRECTORY}/${DEFAULT_IMAGE_FULL_SIZE_2}`;
+
     beforeEach(() => {
       copySync(
         `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME}`,
-        `${TEST_DIRECTORY_VOLUMES}/${DEFAULT_IMAGE_FILENAME_WITH_DIR}`,
+        `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_FILENAME}`,
+      );
+      copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME_2}`,
+        `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_FILENAME_2}`,
+      );
+      copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_PREVIEW}`,
+        `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_PREVIEW}`,
+      );
+      copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_PREVIEW}`,
+        `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_PREVIEW_2}`,
+      );
+      copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FULL_SIZE}`,
+        `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_FULL_SIZE}`,
+      );
+      copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FULL_SIZE}`,
+        `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_FULL_SIZE_2}`,
       );
     });
 
-    it('should rename the file', async () => {
-      expect(
-        existsSync(`${TEST_DIRECTORY_VOLUMES}/${NEW_IMAGE_FILENAME_WITH_DIR}`),
-      ).toBeFalsy();
+    it('should save files to disk without previews', async () => {
+      const updateMediaArr: UpdateMedia[] = [
+        { oldMedia: oldMedia1, newMedia: newMedia1 },
+        { oldMedia: oldMedia2, newMedia: newMedia2 },
+      ];
 
-      await service.renameFile(
-        DEFAULT_IMAGE_FILENAME_WITH_DIR,
-        NEW_IMAGE_FILENAME_WITH_DIR,
-      );
+      await service.saveFilesArrToDisk(updateMediaArr);
 
       expect(
-        existsSync(`${TEST_DIRECTORY_VOLUMES}/${NEW_IMAGE_FILENAME_WITH_DIR}`),
+        existsSync(`${TEST_DIRECTORY_VOLUMES}/${newMedia1.filePath}`),
       ).toBeTruthy();
       expect(
-        existsSync(
-          `${TEST_DIRECTORY_VOLUMES}/${DEFAULT_IMAGE_FILENAME_WITH_DIR}`,
-        ),
+        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia1.preview}`),
+      ).toBeFalsy();
+      expect(
+        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia1.fullSizeJpg}`),
+      ).toBeFalsy();
+      expect(
+        existsSync(`${TEST_DIRECTORY_VOLUMES}/${newMedia2.filePath}`),
+      ).toBeTruthy();
+      expect(
+        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia2.preview}`),
+      ).toBeFalsy();
+      expect(
+        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia2.fullSizeJpg}`),
       ).toBeFalsy();
     });
 
-    it('should throw an error if the file does not exist', async () => {
-      await expect(
-        service.renameFile(
-          NEW_IMAGE_FILENAME_WITH_DIR,
-          DEFAULT_IMAGE_FILENAME_WITH_DIR,
-        ),
-      ).rejects.toThrow();
-    });
-  });
+    it('should save files to disk with previews and full size', async () => {
+      const updateMediaArr: UpdateMedia[] = [
+        { oldMedia: oldMedia1, newMedia: newMedia1 },
+        { oldMedia: oldMedia2, newMedia: newMedia2 },
+      ];
 
-  describe('removeFile', () => {
-    const fileToRemove = `${TEST_DIRECTORY_VOLUMES}${DEFAULT_IMAGE_FILENAME_WITH_DIR}`;
+      await service.saveFilesArrToDisk(updateMediaArr, true);
 
-    beforeEach(() => {
-      copySync(`${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME}`, fileToRemove);
-    });
-
-    it('should remove the file', async () => {
-      expect(existsSync(fileToRemove)).toBeTruthy();
-      await service.removeFile(
-        DEFAULT_IMAGE_FILENAME_WITH_DIR,
-        MainDir.volumes,
-      );
-      expect(existsSync(fileToRemove)).toBeFalsy();
-    });
-
-    it('should not throw an error if the file does not exist', async () => {
-      const nonExistentFilePath = `${SUBDIRECTORY}/nonexistent-file.jpg`;
-      await expect(
-        service.removeFile(nonExistentFilePath),
-      ).resolves.not.toThrow();
-    });
-
-    it('should throw InternalServerErrorException if an error occurs', async () => {
-      jest.spyOn(fs, 'remove').mockImplementation(() => {
-        throw new Error();
-      });
-      const invalidFilePath = '/invalid/path/to/file.jpg';
-
-      await expect(service.removeFile(invalidFilePath)).rejects.toThrow(
-        new InternalServerErrorException('Error occurred when removing file.'),
-      );
+      expect(
+        existsSync(`${TEST_DIRECTORY_VOLUMES}/${newMedia1.filePath}`),
+      ).toBeTruthy();
+      expect(
+        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia1.preview}`),
+      ).toBeTruthy();
+      expect(
+        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia1.fullSizeJpg}`),
+      ).toBeTruthy();
+      expect(
+        existsSync(`${TEST_DIRECTORY_VOLUMES}/${newMedia2.filePath}`),
+      ).toBeTruthy();
+      expect(
+        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia2.preview}`),
+      ).toBeTruthy();
+      expect(
+        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia2.fullSizeJpg}`),
+      ).toBeTruthy();
     });
   });
 
@@ -255,108 +311,76 @@ describe('DiscStorageService', () => {
     });
   });
 
-  describe('saveFilesArrToDisk', () => {
-    const oldMedia1 = new Media();
-    oldMedia1.filePath = `/${DEFAULT_IMAGE_FILENAME}`;
-    oldMedia1.preview = `/${DEFAULT_IMAGE_PREVIEW}`;
-    oldMedia1.fullSizeJpg = `/${DEFAULT_IMAGE_FULL_SIZE}`;
-
-    const oldMedia2 = new Media();
-    oldMedia2.filePath = `/${DEFAULT_IMAGE_FILENAME_2}`;
-    oldMedia2.preview = `/${DEFAULT_IMAGE_PREVIEW_2}`;
-    oldMedia2.fullSizeJpg = `/${DEFAULT_IMAGE_FULL_SIZE_2}`;
-
-    const newMedia1 = new Media();
-    newMedia1.filePath = DEFAULT_IMAGE_FILENAME_WITH_DIR;
-    newMedia1.preview = `/${SUBDIRECTORY}/${DEFAULT_IMAGE_PREVIEW}`;
-    newMedia1.fullSizeJpg = `/${SUBDIRECTORY}/${DEFAULT_IMAGE_FULL_SIZE}`;
-
-    const newMedia2 = new Media();
-    newMedia2.filePath = DEFAULT_IMAGE_FILENAME_WITH_DIR_2;
-    newMedia2.preview = `/${SUBDIRECTORY}/${DEFAULT_IMAGE_PREVIEW_2}`;
-    newMedia2.fullSizeJpg = `/${SUBDIRECTORY}/${DEFAULT_IMAGE_FULL_SIZE_2}`;
-
+  describe('renameFile', () => {
     beforeEach(() => {
       copySync(
         `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME}`,
-        `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_FILENAME}`,
-      );
-      copySync(
-        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME_2}`,
-        `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_FILENAME_2}`,
-      );
-      copySync(
-        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_PREVIEW}`,
-        `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_PREVIEW}`,
-      );
-      copySync(
-        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_PREVIEW}`,
-        `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_PREVIEW_2}`,
-      );
-      copySync(
-        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FULL_SIZE}`,
-        `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_FULL_SIZE}`,
-      );
-      copySync(
-        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FULL_SIZE}`,
-        `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_FULL_SIZE_2}`,
+        `${TEST_DIRECTORY_VOLUMES}/${DEFAULT_IMAGE_FILENAME_WITH_DIR}`,
       );
     });
 
-    it('should save files to disk without previews', async () => {
-      const updateMediaArr: UpdateMedia[] = [
-        { oldMedia: oldMedia1, newMedia: newMedia1 },
-        { oldMedia: oldMedia2, newMedia: newMedia2 },
-      ];
+    it('should rename the file', async () => {
+      expect(
+        existsSync(`${TEST_DIRECTORY_VOLUMES}/${NEW_IMAGE_FILENAME_WITH_DIR}`),
+      ).toBeFalsy();
 
-      await service.saveFilesArrToDisk(updateMediaArr);
+      await service.renameFile(
+        DEFAULT_IMAGE_FILENAME_WITH_DIR,
+        NEW_IMAGE_FILENAME_WITH_DIR,
+      );
 
       expect(
-        existsSync(`${TEST_DIRECTORY_VOLUMES}/${newMedia1.filePath}`),
+        existsSync(`${TEST_DIRECTORY_VOLUMES}/${NEW_IMAGE_FILENAME_WITH_DIR}`),
       ).toBeTruthy();
       expect(
-        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia1.preview}`),
-      ).toBeFalsy();
-      expect(
-        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia1.fullSizeJpg}`),
-      ).toBeFalsy();
-      expect(
-        existsSync(`${TEST_DIRECTORY_VOLUMES}/${newMedia2.filePath}`),
-      ).toBeTruthy();
-      expect(
-        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia2.preview}`),
-      ).toBeFalsy();
-      expect(
-        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia2.fullSizeJpg}`),
+        existsSync(
+          `${TEST_DIRECTORY_VOLUMES}/${DEFAULT_IMAGE_FILENAME_WITH_DIR}`,
+        ),
       ).toBeFalsy();
     });
 
-    it('should save files to disk with previews and full size', async () => {
-      const updateMediaArr: UpdateMedia[] = [
-        { oldMedia: oldMedia1, newMedia: newMedia1 },
-        { oldMedia: oldMedia2, newMedia: newMedia2 },
-      ];
+    it('should throw an error if the file does not exist', async () => {
+      await expect(
+        service.renameFile(
+          NEW_IMAGE_FILENAME_WITH_DIR,
+          DEFAULT_IMAGE_FILENAME_WITH_DIR,
+        ),
+      ).rejects.toThrow();
+    });
+  });
 
-      await service.saveFilesArrToDisk(updateMediaArr, true);
+  describe('removeFile', () => {
+    const fileToRemove = `${TEST_DIRECTORY_VOLUMES}${DEFAULT_IMAGE_FILENAME_WITH_DIR}`;
 
-      expect(
-        existsSync(`${TEST_DIRECTORY_VOLUMES}/${newMedia1.filePath}`),
-      ).toBeTruthy();
-      expect(
-        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia1.preview}`),
-      ).toBeTruthy();
-      expect(
-        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia1.fullSizeJpg}`),
-      ).toBeTruthy();
-      expect(
-        existsSync(`${TEST_DIRECTORY_VOLUMES}/${newMedia2.filePath}`),
-      ).toBeTruthy();
-      expect(
-        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia2.preview}`),
-      ).toBeTruthy();
-      expect(
-        existsSync(`${TEST_DIRECTORY_PREVIEWS}/${newMedia2.fullSizeJpg}`),
-      ).toBeTruthy();
+    beforeEach(() => {
+      copySync(`${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME}`, fileToRemove);
+    });
+
+    it('should remove the file', async () => {
+      expect(existsSync(fileToRemove)).toBeTruthy();
+      await service.removeFile(
+        DEFAULT_IMAGE_FILENAME_WITH_DIR,
+        MainDir.volumes,
+      );
+      expect(existsSync(fileToRemove)).toBeFalsy();
+    });
+
+    it('should not throw an error if the file does not exist', async () => {
+      const nonExistentFilePath = `/${SUBDIRECTORY}/nonexistent-file.jpg`;
+      await expect(
+        service.removeFile(nonExistentFilePath),
+      ).resolves.not.toThrow();
+    });
+
+    it('should throw InternalServerErrorException if an error occurs', async () => {
+      jest.spyOn(fs, 'remove').mockImplementation(() => {
+        throw new Error();
+      });
+      const invalidFilePath = '/invalid/path/to/file.jpg';
+
+      await expect(service.removeFile(invalidFilePath)).rejects.toThrow(
+        new InternalServerErrorException('Error occurred when removing file.'),
+      );
     });
   });
 
@@ -597,6 +621,100 @@ describe('DiscStorageService', () => {
 
       await expect(service.removePreviews(previews)).rejects.toThrow(
         new InternalServerErrorException('Error occurred when removing file.'),
+      );
+    });
+  });
+
+  describe('removeFilesAndPreviews', () => {
+    const testImagePathMock = `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME}`;
+    const previewDir = '/preview';
+    const fullSizeDir = '/fullSize';
+
+    const media1 = new Media();
+    media1._id = new ObjectId('662eb6a4aece4209057aa5d0');
+    media1.filePath = DEFAULT_IMAGE_FILENAME_WITH_DIR;
+    media1.preview = `${previewDir}/${DEFAULT_IMAGE_PREVIEW}`;
+    media1.fullSizeJpg = `${fullSizeDir}/${DEFAULT_IMAGE_FULL_SIZE}`;
+    const media2 = new Media();
+    media2._id = new ObjectId('662eb6a4aece4209057aa5d1');
+    media2.filePath = DEFAULT_IMAGE_FILENAME_WITH_DIR_2;
+    media2.preview = `${previewDir}/${DEFAULT_IMAGE_PREVIEW_2}`;
+    media2.fullSizeJpg = `${fullSizeDir}/${DEFAULT_IMAGE_FULL_SIZE_2}`;
+    const mediaWithoutFullSize = new Media();
+    mediaWithoutFullSize._id = new ObjectId('662eb6a4aece4209057aa5d2');
+    mediaWithoutFullSize.filePath = `/main2/${DEFAULT_IMAGE_FILENAME}`;
+    mediaWithoutFullSize.preview = `${previewDir}/2${DEFAULT_IMAGE_PREVIEW_2}`;
+
+    const withMainDir = (path: string) => `${TEST_DIRECTORY_VOLUMES}/${path}`;
+    const withPreviewDir = (path: string) =>
+      `${TEST_DIRECTORY_PREVIEWS}/${path}`;
+
+    beforeEach(() => {
+      copySync(testImagePathMock, withMainDir(media1.filePath));
+      copySync(testImagePathMock, withPreviewDir(media1.preview));
+      copySync(
+        testImagePathMock,
+        withPreviewDir(media1.fullSizeJpg as DBFullSizePath),
+      );
+      copySync(testImagePathMock, withMainDir(media2.filePath));
+      copySync(testImagePathMock, withPreviewDir(media2.preview));
+      copySync(
+        testImagePathMock,
+        withPreviewDir(media2.fullSizeJpg as DBFullSizePath),
+      );
+      copySync(testImagePathMock, withMainDir(mediaWithoutFullSize.filePath));
+      copySync(testImagePathMock, withPreviewDir(mediaWithoutFullSize.preview));
+    });
+
+    it('should successfully remove all files and previews', async () => {
+      const mediaList: Media[] = [media1, media2, mediaWithoutFullSize];
+
+      jest.spyOn(service, 'removeFile');
+
+      const result = await service.removeFilesAndPreviews(mediaList);
+
+      expect(service.removeFile).toHaveBeenCalledTimes(8);
+      expect(result).toEqual([]);
+      expect(existsSync(media1.filePath)).toBeFalsy();
+      expect(existsSync(media1.preview)).toBeFalsy();
+      expect(existsSync(media1.fullSizeJpg as DBFullSizePath)).toBeFalsy();
+      expect(existsSync(media2.filePath)).toBeFalsy();
+      expect(existsSync(media2.preview)).toBeFalsy();
+      expect(existsSync(media2.fullSizeJpg as DBFullSizePath)).toBeFalsy();
+      expect(existsSync(mediaWithoutFullSize.filePath)).toBeFalsy();
+      expect(existsSync(mediaWithoutFullSize.preview)).toBeFalsy();
+      expect(existsSync(withPreviewDir(previewDir))).toBeFalsy();
+      expect(existsSync(withPreviewDir(fullSizeDir))).toBeFalsy();
+      expect(existsSync(withMainDir(SUBDIRECTORY))).not.toBeFalsy();
+      expect(existsSync(withMainDir(SUBDIRECTORY_2))).not.toBeFalsy();
+    });
+
+    it('should handle error during file removal and return not deleted media', async () => {
+      const mediaList: Media[] = [media1, media2, mediaWithoutFullSize];
+
+      jest.spyOn(service, 'removeFile');
+      jest.spyOn(fs, 'remove').mockImplementationOnce(() => {
+        throw new Error('Test error');
+      });
+
+      const result = await service.removeFilesAndPreviews(mediaList);
+
+      expect(service.removeFile).toHaveBeenCalledTimes(6);
+      expect(result).toEqual([media1]);
+    });
+
+    it('should throw an InternalServerErrorException if an error occurs during the process', async () => {
+      const mediaList: Media[] = [media1, media2, mediaWithoutFullSize];
+
+      jest.spyOn(service, 'removeFile');
+      jest
+        .spyOn(pathsService, 'getPreviewsAndFullPathsFormMediaList')
+        .mockImplementation(() => {
+          throw new Error('Test error');
+        });
+
+      await expect(service.removeFilesAndPreviews(mediaList)).rejects.toThrow(
+        new InternalServerErrorException('Test error'),
       );
     });
   });

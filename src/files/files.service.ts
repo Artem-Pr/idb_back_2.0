@@ -40,6 +40,7 @@ import { PathsService } from 'src/paths/paths.service';
 import type { GetFilesInputDto } from './dto/get-files-input.dto';
 import { omit } from 'ramda';
 import type { GetFilesOutputDto } from './dto/get-files-output.dto';
+import type { DeleteFilesInputDto } from './dto/delete-files-input.dto';
 
 interface FilePaths {
   filePath: DBFilePath;
@@ -61,6 +62,29 @@ export class FilesService {
     private pathsService: PathsService,
     private keywordsService: KeywordsService,
   ) {}
+
+  private makeMediaOutputFromMedia({
+    media,
+    mainDirPreview,
+    mainDirFilePath,
+    customFields,
+  }: {
+    media: Media;
+    mainDirPreview: MainDir;
+    mainDirFilePath: MainDir;
+    customFields?: Partial<MediaOutput>;
+  }): MediaOutput {
+    return {
+      ...omit(['_id', 'preview', 'fullSizeJpg'], media),
+      id: media._id.toString(),
+      staticPath: media.fullSizeJpg
+        ? this.getStaticPath(media.fullSizeJpg, mainDirPreview)
+        : this.getStaticPath(media.filePath, mainDirFilePath),
+      staticPreview: this.getStaticPath(media.preview, mainDirPreview),
+      duplicates: customFields?.duplicates || [],
+      ...customFields,
+    };
+  }
 
   async getFiles(getFilesInput: GetFilesInputDto): Promise<GetFilesOutputDto> {
     const mediaDBResponse = await this.mediaDB.getFiles(getFilesInput);
@@ -92,12 +116,103 @@ export class FilesService {
     };
   }
 
+  private async updateKeywordsList(mediaList: UpdateMedia[]): Promise<void> {
+    const processData = this.logger.startProcess({
+      processName: 'updateKeywordsList',
+    });
+
+    const newKeywords = getKeywordsFromMediaList(
+      mediaList.map(({ newMedia }) => newMedia),
+    );
+    await this.keywordsService.addKeywords(newKeywords);
+    this.logger.finishProcess(processData);
+  }
+
+  private async saveNewDirectories(mediaList: Media[]): Promise<void> {
+    const processData = this.logger.startProcess({
+      processName: 'saveNewDirectories',
+    });
+    const newDirectoriesSet = new Set(
+      mediaList.map(({ filePath }) =>
+        getFullPathWithoutNameAndFirstSlash(filePath),
+      ),
+    );
+    const newDirectoriesWithSubDirs =
+      this.pathsService.getDirAndSubfoldersFromArray(
+        Array.from(newDirectoriesSet),
+      );
+    await this.pathsService.addPathsToDB(newDirectoriesWithSubDirs);
+    this.logger.finishProcess(processData);
+  }
+
+  private async saveUpdatedMediaToDisc(
+    mediaList: UpdateMedia[],
+  ): Promise<void> {
+    const processData = this.logger.startProcess({
+      processName: 'saveUpdatedMediaToDisc',
+    });
+    await this.diskStorageService.saveFilesArrToDisk(mediaList, true);
+    this.logger.finishProcess(processData);
+  }
+
+  private async updateMediaDB(mediaList: UpdateMedia[]): Promise<Media[]> {
+    const processData = this.logger.startProcess({
+      processName: 'updateMediaDB',
+    });
+    const mewMediaList = mediaList.map(({ newMedia }) => newMedia);
+    const updatedMediaList = await this.mediaDB.addMediaToDB(mewMediaList);
+    this.logger.finishProcess(processData);
+
+    return updatedMediaList;
+  }
+
+  private generatePreviewPathsForNewMedia(
+    updatedMediaList: UpdateMedia[],
+  ): UpdateMedia[] {
+    return updatedMediaList.map(({ oldMedia, newMedia }) => ({
+      oldMedia,
+      newMedia: {
+        ...newMedia,
+        preview: getPreviewPath({
+          originalName: newMedia.originalName,
+          mimeType: newMedia.mimetype,
+          postFix: PreviewPostfix.preview,
+          date: newMedia.originalDate,
+        }),
+        fullSizeJpg:
+          oldMedia.fullSizeJpg && newMedia.fullSizeJpg
+            ? getPreviewPath({
+                originalName: newMedia.originalName,
+                mimeType: newMedia.mimetype,
+                postFix: PreviewPostfix.fullSize,
+                date: newMedia.originalDate,
+              })
+            : null,
+      },
+    }));
+  }
+
+  private async updateMediaTempWithNewData(
+    filesToUpload: UpdatedFilesInputDto,
+  ): Promise<UpdateMedia[]> {
+    const processData = this.logger.startProcess({
+      processName: 'updateMediaTempWithNewData',
+    });
+    const updatedMediaList = await this.mediaDB.updateMediaList(
+      filesToUpload,
+      DBType.DBTemp,
+    );
+    this.logger.finishProcess(processData);
+
+    return updatedMediaList;
+  }
+
   async saveFiles(filesToUpload: UpdatedFilesInputDto) {
     try {
       const updatedMediaList: UpdateMedia[] =
         await this.updateMediaTempWithNewData(filesToUpload);
       const mediaListWithUpdatedPaths: UpdateMedia[] =
-        this.updateMediaPaths(updatedMediaList);
+        this.generatePreviewPathsForNewMedia(updatedMediaList);
       await this.updateKeywordsList(mediaListWithUpdatedPaths);
       await this.saveUpdatedMediaToDisc(mediaListWithUpdatedPaths);
       const updatedMediaDBList = await this.updateMediaDB(
@@ -280,122 +395,40 @@ export class FilesService {
     return preparedDuplicates;
   }
 
+  private async restoreDataIfDeletionError(mediaList: Media[]): Promise<void> {
+    await this.mediaDB.addMediaToDB(mediaList);
+  }
+
+  async deleteFilesByIds(ids: DeleteFilesInputDto['ids']): Promise<void> {
+    try {
+      const mediaList = await this.mediaDB.deleteMediaByIds(ids);
+      const notDeletedMediaList: Media[] =
+        await this.diskStorageService.removeFilesAndPreviews(mediaList);
+
+      if (notDeletedMediaList.length) {
+        await this.restoreDataIfDeletionError(notDeletedMediaList);
+      }
+    } catch (error) {
+      this.logger.logError({
+        message: error.message || error,
+        method: 'deleteFilesByIds',
+        errorData: { ids },
+      });
+      throw new InternalServerErrorException(error.message || error);
+    }
+  }
+
+  async cleanTemp(): Promise<void> {
+    const emptyDirPromise = this.diskStorageService.emptyDirectory();
+    const emptyDBPromise = this.mediaDB.emptyTempDB();
+
+    await resolveAllSettled([emptyDirPromise, emptyDBPromise]);
+  }
+
   getStaticPath<T extends DBFilePath>(
     filePath: T,
     mainDir: MainDir,
   ): StaticPath<T> {
     return `${this.configService.domain}/${mainDir}${filePath}`;
-  }
-
-  private async updateMediaTempWithNewData(
-    filesToUpload: UpdatedFilesInputDto,
-  ): Promise<UpdateMedia[]> {
-    const processData = this.logger.startProcess({
-      processName: 'updateMediaTempWithNewData',
-    });
-    const updatedMediaList = await this.mediaDB.updateMediaList(
-      filesToUpload,
-      DBType.DBTemp,
-    );
-    this.logger.finishProcess(processData);
-
-    return updatedMediaList;
-  }
-
-  private updateMediaPaths(updatedMediaList: UpdateMedia[]): UpdateMedia[] {
-    return updatedMediaList.map(({ oldMedia, newMedia }) => ({
-      oldMedia,
-      newMedia: {
-        ...newMedia,
-        preview: getPreviewPath({
-          originalName: newMedia.originalName,
-          mimeType: newMedia.mimetype,
-          postFix: PreviewPostfix.preview,
-          date: newMedia.originalDate,
-        }),
-        fullSizeJpg:
-          oldMedia.fullSizeJpg && newMedia.fullSizeJpg
-            ? getPreviewPath({
-                originalName: newMedia.originalName,
-                mimeType: newMedia.mimetype,
-                postFix: PreviewPostfix.fullSize,
-                date: newMedia.originalDate,
-              })
-            : null,
-      },
-    }));
-  }
-
-  private async saveUpdatedMediaToDisc(
-    mediaList: UpdateMedia[],
-  ): Promise<void> {
-    const processData = this.logger.startProcess({
-      processName: 'saveUpdatedMediaToDisc',
-    });
-    await this.diskStorageService.saveFilesArrToDisk(mediaList, true);
-    this.logger.finishProcess(processData);
-  }
-
-  private async updateMediaDB(mediaList: UpdateMedia[]): Promise<Media[]> {
-    const processData = this.logger.startProcess({
-      processName: 'updateMediaDB',
-    });
-    const mewMediaList = mediaList.map(({ newMedia }) => newMedia);
-    const updatedMediaList = await this.mediaDB.addMediaToDB(mewMediaList);
-    this.logger.finishProcess(processData);
-
-    return updatedMediaList;
-  }
-
-  private async saveNewDirectories(mediaList: Media[]): Promise<void> {
-    const processData = this.logger.startProcess({
-      processName: 'saveNewDirectories',
-    });
-    const newDirectoriesSet = new Set(
-      mediaList.map(({ filePath }) =>
-        getFullPathWithoutNameAndFirstSlash(filePath),
-      ),
-    );
-    const newDirectoriesWithSubDirs =
-      this.pathsService.getDirAndSubfoldersFromArray(
-        Array.from(newDirectoriesSet),
-      );
-    await this.pathsService.addPathsToDB(newDirectoriesWithSubDirs);
-    this.logger.finishProcess(processData);
-  }
-
-  private async updateKeywordsList(mediaList: UpdateMedia[]): Promise<void> {
-    const processData = this.logger.startProcess({
-      processName: 'updateKeywordsList',
-    });
-
-    const newKeywords = getKeywordsFromMediaList(
-      mediaList.map(({ newMedia }) => newMedia),
-    );
-    await this.keywordsService.addKeywords(newKeywords);
-    this.logger.finishProcess(processData);
-  }
-
-  private makeMediaOutputFromMedia({
-    media,
-    mainDirPreview,
-    mainDirFilePath,
-    customFields,
-  }: {
-    media: Media;
-    mainDirPreview: MainDir;
-    mainDirFilePath: MainDir;
-    customFields?: Partial<MediaOutput>;
-  }): MediaOutput {
-    return {
-      ...omit(['_id', 'preview', 'fullSizeJpg'], media),
-      id: media._id.toString(),
-      staticPath: media.fullSizeJpg
-        ? this.getStaticPath(media.fullSizeJpg, mainDirPreview)
-        : this.getStaticPath(media.filePath, mainDirFilePath),
-      staticPreview: this.getStaticPath(media.preview, mainDirPreview),
-      duplicates: customFields?.duplicates || [],
-      ...customFields,
-    };
   }
 }

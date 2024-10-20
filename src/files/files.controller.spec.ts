@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FilesController } from './files.controller';
 import { FilesService } from './files.service';
-import { BadRequestException, HttpException } from '@nestjs/common';
 import { FileMediaInterceptor } from './file.interceptor';
 import { ConfigService } from 'src/config/config.service';
 import type { UploadFileOutputDto } from './dto/upload-file-output.dto';
@@ -16,12 +15,12 @@ import type { GetFilesInputDto } from './dto/get-files-input.dto';
 import type { GetFilesOutputDto } from './dto/get-files-output.dto';
 import { SupportedImageMimetypes } from 'src/common/constants';
 import { DiscStorageService } from './discStorage.service';
+import { FileUploadDto } from './dto/upload-file-input.dto';
 
 describe('FilesController', () => {
   let controller: FilesController;
   let filesService: FilesService;
   let configService: ConfigService;
-  let discStorageService: DiscStorageService;
 
   beforeEach(async () => {
     configService = {
@@ -29,11 +28,13 @@ describe('FilesController', () => {
     } as any;
 
     const mockFilesService = {
+      cleanTemp: jest.fn(),
+      deleteFilesByIds: jest.fn(),
       getDuplicatesFromMediaDBByFilePaths: jest.fn(),
       getDuplicatesFromMediaDBByOriginalNames: jest.fn(),
+      getFiles: jest.fn(),
       processFile: jest.fn(),
       saveFiles: jest.fn(),
-      getFiles: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -54,7 +55,6 @@ describe('FilesController', () => {
 
     controller = module.get<FilesController>(FilesController);
     filesService = module.get<FilesService>(FilesService);
-    discStorageService = module.get<DiscStorageService>(DiscStorageService);
   });
 
   it('should be defined', () => {
@@ -152,54 +152,12 @@ describe('FilesController', () => {
   });
 
   describe('uploadFile', () => {
-    it('should throw BadRequestException when no file is uploaded', async () => {
-      try {
-        await controller.uploadFile(undefined as any);
-        fail('The controller did not throw a BadRequestException'); // This line should not be reached
-      } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
-        expect(error.message).toBe('File upload failed');
-      }
-    });
-
-    it('should throw HttpException when uploaded file has unsupported extension', async () => {
-      const unsupportedFile = {
-        originalname: 'test.txt',
-        mimetype: 'text/plain',
-        filename: 'test.txt',
-      } as Express.Multer.File;
-
-      try {
-        await controller.uploadFile(unsupportedFile);
-        fail('The controller did not throw a BadRequestException'); // This line should not be reached
-      } catch (error) {
-        expect(error).toBeInstanceOf(HttpException);
-        expect(error.message).toBe('Unsupported file type');
-      }
-    });
-
-    it('should throw HttpException when uploaded file has unsupported mime type', async () => {
-      const unsupportedMime = {
-        originalname: 'test.png',
-        mimetype: 'application/octet-stream',
-        filename: 'test.png',
-      } as Express.Multer.File;
-
-      try {
-        await controller.uploadFile(unsupportedMime);
-        fail('The controller did not throw a BadRequestException'); // This line should not be reached
-      } catch (error) {
-        expect(error).toBeInstanceOf(HttpException);
-        expect(error.message).toBe('Unsupported file type');
-      }
-    });
-
     it('should call processFile and return its result for a supported file', async () => {
       const supportedFile = {
         originalname: 'image.jpg',
         mimetype: 'image/jpeg',
         filename: 'image.jpg',
-      } as Express.Multer.File;
+      } as Express.Multer.File & FileUploadDto;
 
       const processFileResponse = {
         response: 'http://localhost/image.jpg',
@@ -262,11 +220,19 @@ describe('FilesController', () => {
     });
   });
 
+  describe('deleteFiles', () => {
+    it('should call deleteFilesByIds', async () => {
+      await controller.deleteFiles({ ids: ['1', '2'] });
+      expect(filesService.deleteFilesByIds).toHaveBeenCalled();
+      expect(filesService.deleteFilesByIds).toHaveBeenCalledWith(['1', '2']);
+    });
+  });
+
   describe('cleanTemp', () => {
     it('should call cleanTemp', async () => {
       await controller.cleanTemp();
-      expect(discStorageService.emptyDirectory).toHaveBeenCalled();
-      expect(discStorageService.emptyDirectory).toHaveBeenCalledWith();
+      expect(filesService.cleanTemp).toHaveBeenCalled();
+      expect(filesService.cleanTemp).toHaveBeenCalledWith();
     });
   });
 });

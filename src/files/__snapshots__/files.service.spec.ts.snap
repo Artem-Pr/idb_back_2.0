@@ -1,5 +1,190 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`FilesService generatePreviewPathsForNewMedia should generate media with correct preview paths 1`] = `
+[
+  {
+    "newMedia": {
+      "_id": "mockedHexString",
+      "changeDate": 1688319393000,
+      "description": "test description",
+      "exif": {
+        "DateTimeOriginal": "2020-01-01 00:00:00",
+        "Description": "test description",
+        "GPSPosition": "42.5, 42.5",
+        "ImageSize": "1920x1080",
+        "Megapixels": 12,
+        "Rating": 5,
+      },
+      "filePath": "/path/to/mockFile.jpg",
+      "fullSizeJpg": null,
+      "imageSize": "1920x1080",
+      "keywords": [
+        "test",
+        "media",
+      ],
+      "megapixels": 12,
+      "mimetype": "image/gif",
+      "originalDate": 2010-10-10T08:10:10.000Z,
+      "originalName": "test1.jpg",
+      "preview": "/image-gif/preview/2010.10.10 - originalDate/test1-mockedHexString-preview.jpg",
+      "rating": 5,
+      "size": 1024,
+      "timeStamp": "00:00:00.100",
+    },
+    "oldMedia": Media {
+      "_id": "mockedHexString",
+      "changeDate": 1688319393000,
+      "description": "test description",
+      "exif": {
+        "DateTimeOriginal": "2020-01-01 00:00:00",
+        "Description": "test description",
+        "GPSPosition": "42.5, 42.5",
+        "ImageSize": "1920x1080",
+        "Megapixels": 12,
+        "Rating": 5,
+      },
+      "filePath": "/path/to/mockFile.jpg",
+      "fullSizeJpg": "/path/to/mockFile-fullSize.jpg",
+      "imageSize": "1920x1080",
+      "keywords": [
+        "test",
+        "media",
+      ],
+      "megapixels": 12,
+      "mimetype": "image/jpg",
+      "originalDate": 2019-12-31T23:00:00.000Z,
+      "originalName": "original_mock_file.jpg",
+      "preview": "/path/to/mockFile-preview.jpg",
+      "rating": 5,
+      "size": 1024,
+      "timeStamp": "00:00:00.100",
+    },
+  },
+  {
+    "newMedia": {
+      "_id": "mockedHexString",
+      "changeDate": 1688319393000,
+      "description": "test description",
+      "exif": {
+        "DateTimeOriginal": "2020-01-01 00:00:00",
+        "Description": "test description",
+        "GPSPosition": "42.5, 42.5",
+        "ImageSize": "1920x1080",
+        "Megapixels": 12,
+        "Rating": 5,
+      },
+      "filePath": "/path/to/mockFile.jpg",
+      "fullSizeJpg": "/image-gif/fullSize/2010.10.10 - originalDate/test2-mockedHexString-fullSize.jpg",
+      "imageSize": "1920x1080",
+      "keywords": [
+        "test",
+        "media",
+      ],
+      "megapixels": 12,
+      "mimetype": "image/gif",
+      "originalDate": 2010-10-10T08:10:10.000Z,
+      "originalName": "test2.jpg",
+      "preview": "/image-gif/preview/2010.10.10 - originalDate/test2-mockedHexString-preview.jpg",
+      "rating": 5,
+      "size": 1024,
+      "timeStamp": "00:00:00.100",
+    },
+    "oldMedia": Media {
+      "_id": "mockedHexString",
+      "changeDate": 1688319393000,
+      "description": "test description",
+      "exif": {
+        "DateTimeOriginal": "2020-01-01 00:00:00",
+        "Description": "test description",
+        "GPSPosition": "42.5, 42.5",
+        "ImageSize": "1920x1080",
+        "Megapixels": 12,
+        "Rating": 5,
+      },
+      "filePath": "/path/to/mockFile.jpg",
+      "fullSizeJpg": "/path/to/mockFile-fullSize.jpg",
+      "imageSize": "1920x1080",
+      "keywords": [
+        "test",
+        "media",
+      ],
+      "megapixels": 12,
+      "mimetype": "image/jpg",
+      "originalDate": 2019-12-31T23:00:00.000Z,
+      "originalName": "original_mock_file.jpg",
+      "preview": "/path/to/mockFile-preview.jpg",
+      "rating": 5,
+      "size": 1024,
+      "timeStamp": "00:00:00.100",
+    },
+  },
+]
+`;
+
+exports[`FilesService makeMediaOutputFromMedia should return MediaOutput with custom fields 1`] = `
+{
+  "changeDate": 1688319393000,
+  "description": "test description",
+  "duplicates": [],
+  "exif": {
+    "DateTimeOriginal": "2020-01-01 00:00:00",
+    "Description": "test description",
+    "GPSPosition": "42.5, 42.5",
+    "ImageSize": "1920x1080",
+    "Megapixels": 12,
+    "Rating": 5,
+  },
+  "filePath": "/path/to/mockTempFile.jpg",
+  "id": "custom-id",
+  "imageSize": "1920x1080",
+  "keywords": [
+    "test",
+    "media",
+  ],
+  "megapixels": 12,
+  "mimetype": "image/jpg",
+  "originalDate": 2019-12-31T23:00:00.000Z,
+  "originalName": "original_mock_temp_file.jpg",
+  "rating": 5,
+  "size": 1024,
+  "staticPath": "http://localhost:3000/temp/path/to/mockTempFile-fullSize.jpg",
+  "staticPreview": "http://localhost:3000/temp/path/to/mockTempFile-preview.jpg",
+  "timeStamp": "00:00:00.100",
+}
+`;
+
+exports[`FilesService makeMediaOutputFromMedia should return MediaOutput with the correct properties 1`] = `
+{
+  "changeDate": 1688319393000,
+  "description": "test description",
+  "duplicates": [],
+  "exif": {
+    "DateTimeOriginal": "2020-01-01 00:00:00",
+    "Description": "test description",
+    "GPSPosition": "42.5, 42.5",
+    "ImageSize": "1920x1080",
+    "Megapixels": 12,
+    "Rating": 5,
+  },
+  "filePath": "/path/to/mockTempFile.jpg",
+  "id": "662eb6a4aece4209057aa5d0",
+  "imageSize": "1920x1080",
+  "keywords": [
+    "test",
+    "media",
+  ],
+  "megapixels": 12,
+  "mimetype": "image/jpg",
+  "originalDate": 2019-12-31T23:00:00.000Z,
+  "originalName": "original_mock_temp_file.jpg",
+  "rating": 5,
+  "size": 1024,
+  "staticPath": "http://localhost:3000/temp/path/to/mockTempFile-fullSize.jpg",
+  "staticPreview": "http://localhost:3000/temp/path/to/mockTempFile-preview.jpg",
+  "timeStamp": "00:00:00.100",
+}
+`;
+
 exports[`FilesService saveFiles should save files 1`] = `
 [
   {
