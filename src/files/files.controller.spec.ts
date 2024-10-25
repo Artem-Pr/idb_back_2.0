@@ -18,7 +18,7 @@ import { DiscStorageService } from './discStorage.service';
 import { FileUploadDto } from './dto/upload-file-input.dto';
 
 describe('FilesController', () => {
-  let controller: FilesController;
+  let filesController: FilesController;
   let filesService: FilesService;
   let configService: ConfigService;
 
@@ -35,6 +35,7 @@ describe('FilesController', () => {
       getFiles: jest.fn(),
       processFile: jest.fn(),
       saveFiles: jest.fn(),
+      updateFiles: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -53,12 +54,12 @@ describe('FilesController', () => {
       ],
     }).compile();
 
-    controller = module.get<FilesController>(FilesController);
+    filesController = module.get<FilesController>(FilesController);
     filesService = module.get<FilesService>(FilesService);
   });
 
   it('should be defined', () => {
-    expect(controller).toBeDefined();
+    expect(filesController).toBeDefined();
   });
 
   describe('getFiles', () => {
@@ -120,7 +121,7 @@ describe('FilesController', () => {
 
       jest.spyOn(filesService, 'getFiles').mockResolvedValue(response);
 
-      const result = await controller.getFiles(filesQuery);
+      const result = await filesController.getFiles(filesQuery);
       expect(filesService.getFiles).toHaveBeenCalledWith(filesQuery);
       expect(result).toBe(response);
     });
@@ -145,8 +146,33 @@ describe('FilesController', () => {
 
       jest.spyOn(filesService, 'saveFiles').mockResolvedValue(response);
 
-      const result = await controller.saveFiles(filesToUpload);
+      const result = await filesController.saveFiles(filesToUpload);
       expect(filesService.saveFiles).toHaveBeenCalledWith(filesToUpload);
+      expect(result).toBe(response);
+    });
+  });
+
+  describe('updateFiles', () => {
+    it('should call filesService.updateFiles and return its result', async () => {
+      const filesToUpload: UpdatedFilesInputDto = {
+        files: [
+          {
+            id: '1',
+            updatedFields: { originalName: 'test.jpg' },
+          },
+          {
+            id: '2',
+            updatedFields: { originalDate: 'test2.jpg' },
+          },
+        ],
+      };
+
+      const response = [new Media(), new Media()];
+
+      jest.spyOn(filesService, 'updateFiles').mockResolvedValue(response);
+
+      const result = await filesController.updateFiles(filesToUpload);
+      expect(filesService.updateFiles).toHaveBeenCalledWith(filesToUpload);
       expect(result).toBe(response);
     });
   });
@@ -166,7 +192,7 @@ describe('FilesController', () => {
         .spyOn(filesService, 'processFile')
         .mockResolvedValue(processFileResponse);
 
-      const result = await controller.uploadFile(supportedFile);
+      const result = await filesController.uploadFile(supportedFile);
       expect(filesService.processFile).toHaveBeenCalledWith(supportedFile);
       expect(result).toBe(processFileResponse);
     });
@@ -188,7 +214,7 @@ describe('FilesController', () => {
         .mockResolvedValue(duplicatesResponse);
 
       const result =
-        await controller.checkDuplicatesByOriginalNames(duplicatesQuery);
+        await filesController.checkDuplicatesByOriginalNames(duplicatesQuery);
       expect(
         filesService.getDuplicatesFromMediaDBByOriginalNames,
       ).toHaveBeenCalledWith(duplicatesQuery.originalNames);
@@ -212,7 +238,7 @@ describe('FilesController', () => {
         .mockResolvedValue(duplicatesResponse);
 
       const result =
-        await controller.checkDuplicatesByFilePaths(duplicatesQuery);
+        await filesController.checkDuplicatesByFilePaths(duplicatesQuery);
       expect(
         filesService.getDuplicatesFromMediaDBByFilePaths,
       ).toHaveBeenCalledWith(duplicatesQuery.filePaths);
@@ -222,7 +248,7 @@ describe('FilesController', () => {
 
   describe('deleteFiles', () => {
     it('should call deleteFilesByIds', async () => {
-      await controller.deleteFiles({ ids: ['1', '2'] });
+      await filesController.deleteFiles({ ids: ['1', '2'] });
       expect(filesService.deleteFilesByIds).toHaveBeenCalled();
       expect(filesService.deleteFilesByIds).toHaveBeenCalledWith(['1', '2']);
     });
@@ -230,7 +256,7 @@ describe('FilesController', () => {
 
   describe('cleanTemp', () => {
     it('should call cleanTemp', async () => {
-      await controller.cleanTemp();
+      await filesController.cleanTemp();
       expect(filesService.cleanTemp).toHaveBeenCalled();
       expect(filesService.cleanTemp).toHaveBeenCalledWith();
     });

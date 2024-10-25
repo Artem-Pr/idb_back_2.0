@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { FilesService } from './files.service';
 import type { Job, Queue } from 'bull';
 import type { GetFilesResponse, UpdateMedia } from './mediaDB.service';
-import { DBType, MediaDBService } from './mediaDB.service';
+import { MediaDBService } from './mediaDB.service';
 import { getQueueToken } from '@nestjs/bull';
 import {
   Processors,
@@ -102,12 +102,12 @@ describe('FilesService', () => {
   let keywordsService: KeywordsService;
   let diskStorageService: DiscStorageService;
   let pathsService: PathsService;
-  let updateMediaList: jest.Mock<UpdateMedia[]>;
+  let getUpdatedMediaList: jest.Mock<UpdateMedia[]>;
 
   beforeAll(async () => {
     addFileToDBTemp = jest.fn().mockReturnValue(mediaTempResponseMock);
     getSameFilesIfExist = jest.fn().mockReturnValue(mockDuplicates);
-    updateMediaList = jest.fn().mockReturnValue([]);
+    getUpdatedMediaList = jest.fn().mockReturnValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -125,12 +125,13 @@ describe('FilesService', () => {
           useValue: {
             addFileToDBTemp,
             addMediaToDB: jest.fn((mediaList: Media[]) => mediaList),
+            updateMediaInDB: jest.fn(),
             deleteMediaByIds: jest.fn(),
             deleteMediaFromTempDB: jest.fn(),
             emptyTempDB: jest.fn(),
             getFiles: jest.fn(),
             getSameFilesIfExist,
-            updateMediaList,
+            getUpdatedMediaList,
           },
         },
         {
@@ -144,7 +145,7 @@ describe('FilesService', () => {
           useValue: {
             emptyDirectory: jest.fn(),
             removeFilesAndPreviews: jest.fn(),
-            saveFilesArrToDisk: jest.fn(),
+            moveMediaToNewDir: jest.fn(),
           },
         },
         {
@@ -407,18 +408,7 @@ describe('FilesService', () => {
     });
   });
 
-  describe('saveUpdatedMediaToDisc', () => {
-    it('should call diskStorageService.saveFilesArrToDisk with correct params', async () => {
-      jest.spyOn(diskStorageService, 'saveFilesArrToDisk');
-      await service['saveUpdatedMediaToDisc']([]);
-      expect(diskStorageService.saveFilesArrToDisk).toHaveBeenCalledWith(
-        [],
-        true,
-      );
-    });
-  });
-
-  describe('updateMediaDB', () => {
+  describe('saveMediaListToDB', () => {
     const oldMedia1 = createMediaMock();
     const newMedia1 = createMediaMock({
       id: new ObjectId('00000001f80f825d51300844'),
@@ -442,7 +432,7 @@ describe('FilesService', () => {
 
     it('should call mediaDB.addMediaToDB with correct params', async () => {
       jest.spyOn(mediaDBService, 'addMediaToDB');
-      await service['updateMediaDB'](mediaDB_UpdateMediaList);
+      await service['saveMediaListToDB'](mediaDB_UpdateMediaList);
       expect(mediaDBService.addMediaToDB).toHaveBeenCalledWith([
         newMedia1,
         newMedia2,
@@ -499,19 +489,6 @@ describe('FilesService', () => {
       );
 
       expect(result).toMatchSnapshot();
-    });
-  });
-
-  describe('updateMediaTempWithNewData', () => {
-    it('should call mediaDB.updateMediaList with correct params', async () => {
-      jest.spyOn(mediaDBService, 'updateMediaList');
-      await service['updateMediaTempWithNewData']({ files: [] });
-      expect(mediaDBService.updateMediaList).toHaveBeenCalledWith(
-        {
-          files: [],
-        },
-        DBType.DBTemp,
-      );
     });
   });
 
@@ -574,7 +551,7 @@ describe('FilesService', () => {
 
     beforeEach(() => {
       jest
-        .spyOn(mediaDBService, 'updateMediaList')
+        .spyOn(mediaDBService, 'getUpdatedMediaList')
         .mockReturnValue(
           new Promise((resolve) => resolve(mediaDB_UpdateMediaList)),
         );
@@ -594,12 +571,124 @@ describe('FilesService', () => {
 
     it('should throw error if save files failed', async () => {
       jest
-        .spyOn(mediaDBService, 'updateMediaList')
+        .spyOn(mediaDBService, 'getUpdatedMediaList')
         .mockRejectedValue(new Error('Failed to save files'));
 
       await expect(service.saveFiles(filesToUpload)).rejects.toThrow(
         new InternalServerErrorException('Failed to save files'),
       );
+    });
+
+    it('should restore DB data if creation failed', async () => {
+      jest.spyOn(mediaDBService, 'deleteMediaByIds');
+      jest
+        .spyOn(diskStorageService, 'moveMediaToNewDir')
+        .mockRejectedValue(new Error('Failed to save files'));
+
+      await expect(service.saveFiles(filesToUpload)).rejects.toThrow(
+        new InternalServerErrorException('Failed to save files'),
+      );
+      expect(mediaDBService.deleteMediaByIds).toHaveBeenCalledWith([
+        '00000001f80f825d51300844',
+        '00000001f80f825d51300845',
+      ]);
+    });
+  });
+
+  describe('updateFiles', () => {
+    const filesToUpdate: UpdatedFilesInputDto = {
+      files: [
+        {
+          id: '00000001f80f825d51300844',
+          updatedFields: {
+            originalName: 'test1-updated.jpg',
+            keywords: ['keyword1', 'keyword2'],
+          },
+        },
+        {
+          id: '00000001f80f825d51300845',
+          updatedFields: {
+            originalName: 'test2-updated.jpg',
+            originalDate: '2024-09-20T17:00:00.000Z',
+            keywords: [],
+          },
+        },
+      ],
+    };
+
+    const oldMedia1 = createMediaMock({
+      id: new ObjectId('00000001f80f825d51300844'),
+      name: 'test1',
+      originalNameWithoutExt: 'test1',
+    });
+    const newMedia1 = createMediaMock({
+      id: new ObjectId('00000001f80f825d51300844'),
+      name: 'test1-updated',
+      originalNameWithoutExt: 'test1-updated',
+    });
+    newMedia1.keywords = ['keyword1', 'keyword2'];
+
+    const oldMedia2 = createMediaMock({
+      id: new ObjectId('00000001f80f825d51300845'),
+      name: 'test2',
+      originalNameWithoutExt: 'test2',
+    });
+    const newMedia2 = createMediaMock({
+      id: new ObjectId('00000001f80f825d51300845'),
+      name: 'test2-updated',
+      originalNameWithoutExt: 'test2-updated',
+    });
+    newMedia2.originalDate = new Date('2024-09-20T17:00:00.000Z');
+    newMedia2.keywords = [];
+
+    const mediaDB_UpdateMediaList: UpdateMedia[] = [
+      {
+        oldMedia: oldMedia1,
+        newMedia: newMedia1,
+      },
+      {
+        oldMedia: oldMedia2,
+        newMedia: newMedia2,
+      },
+    ];
+
+    beforeEach(() => {
+      jest
+        .spyOn(mediaDBService, 'getUpdatedMediaList')
+        .mockReturnValue(
+          new Promise((resolve) => resolve(mediaDB_UpdateMediaList)),
+        );
+      jest.spyOn(diskStorageService, 'moveMediaToNewDir').mockResolvedValue();
+    });
+
+    it('should update files', async () => {
+      const result = await service.updateFiles(filesToUpdate);
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should throw error if update files failed', async () => {
+      jest
+        .spyOn(mediaDBService, 'getUpdatedMediaList')
+        .mockRejectedValue(new Error('Failed to update files'));
+
+      await expect(service.updateFiles(filesToUpdate)).rejects.toThrow(
+        new InternalServerErrorException('Failed to update files'),
+      );
+    });
+
+    it('should restore DB data if updating failed', async () => {
+      jest.spyOn(mediaDBService, 'updateMediaInDB');
+      jest
+        .spyOn(diskStorageService, 'moveMediaToNewDir')
+        .mockRejectedValue(new Error('Failed to update files'));
+
+      await expect(service.updateFiles(filesToUpdate)).rejects.toThrow(
+        new InternalServerErrorException('Failed to update files'),
+      );
+      expect(mediaDBService.updateMediaInDB).toHaveBeenCalledWith([
+        oldMedia1,
+        oldMedia2,
+      ]);
     });
   });
 

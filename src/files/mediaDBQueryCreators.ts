@@ -44,6 +44,15 @@ export class MediaDBQueryCreators {
     };
   }
 
+  getUpdateMediaQuery(updatedMedia: Media[]) {
+    return updatedMedia.map((media) => ({
+      updateOne: {
+        filter: { _id: media._id },
+        update: { $set: media },
+      },
+    }));
+  }
+
   private getValidDateRange(dateRange: GetFilesFiltersInputDto['dateRange']) {
     if (dateRange) {
       const startDate = new Date(dateRange[0]);

@@ -21,6 +21,7 @@ import { CustomLogger } from 'src/logger/logger.service';
 import type { Media } from 'src/files/entities/media.entity';
 import type { DeleteDirectoryOutputDto } from './dto/delete-directory-output.dto';
 import type { DBFullSizePath, DBPreviewPath } from 'src/common/types';
+import { LogMethod } from 'src/logger/logger.decorator';
 
 @Injectable()
 export class PathsService {
@@ -144,6 +145,7 @@ export class PathsService {
     }
   }
 
+  @LogMethod('addPathsToDB')
   async addPathsToDB(paths: string[]): Promise<void> {
     const existingPaths = await this.pathsRepository.find({
       where: {

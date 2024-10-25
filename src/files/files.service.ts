@@ -117,21 +117,13 @@ export class FilesService {
   }
 
   private async updateKeywordsList(mediaList: UpdateMedia[]): Promise<void> {
-    const processData = this.logger.startProcess({
-      processName: 'updateKeywordsList',
-    });
-
     const newKeywords = getKeywordsFromMediaList(
       mediaList.map(({ newMedia }) => newMedia),
     );
     await this.keywordsService.addKeywords(newKeywords);
-    this.logger.finishProcess(processData);
   }
 
   private async saveNewDirectories(mediaList: Media[]): Promise<void> {
-    const processData = this.logger.startProcess({
-      processName: 'saveNewDirectories',
-    });
     const newDirectoriesSet = new Set(
       mediaList.map(({ filePath }) =>
         getFullPathWithoutNameAndFirstSlash(filePath),
@@ -142,26 +134,11 @@ export class FilesService {
         Array.from(newDirectoriesSet),
       );
     await this.pathsService.addPathsToDB(newDirectoriesWithSubDirs);
-    this.logger.finishProcess(processData);
   }
 
-  private async saveUpdatedMediaToDisc(
-    mediaList: UpdateMedia[],
-  ): Promise<void> {
-    const processData = this.logger.startProcess({
-      processName: 'saveUpdatedMediaToDisc',
-    });
-    await this.diskStorageService.saveFilesArrToDisk(mediaList, true);
-    this.logger.finishProcess(processData);
-  }
-
-  private async updateMediaDB(mediaList: UpdateMedia[]): Promise<Media[]> {
-    const processData = this.logger.startProcess({
-      processName: 'updateMediaDB',
-    });
+  private async saveMediaListToDB(mediaList: UpdateMedia[]): Promise<Media[]> {
     const mewMediaList = mediaList.map(({ newMedia }) => newMedia);
     const updatedMediaList = await this.mediaDB.addMediaToDB(mewMediaList);
-    this.logger.finishProcess(processData);
 
     return updatedMediaList;
   }
@@ -192,40 +169,60 @@ export class FilesService {
     }));
   }
 
-  private async updateMediaTempWithNewData(
-    filesToUpload: UpdatedFilesInputDto,
-  ): Promise<UpdateMedia[]> {
-    const processData = this.logger.startProcess({
-      processName: 'updateMediaTempWithNewData',
-    });
-    const updatedMediaList = await this.mediaDB.updateMediaList(
-      filesToUpload,
-      DBType.DBTemp,
-    );
-    this.logger.finishProcess(processData);
+  async saveFiles(filesToUpload: UpdatedFilesInputDto): Promise<Media[]> {
+    let mediaDataForRestore: Media[] = [];
 
-    return updatedMediaList;
-  }
-
-  async saveFiles(filesToUpload: UpdatedFilesInputDto) {
     try {
       const updatedMediaList: UpdateMedia[] =
-        await this.updateMediaTempWithNewData(filesToUpload);
+        await this.mediaDB.getUpdatedMediaList(filesToUpload, DBType.DBTemp);
       const mediaListWithUpdatedPaths: UpdateMedia[] =
         this.generatePreviewPathsForNewMedia(updatedMediaList);
-      await this.updateKeywordsList(mediaListWithUpdatedPaths);
-      await this.saveUpdatedMediaToDisc(mediaListWithUpdatedPaths);
-      const updatedMediaDBList = await this.updateMediaDB(
+      mediaDataForRestore = await this.saveMediaListToDB(
         mediaListWithUpdatedPaths,
       );
-      await this.saveNewDirectories(updatedMediaDBList);
+      await this.updateKeywordsList(mediaListWithUpdatedPaths);
+      await this.saveNewDirectories(mediaDataForRestore);
+      await this.diskStorageService.moveMediaToNewDir(
+        mediaListWithUpdatedPaths,
+        MainDir.temp,
+      );
       await this.mediaDB.deleteMediaFromTempDB(
-        updatedMediaDBList.map(({ _id }) => _id),
+        mediaDataForRestore.map(({ _id }) => _id),
+      );
+
+      return mediaDataForRestore;
+    } catch (error) {
+      this.logger.logError({ message: error.message, method: 'saveFiles' });
+      mediaDataForRestore.length &&
+        this.restoreDBDataIfCreationError(mediaDataForRestore);
+      throw new InternalServerErrorException(error?.message);
+    }
+  }
+
+  async updateFiles(filesToUpdate: UpdatedFilesInputDto): Promise<Media[]> {
+    let mediaDataForRestore: Media[] = [];
+
+    try {
+      const updatedMediaList: UpdateMedia[] =
+        await this.mediaDB.getUpdatedMediaList(filesToUpdate, DBType.DBMedia);
+
+      mediaDataForRestore = updatedMediaList.map(({ oldMedia }) => oldMedia);
+      const updatedMediaDBList = updatedMediaList.map(
+        ({ newMedia }) => newMedia,
+      );
+      await this.mediaDB.updateMediaInDB(updatedMediaDBList);
+      await this.updateKeywordsList(updatedMediaList);
+      await this.saveNewDirectories(updatedMediaDBList);
+      await this.diskStorageService.moveMediaToNewDir(
+        updatedMediaList,
+        MainDir.volumes,
       );
 
       return updatedMediaDBList;
     } catch (error) {
-      this.logger.logError({ message: error.message, method: 'saveFiles' });
+      this.logger.logError({ message: error.message, method: 'updateFiles' });
+      mediaDataForRestore.length &&
+        this.restoreDBDataIfUpdatingError(mediaDataForRestore);
       throw new InternalServerErrorException(error?.message);
     }
   }
@@ -395,10 +392,6 @@ export class FilesService {
     return preparedDuplicates;
   }
 
-  private async restoreDataIfDeletionError(mediaList: Media[]): Promise<void> {
-    await this.mediaDB.addMediaToDB(mediaList);
-  }
-
   async deleteFilesByIds(ids: DeleteFilesInputDto['ids']): Promise<void> {
     try {
       const mediaList = await this.mediaDB.deleteMediaByIds(ids);
@@ -423,6 +416,23 @@ export class FilesService {
     const emptyDBPromise = this.mediaDB.emptyTempDB();
 
     await resolveAllSettled([emptyDirPromise, emptyDBPromise]);
+  }
+
+  private async restoreDataIfDeletionError(mediaList: Media[]): Promise<void> {
+    await this.mediaDB.addMediaToDB(mediaList);
+  }
+  private async restoreDBDataIfCreationError(
+    mediaList: Media[],
+  ): Promise<void> {
+    await this.mediaDB.deleteMediaByIds(
+      mediaList.map(({ _id }) => _id.toHexString()),
+    );
+  }
+
+  private async restoreDBDataIfUpdatingError(
+    mediaList: Media[],
+  ): Promise<void> {
+    await this.mediaDB.updateMediaInDB(mediaList);
   }
 
   getStaticPath<T extends DBFilePath>(

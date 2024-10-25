@@ -22,6 +22,7 @@ import type {
   DBPreviewPath,
 } from 'src/common/types';
 import { PathsService } from 'src/paths/paths.service';
+import { LogMethod } from 'src/logger/logger.decorator';
 
 interface ChangeFileDirectoryProps {
   oldFilePath: Media['filePath'];
@@ -40,9 +41,10 @@ export class DiscStorageService {
     private pathsService: PathsService,
   ) {}
 
-  async saveFilesArrToDisk(
+  @LogMethod('moveMediaToNewDir')
+  async moveMediaToNewDir(
     updateMediaArr: UpdateMedia[],
-    needPreviewMoving?: boolean,
+    mainDirOriginal: MainDir = MainDir.volumes,
   ): Promise<void> {
     const changeDirectoriesPromise = updateMediaArr.map(
       ({ oldMedia, newMedia }) => {
@@ -50,13 +52,13 @@ export class DiscStorageService {
 
         const moveMainFilePromise = this.changeFileDirectory({
           oldFilePath: oldMedia.filePath,
-          oldFileMainDir: MainDir.temp,
+          oldFileMainDir: mainDirOriginal,
           newFilePath: newMedia.filePath,
           newFileMainDir: MainDir.volumes,
         });
         moveMediaPromise.push(moveMainFilePromise);
 
-        if (needPreviewMoving) {
+        if (mainDirOriginal === MainDir.temp) {
           const movePreviewPromise = this.changeFileDirectory({
             oldFilePath: oldMedia.preview,
             oldFileMainDir: MainDir.temp,
@@ -85,6 +87,7 @@ export class DiscStorageService {
     await resolveAllSettled(changeDirectoriesPromise);
   }
 
+  @LogMethod('changeFileDirectory')
   async changeFileDirectory({
     oldFilePath,
     oldFileMainDir,

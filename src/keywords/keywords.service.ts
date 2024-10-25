@@ -7,6 +7,7 @@ import { Media } from 'src/files/entities/media.entity';
 import { difference } from 'ramda';
 import { Keywords } from './entities/keywords.entity';
 import { MediaDBService } from 'src/files/mediaDB.service';
+import { LogMethod } from 'src/logger/logger.decorator';
 
 interface AggregatedKeywordsSetResult {
   results: string[];
@@ -132,6 +133,7 @@ export class KeywordsService {
     await this.addKeywords(keywordsList);
   }
 
+  @LogMethod('addKeywords')
   async addKeywords(keywords: string[]): Promise<void> {
     const existingKeywords = await this.keywordsRepository.find({
       where: {

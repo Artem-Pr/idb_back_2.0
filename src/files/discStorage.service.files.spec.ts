@@ -98,7 +98,7 @@ describe('DiscStorageService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('saveFilesArrToDisk', () => {
+  describe('moveMediaToNewDir', () => {
     const oldMedia1 = new Media();
     oldMedia1.filePath = `/${DEFAULT_IMAGE_FILENAME}`;
     oldMedia1.preview = `/${DEFAULT_IMAGE_PREVIEW}`;
@@ -125,8 +125,16 @@ describe('DiscStorageService', () => {
         `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_FILENAME}`,
       );
       copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME}`,
+        `${TEST_DIRECTORY_VOLUMES}/${DEFAULT_IMAGE_FILENAME}`,
+      );
+      copySync(
         `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME_2}`,
         `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_FILENAME_2}`,
+      );
+      copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME_2}`,
+        `${TEST_DIRECTORY_VOLUMES}/${DEFAULT_IMAGE_FILENAME_2}`,
       );
       copySync(
         `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_PREVIEW}`,
@@ -134,7 +142,15 @@ describe('DiscStorageService', () => {
       );
       copySync(
         `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_PREVIEW}`,
+        `${TEST_DIRECTORY_VOLUMES}/${DEFAULT_IMAGE_PREVIEW}`,
+      );
+      copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_PREVIEW}`,
         `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_PREVIEW_2}`,
+      );
+      copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_PREVIEW}`,
+        `${TEST_DIRECTORY_VOLUMES}/${DEFAULT_IMAGE_PREVIEW_2}`,
       );
       copySync(
         `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FULL_SIZE}`,
@@ -142,17 +158,25 @@ describe('DiscStorageService', () => {
       );
       copySync(
         `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FULL_SIZE}`,
+        `${TEST_DIRECTORY_VOLUMES}/${DEFAULT_IMAGE_FULL_SIZE}`,
+      );
+      copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FULL_SIZE}`,
         `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_FULL_SIZE_2}`,
+      );
+      copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FULL_SIZE}`,
+        `${TEST_DIRECTORY_VOLUMES}/${DEFAULT_IMAGE_FULL_SIZE_2}`,
       );
     });
 
-    it('should save files to disk without previews', async () => {
+    it('should move media files to new directory without previews', async () => {
       const updateMediaArr: UpdateMedia[] = [
         { oldMedia: oldMedia1, newMedia: newMedia1 },
         { oldMedia: oldMedia2, newMedia: newMedia2 },
       ];
 
-      await service.saveFilesArrToDisk(updateMediaArr);
+      await service.moveMediaToNewDir(updateMediaArr, MainDir.volumes);
 
       expect(
         existsSync(`${TEST_DIRECTORY_VOLUMES}/${newMedia1.filePath}`),
@@ -174,13 +198,13 @@ describe('DiscStorageService', () => {
       ).toBeFalsy();
     });
 
-    it('should save files to disk with previews and full size', async () => {
+    it('should move media files to new directory with previews and full size', async () => {
       const updateMediaArr: UpdateMedia[] = [
         { oldMedia: oldMedia1, newMedia: newMedia1 },
         { oldMedia: oldMedia2, newMedia: newMedia2 },
       ];
 
-      await service.saveFilesArrToDisk(updateMediaArr, true);
+      await service.moveMediaToNewDir(updateMediaArr, MainDir.temp);
 
       expect(
         existsSync(`${TEST_DIRECTORY_VOLUMES}/${newMedia1.filePath}`),

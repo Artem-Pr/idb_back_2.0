@@ -8,6 +8,8 @@ import type {
 } from './dto/get-files-input.dto';
 import type { SortingObject } from './types';
 import { SupportedImageMimetypes } from 'src/common/constants';
+import { createMediaMock } from './__mocks__/mocks';
+import type { Media } from './entities/media.entity';
 
 describe('MediaDBQueryCreators', () => {
   let mediaDBQueryCreators: MediaDBQueryCreators;
@@ -27,6 +29,32 @@ describe('MediaDBQueryCreators', () => {
           },
         },
       });
+    });
+  });
+
+  describe('getUpdateMediaQuery', () => {
+    it('should return update media query object', () => {
+      const mediaMock1: Media = createMediaMock({ name: 'mediaMock1' });
+      const mediaMock2: Media = createMediaMock({ name: 'mediaMock2' });
+
+      const query = mediaDBQueryCreators.getUpdateMediaQuery([
+        mediaMock1,
+        mediaMock2,
+      ]);
+      expect(query).toEqual([
+        {
+          updateOne: {
+            filter: { _id: mediaMock1._id },
+            update: { $set: mediaMock1 },
+          },
+        },
+        {
+          updateOne: {
+            filter: { _id: mediaMock2._id },
+            update: { $set: mediaMock2 },
+          },
+        },
+      ]);
     });
   });
 

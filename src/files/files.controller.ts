@@ -13,6 +13,7 @@ import {
   Delete,
   ParseFilePipeBuilder,
   HttpCode,
+  Put,
 } from '@nestjs/common';
 import {
   ControllerPrefix,
@@ -22,23 +23,19 @@ import { FilesService } from './files.service';
 import { FileMediaInterceptor } from './file.interceptor';
 import { CheckDuplicatesOriginalNamesInputDto } from './dto/check-duplicates-original-names-input.dto';
 import { CheckDuplicatesFilePathsInputDto } from './dto/check-duplicates-file-paths-input.dto';
-import type { UploadFileOutputDto } from './dto/upload-file-output.dto';
-import type { CheckDuplicatesOriginalNamesOutputDto } from './dto/check-duplicates-original-names-output.dto';
-import type { CheckDuplicatesFilePathsOutputDto } from './dto/check-duplicates-file-paths-output.dto';
-import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
-import type { GetFilesInputDto } from './dto/get-files-input.dto';
-import type { GetFilesOutputDto } from './dto/get-files-output.dto';
+import { UploadFileOutputDto } from './dto/upload-file-output.dto';
+import { CheckDuplicatesOriginalNamesOutputDto } from './dto/check-duplicates-original-names-output.dto';
+import { CheckDuplicatesFilePathsOutputDto } from './dto/check-duplicates-file-paths-output.dto';
+import { UpdatedFilesInputDto } from './dto/update-files-input.dto';
+import { GetFilesInputDto } from './dto/get-files-input.dto';
+import { GetFilesOutputDto } from './dto/get-files-output.dto';
 import { LogController } from 'src/logger/logger.decorator';
-import { DiscStorageService } from './discStorage.service';
-import type { FileUploadDto } from './dto/upload-file-input.dto';
+import { FileUploadDto } from './dto/upload-file-input.dto';
 import { DeleteFilesInputDto } from './dto/delete-files-input.dto';
 
 @Controller() // TODO : Define a POST endpoint at /files/uploadItem : @Controller('file')
 export class FilesController {
-  constructor(
-    private filesService: FilesService,
-    private discStorage: DiscStorageService,
-  ) {}
+  constructor(private filesService: FilesService) {}
 
   @Post(ControllerPrefix.getFiles)
   @LogController(ControllerPrefix.getFiles)
@@ -52,6 +49,12 @@ export class FilesController {
   @LogController(ControllerPrefix.saveFiles)
   async saveFiles(@Body() filesToUpload: UpdatedFilesInputDto) {
     return this.filesService.saveFiles(filesToUpload);
+  }
+
+  @Put(ControllerPrefix.updateFiles)
+  @LogController(ControllerPrefix.updateFiles)
+  async updateFiles(@Body() filesToUpload: UpdatedFilesInputDto) {
+    return this.filesService.updateFiles(filesToUpload);
   }
 
   @Post(ControllerPrefix.uploadFile)

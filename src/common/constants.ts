@@ -90,6 +90,7 @@ export enum ControllerPrefix {
   saveFiles = 'save-files',
   getFiles = 'filtered-photos',
   uploadFile = 'upload-file',
+  updateFiles = 'update-files',
   deleteFiles = 'delete-files',
   moveKeywordsToNewCollection = 'move-keywords-to-new-collection',
   movePathsToNewCollection = 'move-paths-to-new-collection',

@@ -12,7 +12,12 @@ import { DBType, MediaDBService } from './mediaDB.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { MediaTemp } from './entities/media-temp.entity';
 import { Media } from './entities/media.entity';
-import { MongoRepository, Repository, AggregationCursor } from 'typeorm';
+import {
+  MongoRepository,
+  Repository,
+  AggregationCursor,
+  BulkWriteResult,
+} from 'typeorm';
 import { ObjectId } from 'mongodb';
 import {
   createMediaMock,
@@ -126,6 +131,33 @@ describe('MediaDB', () => {
 
       await service.addMediaToDB(mediaMock);
       expect(mediaRepository.save).toHaveBeenCalledWith(mediaMock);
+    });
+  });
+
+  describe('updateMediaInDB', () => {
+    it('should call mediaRepository.bulkWrite with the correct data', async () => {
+      const mediaMock1: Media = createMediaMock({ name: 'mediaMock1' });
+      const mediaMock2: Media = createMediaMock({ name: 'mediaMock2' });
+      const bulkWriteResult = {} as BulkWriteResult;
+      jest
+        .spyOn(mediaRepository, 'bulkWrite')
+        .mockResolvedValue(bulkWriteResult);
+
+      await service.updateMediaInDB([mediaMock1, mediaMock2]);
+      expect(mediaRepository.bulkWrite).toHaveBeenCalledWith([
+        {
+          updateOne: {
+            filter: { _id: mediaMock1._id },
+            update: { $set: mediaMock1 },
+          },
+        },
+        {
+          updateOne: {
+            filter: { _id: mediaMock2._id },
+            update: { $set: mediaMock2 },
+          },
+        },
+      ]);
     });
   });
 
@@ -394,7 +426,7 @@ describe('MediaDB', () => {
     });
   });
 
-  describe('updateMediaList', () => {
+  describe('getUpdatedMediaList', () => {
     const initialMedia1Object = {
       id: new ObjectId('507f1f77bcf86cd799439011'),
       name: 'test1',
@@ -463,7 +495,7 @@ describe('MediaDB', () => {
 
       jest.spyOn(mediaRepository, 'find').mockResolvedValue(mediaList);
 
-      const result = await service.updateMediaList(
+      const result = await service.getUpdatedMediaList(
         filesToUpload,
         DBType.DBMedia,
       );
@@ -510,7 +542,7 @@ describe('MediaDB', () => {
 
       jest.spyOn(tempRepository, 'find').mockResolvedValue(mediaList);
 
-      const result = await service.updateMediaList(
+      const result = await service.getUpdatedMediaList(
         filesToUpload,
         DBType.DBTemp,
       );
@@ -550,7 +582,7 @@ describe('MediaDB', () => {
       jest.spyOn(mediaRepository, 'find').mockResolvedValue([]);
 
       await expect(
-        service.updateMediaList(filesToUpload, DBType.DBMedia),
+        service.getUpdatedMediaList(filesToUpload, DBType.DBMedia),
       ).rejects.toThrow(
         new NotFoundException(
           `Ids not found in database: 507f1f77bcf86cd799439011, 507f1f77bcf86cd799439012`,

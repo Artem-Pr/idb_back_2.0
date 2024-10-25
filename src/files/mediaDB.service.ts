@@ -3,7 +3,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import type { DeleteResult, MongoRepository } from 'typeorm';
+import type { BulkWriteResult, DeleteResult, MongoRepository } from 'typeorm';
 import { uniq } from 'ramda';
 import { MediaTemp } from './entities/media-temp.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -34,6 +34,7 @@ import type { DBFilePath } from 'src/common/types';
 import { CustomLogger } from 'src/logger/logger.service';
 import type { GetFilesInputDto } from './dto/get-files-input.dto';
 import type { GetFilesOutputDto, Pagination } from './dto/get-files-output.dto';
+import { LogMethod } from 'src/logger/logger.decorator';
 
 export enum DBType {
   DBTemp = 'temp',
@@ -104,14 +105,22 @@ export class MediaDBService extends MediaDBQueryCreators {
     return await this.tempRepository.save(mediaTemp);
   }
 
+  @LogMethod('mediaRepository.save')
   async addMediaToDB<T extends Media | Media[]>(media: T): Promise<T> {
     return await this.mediaRepository.save(media as any);
   }
 
+  @LogMethod('mediaRepository.bulkWrite')
+  async updateMediaInDB(mediaList: Media[]): Promise<BulkWriteResult> {
+    return this.mediaRepository.bulkWrite(this.getUpdateMediaQuery(mediaList));
+  }
+
+  @LogMethod('mediaRepository.find')
   async findMediaByIdsInDB(ids: string[]): Promise<Media[]> {
     return this.mediaRepository.find(this.ormFindByIdsQuery(ids));
   }
 
+  @LogMethod('tempRepository.find')
   async findMediaByIdsInDBTemp(ids: string[]): Promise<MediaTemp[]> {
     return this.tempRepository.find(this.ormFindByIdsQuery(ids));
   }
@@ -206,7 +215,7 @@ export class MediaDBService extends MediaDBQueryCreators {
     return tempDBMediaList;
   }
 
-  async updateMediaList(
+  async getUpdatedMediaList(
     filesToUpload: UpdatedFilesInputDto,
     database: DBType,
   ): Promise<UpdateMedia[]> {
@@ -217,7 +226,7 @@ export class MediaDBService extends MediaDBQueryCreators {
 
     return mediaList.map((media) => {
       const currentMediaUpdateObject =
-        updatedFilesInputObject[media._id.toString()];
+        updatedFilesInputObject[media._id.toHexString()];
       const updatedMedia = this.updateDBMediaEntity(
         media,
         currentMediaUpdateObject,
