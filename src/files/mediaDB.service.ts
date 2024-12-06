@@ -28,6 +28,7 @@ import type {
 import { MediaDBQueryCreators } from './mediaDBQueryCreators';
 import {
   getFullPathWithoutNameAndFirstSlash,
+  isSupportedVideoMimeType,
   removeExtraSlashes,
 } from 'src/common/fileNameHelpers';
 import type { DBFilePath } from 'src/common/types';
@@ -35,6 +36,7 @@ import { CustomLogger } from 'src/logger/logger.service';
 import type { GetFilesInputDto } from './dto/get-files-input.dto';
 import type { GetFilesOutputDto, Pagination } from './dto/get-files-output.dto';
 import { LogMethod } from 'src/logger/logger.decorator';
+import { decodeString } from 'src/common/utils';
 
 export enum DBType {
   DBTemp = 'temp',
@@ -79,10 +81,8 @@ export class MediaDBService extends MediaDBQueryCreators {
     filePaths: FilePaths,
     file: ProcessFile,
   ): Promise<MediaTemp> {
-    // добавляем в filedata дату создания фоточки (при необходимости)
     const originalDate = getOriginalDateFromExif(exifData);
 
-    // Create a new instance of MediaTemp
     const mediaTemp: MediaTemp = new MediaTemp();
 
     mediaTemp.changeDate = null;
@@ -95,13 +95,14 @@ export class MediaDBService extends MediaDBQueryCreators {
     mediaTemp.megapixels = exifData.Megapixels || null;
     mediaTemp.mimetype = file.mimetype;
     mediaTemp.originalDate = toDateUTC(originalDate);
-    mediaTemp.originalName = file.originalname;
+    mediaTemp.originalName = decodeString(file.originalname);
     mediaTemp.preview = filePaths.previewPath;
     mediaTemp.rating = exifData.Rating || null;
     mediaTemp.size = file.size;
-    mediaTemp.timeStamp = DEFAULT_TIME_STAMP;
+    mediaTemp.timeStamp = isSupportedVideoMimeType(file.mimetype)
+      ? DEFAULT_TIME_STAMP
+      : null;
 
-    // Save the new MediaTemp entity to the database
     return await this.tempRepository.save(mediaTemp);
   }
 
@@ -110,9 +111,16 @@ export class MediaDBService extends MediaDBQueryCreators {
     return await this.mediaRepository.save(media as any);
   }
 
-  @LogMethod('mediaRepository.bulkWrite')
+  @LogMethod('mediaRepository.bulkWrite.updateMediaInDB')
   async updateMediaInDB(mediaList: Media[]): Promise<BulkWriteResult> {
     return this.mediaRepository.bulkWrite(this.getUpdateMediaQuery(mediaList));
+  }
+
+  @LogMethod('mediaRepository.bulkWrite.replaceMediaInDB')
+  async replaceMediaInDB(mediaList: Media[]): Promise<BulkWriteResult> {
+    return this.mediaRepository.bulkWrite(
+      this.getReplacementMediaQuery(mediaList),
+    );
   }
 
   @LogMethod('mediaRepository.find')

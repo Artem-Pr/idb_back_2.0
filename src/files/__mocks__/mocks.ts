@@ -6,9 +6,22 @@ import type { ProcessFile } from '../types';
 import type { UploadFileOutputDto } from '../dto/upload-file-output.dto';
 import { omit } from 'ramda';
 import { SupportedImageMimetypes } from 'src/common/constants';
+import { ExifDateTime } from 'exiftool-vendored';
+
+const dateTimeOriginalMock = new ExifDateTime(
+  2019,
+  9,
+  19,
+  12,
+  0,
+  0,
+  0,
+  undefined,
+  '2019:09:19 12:00:00',
+);
 
 export const exifDataMock = {
-  DateTimeOriginal: '2020-01-01 00:00:00',
+  DateTimeOriginal: dateTimeOriginalMock,
   Description: 'test description',
   GPSPosition: '42.5, 42.5',
   ImageSize: '1920x1080',
@@ -29,6 +42,7 @@ export const uploadFileMock: UploadFileOutputDto = {
           'http://localhost:3000/previews/image-heic/preview/2023.07.02 - originalDate/9eec89c3e7cf18920302f4e55d10aa52-preview.jpg',
         staticPath:
           'http://localhost:3000/previews/image-heic/fullSize/2023.07.02 - originalDate/9eec89c3e7cf18920302f4e55d10aa52-fullSize.jpg',
+        staticVideoFullSize: null,
       },
       {
         filePath: '/main/SD/IMG_1728.heic',
@@ -38,6 +52,7 @@ export const uploadFileMock: UploadFileOutputDto = {
           'http://localhost:3000/previews/image-heic/preview/2023.07.02 - originalDate/f7d6132c59acb526c1df74f438c744fa-preview.jpg',
         staticPath:
           'http://localhost:3000/previews/image-heic/fullSize/2023.07.02 - originalDate/f7d6132c59acb526c1df74f438c744fa-fullSize.jpg',
+        staticVideoFullSize: null,
       },
     ],
     description: exifDataMock.Description,
@@ -55,6 +70,7 @@ export const uploadFileMock: UploadFileOutputDto = {
       'http://localhost:3000/previews/5136bc14-512f-47f9-a551-304bb254f528-fullSize.jpg',
     staticPreview:
       'http://localhost:3000/temp/5136bc14-512f-47f9-a551-304bb254f528-preview.jpg',
+    staticVideoFullSize: null,
     timeStamp: '00:00:00.000',
   },
 };
@@ -112,6 +128,7 @@ export class UploadFileMock {
       filePath: null,
       staticPath: this._properties.staticPath,
       staticPreview: this._properties.staticPreview,
+      staticVideoFullSize: null,
       ...omit(['filePath', 'preview', 'fullSizeJpg', '_id'], media),
     };
 
@@ -166,11 +183,7 @@ export function createMediaMock({
   media.imageSize = exifDataMock.ImageSize;
   media.keywords = ['test', 'media'];
   media.changeDate = new Date('2023-07-02T17:36:33.000Z').getTime();
-  media.originalDate = new Date(
-    typeof exifDataMock.DateTimeOriginal === 'string'
-      ? exifDataMock.DateTimeOriginal
-      : '',
-  );
+  media.originalDate = exifDataMock.DateTimeOriginal.toDate();
   media.filePath = `/path/to/${name}.jpg`;
   media.preview = `/path/to/${name}-preview.jpg`;
   media.fullSizeJpg = `/path/to/${name}-fullSize.jpg`;

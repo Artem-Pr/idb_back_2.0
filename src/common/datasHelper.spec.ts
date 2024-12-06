@@ -1,6 +1,6 @@
 import {
   formatDate,
-  isExifDateTime,
+  isValidExifDateTime,
   toDateUTC,
   toMillisecondsUTC,
 } from './datesHelper';
@@ -13,21 +13,21 @@ const mockExifDateTime = {
 describe('dataHelpers', () => {
   describe('isExifDateTime', () => {
     it('should return true for a valid ExifDateTime object', () => {
-      expect(isExifDateTime(mockExifDateTime)).toBe(true);
+      expect(isValidExifDateTime(mockExifDateTime)).toBe(true);
     });
 
     it('should return false for an invalid ExifDateTime object', () => {
       const invalidExifDateTime = {
         rawValue: 'invalid-date',
       } as ExifDateTime;
-      expect(isExifDateTime(invalidExifDateTime)).toBe(false);
+      expect(isValidExifDateTime(invalidExifDateTime)).toBe(false);
     });
 
     it('should return false for non-ExifDateTime inputs', () => {
-      expect(isExifDateTime('2023-01-01')).toBe(false);
-      expect(isExifDateTime(123456)).toBe(false);
-      expect(isExifDateTime(null)).toBe(false);
-      expect(isExifDateTime(undefined)).toBe(false);
+      expect(isValidExifDateTime('2023-01-01')).toBe(false);
+      expect(isValidExifDateTime(123456)).toBe(false);
+      expect(isValidExifDateTime(null)).toBe(false);
+      expect(isValidExifDateTime(undefined)).toBe(false);
     });
   });
 
@@ -50,6 +50,13 @@ describe('dataHelpers', () => {
       const date = toDateUTC(inputDate);
       expect(date).toBeInstanceOf(Date);
       expect(date.getTime()).toBe(inputDate.getTime());
+    });
+
+    it('should return 1970-01-01T00:00:00.000Z for invalid date', () => {
+      const invalidDate = 'not-a-real-date';
+      const date = toDateUTC(invalidDate);
+      expect(date).toBeInstanceOf(Date);
+      expect(date.toISOString()).toBe('1970-01-01T00:00:00.000Z');
     });
   });
 

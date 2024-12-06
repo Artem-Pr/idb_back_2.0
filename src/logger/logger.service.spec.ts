@@ -49,9 +49,8 @@ describe('CustomLogger', () => {
     const processName = 'testProcess';
     customLogger.finishProcess({ processId, processName });
     expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        `❌ Timer for processId '${processId}' was not found.`,
-      ),
+      `❌ Timer for processId '${processId}' was not found.`,
+      undefined,
     );
   });
 
@@ -64,16 +63,16 @@ describe('CustomLogger', () => {
     customLogger.startProcess({ processId, processName });
     customLogger.errorProcess({ processId, processName }, errorData);
     expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        `❌ Process testProcess: testProcessId - {\"message\":\"Error occurred\"} +`,
-      ),
+      '❌ Process testProcess: testProcessId +0ms',
+      [{ message: 'Error occurred' }],
     );
 
     // and without error data
     customLogger.startProcess({ processId, processName });
     customLogger.errorProcess({ processId, processName });
     expect(errorSpy).toHaveBeenLastCalledWith(
-      expect.stringContaining(`❌ Process testProcess: testProcessId +`),
+      '❌ Process testProcess: testProcessId +0ms',
+      undefined,
     );
   });
 
@@ -115,8 +114,15 @@ describe('CustomLogger', () => {
       };
       customLogger.logEndpointError(endpointDataWithId);
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('❌ Endpoint GET (/test): 12345'),
+      expect(errorSpy).toHaveBeenNthCalledWith(
+        1,
+        "❌ Timer for processId '12345' was not found.",
+        undefined,
+      );
+      expect(errorSpy).toHaveBeenNthCalledWith(
+        2,
+        '❌ Endpoint GET (/test): 12345 ',
+        [{ error: 'An error occurred' }],
       );
     });
   });
@@ -150,16 +156,8 @@ describe('CustomLogger', () => {
 
     // with error data
     customLogger.errorProcess({ processName }, errorData);
-    expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        `❌ testProcess: {\"message\":\"Error occurred\"}`,
-      ),
-    );
-
-    // and without error data
-    customLogger.errorProcess({ processName });
-    expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining(`❌ testProcess: `),
-    );
+    expect(errorSpy).toHaveBeenNthCalledWith(1, '❌ testProcess', [
+      { message: 'Error occurred' },
+    ]);
   });
 });

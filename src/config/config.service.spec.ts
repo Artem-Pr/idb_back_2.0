@@ -211,7 +211,6 @@ describe('ConfigService', () => {
       expect(configService.rootPaths).toEqual({
         temp: '../../test-data/temp',
         volumes: '../../test-data/volumes',
-        test: '../../test-data/test',
         previews: '../../test-data/previews',
       });
     });
@@ -221,7 +220,6 @@ describe('ConfigService', () => {
       expect(configService.rootPaths).toEqual({
         temp: 'test-data/temp',
         volumes: 'test-data/volumes',
-        test: 'test-data/test',
         previews: 'test-data/previews',
       });
     });

@@ -88,38 +88,13 @@ describe('MediaDB', () => {
       const mediaTempMock: MediaTemp = createMediaTempMock();
       jest.spyOn(tempRepository, 'save').mockResolvedValue(mediaTempMock);
 
-      const expectedResponse = {
-        changeDate: null,
-        description: 'test description',
-        exif: {
-          DateTimeOriginal: '2020-01-01 00:00:00',
-          Description: 'test description',
-          GPSPosition: '42.5, 42.5',
-          ImageSize: '1920x1080',
-          Megapixels: 12,
-          Rating: 5,
-        },
-        filePath: '/path/to/file.jpg',
-        fullSizeJpg: '/path/to-fullSize.jpg',
-        imageSize: '1920x1080',
-        keywords: [],
-        megapixels: 12,
-        mimetype: 'image/jpg',
-        originalDate: new Date('2020-01-01T00:00:00.000Z'),
-        originalName: 'original_mock_file.jpg',
-        preview: '/path/to-preview.jpg',
-        rating: 5,
-        size: 1024,
-        timeStamp: '00:00:00.000',
-      };
-
       const result = await service.addFileToDBTemp(
         exifDataMock,
         filePathsMock,
         fileMock,
       );
 
-      expect(tempRepository.save).toHaveBeenCalledWith(expectedResponse);
+      expect(tempRepository.save).toMatchSnapshot();
       expect(result).toEqual(mediaTempMock);
     });
   });
@@ -155,6 +130,33 @@ describe('MediaDB', () => {
           updateOne: {
             filter: { _id: mediaMock2._id },
             update: { $set: mediaMock2 },
+          },
+        },
+      ]);
+    });
+  });
+
+  describe('replaceMediaInDB', () => {
+    it('should call mediaRepository.bulkWrite with the correct data', async () => {
+      const mediaMock1: Media = createMediaMock({ name: 'mediaMock1' });
+      const mediaMock2: Media = createMediaMock({ name: 'mediaMock2' });
+      const bulkWriteResult = {} as BulkWriteResult;
+      jest
+        .spyOn(mediaRepository, 'bulkWrite')
+        .mockResolvedValue(bulkWriteResult);
+
+      await service.replaceMediaInDB([mediaMock1, mediaMock2]);
+      expect(mediaRepository.bulkWrite).toHaveBeenCalledWith([
+        {
+          replaceOne: {
+            filter: { _id: mediaMock1._id },
+            replacement: mediaMock1,
+          },
+        },
+        {
+          replaceOne: {
+            filter: { _id: mediaMock2._id },
+            replacement: mediaMock2,
           },
         },
       ]);

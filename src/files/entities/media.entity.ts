@@ -71,7 +71,7 @@ export class Media {
   description: ExifDescription;
 
   @Column()
-  timeStamp: string; // default: 00:00:00.000
+  timeStamp: string | null; // default: 00:00:00.000
 
   @Column()
   exif: Tags;

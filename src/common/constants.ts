@@ -38,16 +38,16 @@ export enum EnvConfigKeys {
   IMAGE_STORE_SERVICE_HOST = 'IMAGE_STORE_SERVICE_HOST',
 }
 
-type PreviewServiceOptions = {
+export type PreviewServiceOptions = {
   quality?: ImageStoreServiceInputDto['jpegOptionsQuality'];
   fit?: ImageStoreServiceInputDto['resizeOptionsFit'];
   width?: ImageStoreServiceInputDto['resizeOptionsWidth'];
   height?: ImageStoreServiceInputDto['resizeOptionsHeight'];
 };
 
-type VideoPreviewOptions = {
-  timestamps: ScreenshotsConfig['timestamps'];
-  thumbnailSize: ScreenshotsConfig['size'];
+export type VideoPreviewOptions = {
+  timestamps?: ScreenshotsConfig['timestamps'];
+  thumbnailSize?: ScreenshotsConfig['size'];
 };
 
 export const PreviewOptions: PreviewServiceOptions & VideoPreviewOptions =
@@ -107,7 +107,6 @@ export enum MainDir {
   temp = 'temp',
   volumes = 'volumes',
   previews = 'previews',
-  test = 'test',
 }
 
 export enum MainDirPath {
@@ -129,38 +128,32 @@ export const Folders = Object.freeze({
     [MainDir.temp]: `${MainDirPath.dev}/${MainDir.temp}`,
     [MainDir.volumes]: `${MainDirPath.dev}/${MainDir.volumes}`,
     [MainDir.previews]: `${MainDirPath.dev}/${MainDir.previews}`,
-    [MainDir.test]: `${MainDirPath.dev}/${MainDir.test}`,
   },
   [Envs.TEST]: {
     [MainDir.temp]: `${MainDirPath.test}/${MainDir.temp}`,
     [MainDir.volumes]: `${MainDirPath.test}/${MainDir.volumes}`,
     [MainDir.previews]: `${MainDirPath.test}/${MainDir.previews}`,
-    [MainDir.test]: `${MainDirPath.test}/${MainDir.test}`,
   },
   [Envs.PROD]: {
     [MainDir.temp]: `${MainDirPath.prod}/${MainDir.temp}`,
     [MainDir.volumes]: `${MainDirPath.prod}/${MainDir.volumes}`,
     [MainDir.previews]: `${MainDirPath.prod}/${MainDir.previews}`,
-    [MainDir.test]: `${MainDirPath.prod}/${MainDir.test}`,
   },
   [Envs.DOCKER]: {
     [MainDir.temp]: `${MainDirPath.docker}/${MainDir.temp}`,
     [MainDir.volumes]: `${MainDirPath.docker}/${MainDir.volumes}`,
     [MainDir.previews]: `${MainDirPath.docker}/${MainDir.previews}`,
-    [MainDir.test]: `${MainDirPath.docker}/${MainDir.test}`,
   },
 } as const);
 
 export enum Processors {
   exifProcessor = 'exif-processing',
   fileProcessor = 'file-processing',
-  updateFilesProcessor = 'update-files-processing',
 }
 
 export const Concurrency = Object.freeze({
   [Processors.fileProcessor]: 5,
   [Processors.exifProcessor]: 5,
-  [Processors.updateFilesProcessor]: 5,
 });
 
 export enum SupportedImageExtensions {

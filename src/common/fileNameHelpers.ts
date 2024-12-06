@@ -10,6 +10,8 @@ import {
   SUPPORTED_VIDEO_MIMETYPES,
   SupportedImageExtensions,
 } from './constants';
+import { basename } from 'path';
+
 import { formatDate } from './datesHelper';
 import type {
   ConvertSlashToDash,
@@ -47,7 +49,10 @@ export const getPreviewPath = <
   mimeType,
   postFix,
   date,
-}: GetPreviewPathProps<TMimeType, SPostfix>) => {
+}: GetPreviewPathProps<TMimeType, SPostfix>): RelativePreviewDirectory<
+  TMimeType,
+  SPostfix
+> => {
   const mimeTypeFolderName = mimeType.replace(
     /\//g,
     '-',
@@ -57,6 +62,30 @@ export const getPreviewPath = <
   const previewPath: RelativePreviewDirectory<TMimeType, SPostfix> =
     `/${mimeTypeFolderName}/${postFix}/${dateFolderName}/${fileName}`;
   return previewPath;
+};
+
+export const getPreviewPathDependsOnMainDir = <
+  TMimeType extends SupportedMimetypes['allFiles'],
+  SPostfix extends PreviewPostfix,
+>({
+  date,
+  dirName,
+  mimeType,
+  originalName,
+  postFix,
+}: GetPreviewPathProps<TMimeType, SPostfix> & { dirName: MainDir }) => {
+  if (dirName === MainDir.volumes || dirName === MainDir.previews) {
+    const previewPathRelative = getPreviewPath({
+      originalName: basename(originalName) as FileNameWithExt,
+      mimeType,
+      postFix,
+      date,
+    });
+
+    return previewPathRelative;
+  }
+
+  return addPreviewPostfix(`/${originalName}`, postFix);
 };
 
 type FolderPath = string;

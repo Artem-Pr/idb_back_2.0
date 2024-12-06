@@ -1,9 +1,13 @@
 import type { ConfigType } from 'dayjs';
-import * as dayjs from 'dayjs';
-import * as utc from 'dayjs/plugin/utc';
-import * as customParseFormat from 'dayjs/plugin/customParseFormat';
-import * as timezone from 'dayjs/plugin/timezone';
-import type { ExifDateTime } from 'exiftool-vendored';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+import timezone from 'dayjs/plugin/timezone';
+import type { Maybe } from 'exiftool-vendored';
+import { ExifDateTime } from 'exiftool-vendored';
+import { CustomLogger } from 'src/logger/logger.service';
+
+const logger = new CustomLogger('datesHelper');
 
 dayjs.extend(utc);
 dayjs.extend(customParseFormat);
@@ -11,24 +15,63 @@ dayjs.extend(timezone);
 dayjs.tz.setDefault('UTC');
 
 export const DATE_TIME_FORMAT = 'YYYY.MM.DD HH:mm:ss';
-export const EXIF_DATE_TIME_FORMAT = 'YYYY:MM:DD HH:mm:ss.SSS';
+export const DATE_TIME_FORMAT_WITH_MILLISECONDS = 'YYYY:MM:DD HH:mm:ss.SSS';
 export const DATE_FORMAT = 'YYYY.MM.DD';
+const NO_DATE_TIME = Object.freeze({
+  hours: 12,
+  minutes: 0,
+  seconds: 0,
+});
 
-export const isExifDateTime = (
+export const getExifDateTimeRawValue = (
+  value: ConfigType | ExifDateTime,
+): Maybe<ExifDateTime> =>
+  ExifDateTime.fromEXIF((value as ExifDateTime)?.rawValue || '');
+
+export const isValidExifDateTime = (
   value: ConfigType | ExifDateTime,
 ): value is ExifDateTime => {
-  return dayjs(
-    (value as ExifDateTime)?.rawValue,
-    EXIF_DATE_TIME_FORMAT,
-  ).isValid();
+  const rawValue = (value as ExifDateTime)?.rawValue;
+
+  if (!rawValue) {
+    return false;
+  }
+
+  return Boolean(ExifDateTime.fromEXIF(rawValue)?.isValid);
+};
+
+export const getDateUTCFromExifDateTime = (value: ExifDateTime): Date => {
+  const dateISOString = value.toISOString();
+
+  const hasMilliseconds = dayjs
+    .utc(dateISOString, DATE_TIME_FORMAT_WITH_MILLISECONDS)
+    .isValid();
+
+  return dayjs
+    .utc(
+      dateISOString,
+      hasMilliseconds ? DATE_TIME_FORMAT_WITH_MILLISECONDS : DATE_TIME_FORMAT,
+    )
+    .toDate();
 };
 
 export const toDateUTC = (date: ConfigType | ExifDateTime): Date => {
-  if (isExifDateTime(date)) {
-    return dayjs.utc(date.rawValue, EXIF_DATE_TIME_FORMAT).toDate();
+  if (isValidExifDateTime(date)) {
+    return dayjs
+      .utc(date.rawValue, DATE_TIME_FORMAT_WITH_MILLISECONDS)
+      .toDate();
   }
 
-  return dayjs.utc(date).toDate();
+  if (dayjs.utc(date).isValid()) {
+    return dayjs.utc(date).toDate();
+  }
+
+  logger.logError({
+    method: 'toDateUTC',
+    message: 'Invalid date',
+    errorData: date,
+  });
+  return new Date('1970-01-01T00:00:00.000Z');
 };
 
 export const toMillisecondsUTC = (date: ConfigType): number => {
@@ -39,5 +82,28 @@ export const formatDate = (
   date: ConfigType,
   format: string = DATE_FORMAT,
 ): string => {
-  return dayjs(date).format(format);
+  return dayjs.utc(date).format(format);
+};
+
+export const isBefore = (oldDate: ConfigType, newDate: ConfigType): boolean => {
+  return dayjs(oldDate).isBefore(newDate);
+};
+
+export const hasNoDateTime = (date: ConfigType): boolean => {
+  const hasDefaultHours = dayjs.utc(date).hour() === NO_DATE_TIME.hours;
+  const hasDefaultMinutes = dayjs.utc(date).minute() === NO_DATE_TIME.minutes;
+  const hasDefaultSeconds = dayjs.utc(date).second() === NO_DATE_TIME.seconds;
+  return hasDefaultHours && hasDefaultMinutes && hasDefaultSeconds;
+};
+
+export const hasNoMinutes = (date: ConfigType): boolean => {
+  return dayjs.utc(date).minute() === 0;
+};
+
+export const hasNoSeconds = (date: ConfigType): boolean => {
+  return dayjs.utc(date).second() === 0;
+};
+
+export const hasNoMilliseconds = (date: ConfigType): boolean => {
+  return dayjs.utc(date).millisecond() === 0;
 };

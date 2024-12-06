@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "exiftool",
+        "timemarks",
         "typeorm"
     ],
     "typescript.tsdk": "node_modules/typescript/lib"

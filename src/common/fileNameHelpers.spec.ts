@@ -11,9 +11,11 @@ import {
 } from './constants';
 import type { DBFilePath, FileNameWithExt } from './types';
 import {
+  addDestPrefix,
+  addPreviewPostfix,
   getFullPathWithoutNameAndFirstSlash,
   getPreviewPath,
-  addDestPrefix,
+  getPreviewPathDependsOnMainDir,
   isSupportedExtension,
   isSupportedImageExtension,
   isSupportedImageMimeType,
@@ -25,7 +27,6 @@ import {
   removeExtraLastSlash,
   removeExtraSlashes,
   removeMainDir,
-  addPreviewPostfix,
 } from './fileNameHelpers';
 import { toDateUTC } from './datesHelper';
 
@@ -129,6 +130,35 @@ describe('Utils', () => {
     });
   });
 
+  describe('getPreviewPathDependsOnMainDir', () => {
+    it('should create a preview path for volume main dir', () => {
+      const result = getPreviewPathDependsOnMainDir({
+        date: new Date('2023-10-01'),
+        dirName: MainDir.volumes,
+        mimeType: SupportedImageMimetypes.jpg,
+        originalName: 'test-image.jpg',
+        postFix: PreviewPostfix.preview,
+      });
+
+      const expectedPattern =
+        /^\/image-jpg\/preview\/2023\.10\.01 - originalDate\/test-image-[0-9a-f]{24}-preview\.jpg$/;
+
+      expect(result).toEqual(expect.stringMatching(expectedPattern));
+    });
+
+    it('should create a preview path for temp main dir', () => {
+      const result = getPreviewPathDependsOnMainDir({
+        date: new Date('2023-10-01'),
+        dirName: MainDir.temp,
+        mimeType: SupportedImageMimetypes.jpg,
+        originalName: 'test-image.jpg',
+        postFix: PreviewPostfix.preview,
+      });
+
+      expect(result).toEqual('/test-image-preview.jpg');
+    });
+  });
+
   describe('addDestPrefix', () => {
     it('should prepend "./" to a given folder path', () => {
       const folderPath = 'some/folder/path';
@@ -183,6 +213,21 @@ describe('Utils', () => {
       const fileName = 'UPPERCASE.JPG';
       const result = addPreviewPostfix(fileName, PreviewPostfix.preview);
       expect(result).toBe('UPPERCASE-preview.jpg');
+    });
+
+    it('should handle filePath correctly', () => {
+      const fileName = 'dirname/UPPERCASE.JPG';
+      const result = addPreviewPostfix(fileName, PreviewPostfix.preview);
+      expect(result).toBe('dirname/UPPERCASE-preview.jpg');
+    });
+
+    it('should add preview postfix with hash', () => {
+      const fileName = 'test file name.jpg';
+      const result = addPreviewPostfix(fileName, PreviewPostfix.preview, true);
+
+      const expectedPattern = /^test file name-[0-9a-f]{24}-preview\.jpg$/;
+
+      expect(result).toEqual(expect.stringMatching(expectedPattern));
     });
   });
 

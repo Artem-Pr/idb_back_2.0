@@ -8,8 +8,9 @@ import {
   Processors,
   MainDir,
   SupportedImageMimetypes,
+  SupportedVideoMimeTypes,
 } from 'src/common/constants';
-import type { FileProcessingJob } from 'src/jobs/files.processor';
+import type { CreatePreviewJob } from 'src/jobs/files.processor';
 import type { ExifData, GetExifJob } from 'src/jobs/exif.processor';
 import { ConfigService } from 'src/config/config.service';
 import { MediaTemp } from './entities/media-temp.entity';
@@ -46,7 +47,7 @@ const mockExifJob = {
 } as Partial<Job<GetExifJob>> as Job<GetExifJob>;
 const mockPreviewJob = {
   finished: jest.fn().mockResolvedValue(previewJobResult),
-} as Partial<Job<FileProcessingJob>> as Job<FileProcessingJob>;
+} as Partial<Job<CreatePreviewJob>> as Job<CreatePreviewJob>;
 
 const mockDuplicateOriginalname = 'duplicate';
 const mockDuplicates = [
@@ -75,6 +76,7 @@ const resetMockUpload = () => {
       filePath: '/path/to/duplicate1.jpg',
       mimetype: SupportedImageMimetypes.jpg,
       originalName: 'duplicate.jpg',
+      staticVideoFullSize: null,
       staticPath:
         'http://localhost:3000/previews/path/to/duplicate1-fullSize.jpg',
       staticPreview:
@@ -84,6 +86,7 @@ const resetMockUpload = () => {
       filePath: '/path/to/duplicate2.jpg',
       mimetype: SupportedImageMimetypes.jpg,
       originalName: 'duplicate.jpg',
+      staticVideoFullSize: null,
       staticPath:
         'http://localhost:3000/previews/path/to/duplicate2-fullSize.jpg',
       staticPreview:
@@ -95,7 +98,7 @@ const resetMockUpload = () => {
 describe('FilesService', () => {
   let addFileToDBTemp: jest.Mock<MediaTemp>;
   let exifQueue: Queue<GetExifJob>;
-  let fileQueue: Queue<FileProcessingJob>;
+  let fileQueue: Queue<CreatePreviewJob>;
   let getSameFilesIfExist: jest.Mock<GetSameFilesIfExist>;
   let mediaDBService: MediaDBService;
   let service: FilesService;
@@ -125,13 +128,14 @@ describe('FilesService', () => {
           useValue: {
             addFileToDBTemp,
             addMediaToDB: jest.fn((mediaList: Media[]) => mediaList),
-            updateMediaInDB: jest.fn(),
             deleteMediaByIds: jest.fn(),
             deleteMediaFromTempDB: jest.fn(),
             emptyTempDB: jest.fn(),
             getFiles: jest.fn(),
             getSameFilesIfExist,
             getUpdatedMediaList,
+            replaceMediaInDB: jest.fn(),
+            updateMediaInDB: jest.fn(),
           },
         },
         {
@@ -144,8 +148,9 @@ describe('FilesService', () => {
           provide: DiscStorageService,
           useValue: {
             emptyDirectory: jest.fn(),
-            removeFilesAndPreviews: jest.fn(),
             moveMediaToNewDir: jest.fn(),
+            removeFilesAndPreviews: jest.fn(),
+            removePreviews: jest.fn(),
           },
         },
         {
@@ -153,6 +158,7 @@ describe('FilesService', () => {
           useValue: {
             addPathsToDB: jest.fn(),
             getDirAndSubfoldersFromArray: jest.fn(),
+            getPreviewsAndFullPathsFormMediaList: jest.fn(),
           },
         },
         {
@@ -169,7 +175,7 @@ describe('FilesService', () => {
     keywordsService = module.get<KeywordsService>(KeywordsService);
     pathsService = module.get<PathsService>(PathsService);
     diskStorageService = module.get<DiscStorageService>(DiscStorageService);
-    fileQueue = module.get<Queue<FileProcessingJob>>(
+    fileQueue = module.get<Queue<CreatePreviewJob>>(
       getQueueToken(Processors.fileProcessor),
     );
     exifQueue = module.get<Queue<GetExifJob>>(
@@ -285,6 +291,7 @@ describe('FilesService', () => {
           'http://localhost:3000/previews/path/to/test1.jpg-fullSize.jpg',
         staticPreview:
           'http://localhost:3000/previews/path/to/test1.jpg-preview.jpg',
+        staticVideoFullSize: null,
       },
       {
         ...omit(
@@ -297,6 +304,7 @@ describe('FilesService', () => {
           'http://localhost:3000/previews/path/to/test2.jpg-fullSize.jpg',
         staticPreview:
           'http://localhost:3000/previews/path/to/test2.jpg-preview.jpg',
+        staticVideoFullSize: null,
       },
     ];
 
@@ -595,6 +603,110 @@ describe('FilesService', () => {
     });
   });
 
+  describe('updateVideoPreviews', () => {
+    it('should update video previews', async () => {
+      const mediaToUpdate: Media = new Media();
+      mediaToUpdate.mimetype = SupportedVideoMimeTypes.mov;
+      mediaToUpdate.originalDate = new Date('2010-10-10 10:10:10');
+      mediaToUpdate.timeStamp = '00:01:02.000';
+      const originalFilePath = '/path/to/file.mov';
+
+      const result = await service['updateVideoPreviews'](
+        mediaToUpdate,
+        originalFilePath,
+      );
+
+      expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('updateVideoPreviewsWithNewTimeStamp', () => {
+    it('should update video previews with new timestamp', async () => {
+      const oldMedia = new Media();
+      oldMedia.mimetype = SupportedVideoMimeTypes.mov;
+      oldMedia.originalDate = new Date('2010-10-10 10:10:10');
+      oldMedia.filePath = '/path/to/updatedFilePath.mov';
+      oldMedia.originalName = 'updatedFilePath.mov';
+      oldMedia.timeStamp = '00:00:00.000';
+
+      const newMedia = new Media();
+      newMedia.mimetype = SupportedVideoMimeTypes.mov;
+      newMedia.originalDate = new Date('2010-10-10 10:10:10');
+      newMedia.originalName = 'updatedFilePath.mov';
+      newMedia.timeStamp = '00:01:02.000';
+
+      const updatedMediaList: UpdateMedia[] = [
+        {
+          oldMedia,
+          newMedia,
+        },
+      ];
+
+      const result =
+        await service['updateVideoPreviewsWithNewTimeStamp'](updatedMediaList);
+
+      expect(result).not.toEqual(updatedMediaList);
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should not update video previews if timeStamp is not changed', async () => {
+      const oldMedia = new Media();
+      oldMedia.mimetype = SupportedVideoMimeTypes.mov;
+      oldMedia.originalDate = new Date('2010-10-10 10:10:10');
+      oldMedia.filePath = '/path/to/updatedFilePath.mov';
+      oldMedia.originalName = 'updatedFilePath.mov';
+      oldMedia.timeStamp = '00:00:00.000';
+
+      const newMedia = new Media();
+      newMedia.mimetype = SupportedVideoMimeTypes.mov;
+      newMedia.originalDate = new Date('2010-10-10 10:10:10');
+      newMedia.originalName = 'updatedFilePath.mov';
+      oldMedia.timeStamp = '00:00:00.000';
+
+      const updatedMediaList: UpdateMedia[] = [
+        {
+          oldMedia,
+          newMedia,
+        },
+      ];
+
+      const result =
+        await service['updateVideoPreviewsWithNewTimeStamp'](updatedMediaList);
+
+      expect(result).toEqual(updatedMediaList);
+    });
+  });
+
+  describe('removeAbandonedPreviews', () => {
+    it('should remove abandoned previews if timeStamp is changed', async () => {
+      const oldMedia = new Media();
+      oldMedia.mimetype = SupportedVideoMimeTypes.mov;
+      oldMedia.originalDate = new Date('2010-10-10 10:10:10');
+      oldMedia.filePath = '/path/to/updatedFilePath.mov';
+      oldMedia.originalName = 'updatedFilePath.mov';
+      oldMedia.timeStamp = '00:00:00.000';
+
+      const newMedia = new Media();
+      newMedia.mimetype = SupportedVideoMimeTypes.mov;
+      newMedia.originalDate = new Date('2010-10-10 10:10:10');
+      newMedia.originalName = 'updatedFilePath.mov';
+      newMedia.timeStamp = '00:01:02.000';
+
+      const updatedMediaList: UpdateMedia[] = [
+        {
+          oldMedia,
+          newMedia,
+        },
+      ];
+
+      await service['removeAbandonedPreviews'](updatedMediaList);
+
+      expect(
+        pathsService.getPreviewsAndFullPathsFormMediaList,
+      ).toHaveBeenCalledWith([oldMedia]);
+    });
+  });
+
   describe('updateFiles', () => {
     const filesToUpdate: UpdatedFilesInputDto = {
       files: [
@@ -700,8 +812,8 @@ describe('FilesService', () => {
     } as Partial<ProcessFile> as ProcessFile;
 
     let startAllQueues: jest.SpyInstance<
-      Promise<{ exifJob: Job<GetExifJob>; previewJob: Job<FileProcessingJob> }>,
-      [Pick<FileProcessingJob, 'fileName' | 'fileType'>],
+      Promise<{ exifJob: Job<GetExifJob>; previewJob: Job<CreatePreviewJob> }>,
+      [Pick<CreatePreviewJob, 'fileName' | 'fileType'>],
       any
     >;
     let finishAllQueues: jest.SpyInstance<
@@ -712,7 +824,7 @@ describe('FilesService', () => {
       [
         {
           exifJob: Job<GetExifJob>;
-          previewJob: Job<FileProcessingJob>;
+          previewJob: Job<CreatePreviewJob>;
         },
       ],
       any

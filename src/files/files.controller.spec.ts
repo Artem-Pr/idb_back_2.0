@@ -103,6 +103,7 @@ describe('FilesController', () => {
             originalName: '2019.09.19 IMG_9046.jpg',
             rating: null,
             size: 1916910,
+            staticVideoFullSize: null,
             staticPath:
               'http://localhost:3000/volumes/3/2019.09.19 IMG_9046.jpg',
             staticPreview:

@@ -40,7 +40,9 @@ export function LogController(endpoint: string) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
-      const logger = new CustomLogger(target.constructor.name);
+      const logger = new CustomLogger(target.constructor.name, {
+        timestamp: true,
+      });
       const process = logger.logEndpointStart({
         endpoint,
         method: propertyKey,

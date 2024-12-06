@@ -5,21 +5,29 @@ import {
 } from '@nestjs/common';
 import { Media } from './entities/media.entity';
 import { ConfigService } from 'src/config/config.service';
-import { dirname, resolve } from 'path';
+import { dirname, normalize, resolve } from 'path';
 import type { MoveOptions } from 'fs-extra';
 import { emptyDir, ensureDir, move, readdir, remove } from 'fs-extra';
-import { MainDir } from 'src/common/constants';
+import { Envs, MainDir, PreviewPostfix } from 'src/common/constants';
 import { CustomLogger } from 'src/logger/logger.service';
 import type { UpdateMedia } from './mediaDB.service';
 import { resolveAllSettled } from 'src/common/utils';
 import {
   getFullPathWithoutNameAndFirstSlash,
+  getPreviewPathDependsOnMainDir,
   removeExtraSlashes,
 } from 'src/common/fileNameHelpers';
 import type {
   DBFilePath,
   DBFullSizePath,
   DBPreviewPath,
+  FileNameWithExt,
+  FullSizeName,
+  NormalizedPath,
+  PathWithMainDir,
+  PreviewName,
+  RemoveDoubleSlashes,
+  SupportedMimetypes,
 } from 'src/common/types';
 import { PathsService } from 'src/paths/paths.service';
 import { LogMethod } from 'src/logger/logger.decorator';
@@ -32,6 +40,13 @@ interface ChangeFileDirectoryProps {
   moveOptions?: MoveOptions;
 }
 
+interface GetFilePathWithPathsProps {
+  dirName: MainDir;
+  filePath: FileNameWithExt;
+  mimeType: SupportedMimetypes['allFiles'];
+  date?: Date;
+}
+
 @Injectable()
 export class DiscStorageService {
   private readonly logger = new CustomLogger(DiscStorageService.name);
@@ -40,6 +55,83 @@ export class DiscStorageService {
     private configService: ConfigService,
     private pathsService: PathsService,
   ) {}
+
+  getPreviewMainDir(mediaFileMainDir: MainDir): MainDir {
+    return mediaFileMainDir === MainDir.volumes
+      ? MainDir.previews
+      : mediaFileMainDir;
+  }
+
+  getFilePathWithRootDir<
+    S extends FileNameWithExt | PreviewName | FullSizeName,
+    T extends MainDir,
+  >(dirName: T, filePath: S): RemoveDoubleSlashes<NormalizedPath<Envs, T, S>> {
+    const filePathWithRootDir: NormalizedPath<Envs, T, S> =
+      `${this.configService.rootPaths[dirName]}/${filePath}`;
+    return normalize(filePathWithRootDir) as RemoveDoubleSlashes<
+      typeof filePathWithRootDir
+    >;
+  }
+
+  getFilePathStartsWithMainDir<
+    S extends FileNameWithExt | PreviewName | FullSizeName,
+    T extends MainDir,
+  >(dirName: T, filePath: S): RemoveDoubleSlashes<PathWithMainDir<T, S>> {
+    const filePathStartsWithMainDir: PathWithMainDir<T, S> =
+      `${dirName}/${filePath}`;
+    return normalize(filePathStartsWithMainDir) as RemoveDoubleSlashes<
+      typeof filePathStartsWithMainDir
+    >;
+  }
+
+  getPreviewPaths({
+    date,
+    dirName,
+    filePath,
+    mimeType,
+  }: GetFilePathWithPathsProps) {
+    const filePathWithRoot = this.getFilePathWithRootDir(dirName, filePath);
+    const fullSizePathWithoutRoot = getPreviewPathDependsOnMainDir({
+      date,
+      dirName: this.getPreviewMainDir(dirName),
+      mimeType,
+      originalName: filePath,
+      postFix: PreviewPostfix.fullSize,
+    });
+    const fullSizePathWithRoot = this.getFilePathWithRootDir(
+      this.getPreviewMainDir(dirName),
+      fullSizePathWithoutRoot,
+    );
+    const fullSizePathWithMainDir = this.getFilePathStartsWithMainDir(
+      this.getPreviewMainDir(dirName),
+      fullSizePathWithoutRoot,
+    );
+    const previewPathWithoutRoot = getPreviewPathDependsOnMainDir({
+      date,
+      dirName: this.getPreviewMainDir(dirName),
+      mimeType,
+      originalName: filePath,
+      postFix: PreviewPostfix.preview,
+    });
+    const previewPathWithRoot = this.getFilePathWithRootDir(
+      this.getPreviewMainDir(dirName),
+      previewPathWithoutRoot,
+    );
+    const previewPathWithMainDir = this.getFilePathStartsWithMainDir(
+      this.getPreviewMainDir(dirName),
+      previewPathWithoutRoot,
+    );
+
+    return {
+      filePathWithRoot,
+      fullSizePathWithMainDir,
+      fullSizePathWithRoot,
+      fullSizePathWithoutRoot,
+      previewPathWithMainDir,
+      previewPathWithRoot,
+      previewPathWithoutRoot,
+    };
+  }
 
   @LogMethod('moveMediaToNewDir')
   async moveMediaToNewDir(
@@ -101,6 +193,10 @@ export class DiscStorageService {
     const newPath = resolve(
       `${this.configService.rootPaths[newFileMainDir]}${newFilePath}`,
     );
+
+    if (oldPath === newPath) {
+      return;
+    }
 
     try {
       await ensureDir(dirname(newPath));

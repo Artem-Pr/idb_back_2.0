@@ -2,14 +2,29 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { DiscStorageService } from './discStorage.service';
 import { ConfigService } from 'src/config/config.service';
-import * as fs from 'fs-extra';
-import { Envs, Folders, MainDir, MainDirPath } from 'src/common/constants';
+import fs from 'fs-extra';
+import {
+  Envs,
+  Folders,
+  MainDir,
+  MainDirPath,
+  SupportedImageMimetypes,
+} from 'src/common/constants';
 import { UpdateMedia } from './mediaDB.service';
 import { Media } from './entities/media.entity';
 import { InternalServerErrorException } from '@nestjs/common';
-import { dirname } from 'path';
-import { resolveAllSettled } from 'src/common/utils';
-import type { DBFullSizePath, DBPreviewPath } from 'src/common/types';
+import { dirname, normalize } from 'path';
+import {
+  replaceHashWithPlaceholder,
+  resolveAllSettled,
+} from 'src/common/utils';
+import type {
+  DBFullSizePath,
+  DBPreviewPath,
+  FileNameWithExt,
+  FullSizeName,
+  PreviewName,
+} from 'src/common/types';
 import { PathsService } from 'src/paths/paths.service';
 import { ObjectId } from 'mongodb';
 
@@ -96,6 +111,134 @@ describe('DiscStorageService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('getPreviewMainDir', () => {
+    it('should return MainDir.previews when mediaFileMainDir is MainDir.volumes', () => {
+      const result = service.getPreviewMainDir(MainDir.volumes);
+      expect(result).toBe(MainDir.previews);
+    });
+
+    it('should return the same main directory when mediaFileMainDir is not MainDir.volumes', () => {
+      const resultTemp = service.getPreviewMainDir(MainDir.temp);
+      expect(resultTemp).toBe(MainDir.temp);
+
+      const resultPreviews = service.getPreviewMainDir(MainDir.previews);
+      expect(resultPreviews).toBe(MainDir.previews);
+    });
+  });
+
+  describe('getFilePathWithRootDir', () => {
+    it('should return the correct file path with root directory for temp dir', () => {
+      const dirName = MainDir.temp;
+      const filePath: FileNameWithExt = 'file.jpg';
+      const expectedPath = 'test-data/temp/file.jpg';
+
+      const result = service.getFilePathWithRootDir(dirName, filePath);
+
+      expect(result).toBe(expectedPath);
+    });
+
+    it('should return the correct file path with root directory for volumes dir', () => {
+      const dirName = MainDir.volumes;
+      const filePath: PreviewName = 'test-preview.jpg';
+      const expectedPath = 'test-data/volumes/test-preview.jpg';
+
+      const result = service.getFilePathWithRootDir(dirName, filePath);
+
+      expect(result).toBe(expectedPath);
+    });
+
+    it('should return the correct file path with root directory for previews dir', () => {
+      const dirName = MainDir.previews;
+      const filePath: FullSizeName = 'test-fullSize.jpg';
+      const expectedPath = 'test-data/previews/test-fullSize.jpg';
+
+      const result = service.getFilePathWithRootDir(dirName, filePath);
+
+      expect(result).toBe(expectedPath);
+    });
+  });
+
+  describe('getFilePathStartsWithMainDir', () => {
+    it('should return the correct file path starting with main dir for temp dir', () => {
+      const dirName = MainDir.temp;
+      const filePath: FileNameWithExt = 'file.jpg';
+      const expectedPath = normalize(`${dirName}/${filePath}`);
+
+      const result = service.getFilePathStartsWithMainDir(dirName, filePath);
+
+      expect(result).toBe(expectedPath);
+    });
+
+    it('should return the correct file path starting with main dir for volumes dir', () => {
+      const dirName = MainDir.volumes;
+      const filePath: PreviewName = 'test-preview.jpg';
+      const expectedPath = normalize(`${dirName}/${filePath}`);
+
+      const result = service.getFilePathStartsWithMainDir(dirName, filePath);
+
+      expect(result).toBe(expectedPath);
+    });
+
+    it('should return the correct file path starting with main dir for previews dir', () => {
+      const dirName = MainDir.previews;
+      const filePath: FullSizeName = 'test-fullSize.jpg';
+      const expectedPath = normalize(`${dirName}/${filePath}`);
+
+      const result = service.getFilePathStartsWithMainDir(dirName, filePath);
+
+      expect(result).toBe(expectedPath);
+    });
+  });
+
+  describe('getPreviewPaths', () => {
+    it('should return correct preview paths', () => {
+      const result = service.getPreviewPaths({
+        date: new Date('2023-01-01T12:00:00.000Z'),
+        dirName: MainDir.volumes,
+        filePath: 'test-file.jpg',
+        mimeType: SupportedImageMimetypes.jpg,
+      });
+
+      const resultWithoutHash = {
+        filePathWithRoot: replaceHashWithPlaceholder(result.filePathWithRoot),
+        fullSizePathWithMainDir: replaceHashWithPlaceholder(
+          result.fullSizePathWithMainDir,
+        ),
+        fullSizePathWithRoot: replaceHashWithPlaceholder(
+          result.fullSizePathWithRoot,
+        ),
+        fullSizePathWithoutRoot: replaceHashWithPlaceholder(
+          result.fullSizePathWithoutRoot,
+        ),
+        previewPathWithMainDir: replaceHashWithPlaceholder(
+          result.previewPathWithMainDir,
+        ),
+        previewPathWithRoot: replaceHashWithPlaceholder(
+          result.previewPathWithRoot,
+        ),
+        previewPathWithoutRoot: replaceHashWithPlaceholder(
+          result.previewPathWithoutRoot,
+        ),
+      };
+
+      expect(resultWithoutHash).toEqual({
+        filePathWithRoot: 'test-data/volumes/test-file.jpg',
+        fullSizePathWithMainDir:
+          'previews/image-jpg/fullSize/2023.01.01 - originalDate/test-file-{hash}-fullSize.jpg',
+        fullSizePathWithRoot:
+          'test-data/previews/image-jpg/fullSize/2023.01.01 - originalDate/test-file-{hash}-fullSize.jpg',
+        fullSizePathWithoutRoot:
+          '/image-jpg/fullSize/2023.01.01 - originalDate/test-file-{hash}-fullSize.jpg',
+        previewPathWithMainDir:
+          'previews/image-jpg/preview/2023.01.01 - originalDate/test-file-{hash}-preview.jpg',
+        previewPathWithRoot:
+          'test-data/previews/image-jpg/preview/2023.01.01 - originalDate/test-file-{hash}-preview.jpg',
+        previewPathWithoutRoot:
+          '/image-jpg/preview/2023.01.01 - originalDate/test-file-{hash}-preview.jpg',
+      });
+    });
   });
 
   describe('moveMediaToNewDir', () => {
@@ -259,6 +402,19 @@ describe('DiscStorageService', () => {
           `${TEST_DIRECTORY_TEMP}/${DEFAULT_IMAGE_FILENAME_WITH_DIR_2}`,
         ),
       ).toBeTruthy();
+    });
+
+    it('should do nothing if new directory is the same as old directory', async () => {
+      jest.spyOn(fs, 'move').mockImplementation(() => {});
+
+      await service.changeFileDirectory({
+        oldFilePath: DEFAULT_IMAGE_FILENAME_WITH_DIR,
+        oldFileMainDir: MainDir.volumes,
+        newFilePath: DEFAULT_IMAGE_FILENAME_WITH_DIR,
+        newFileMainDir: MainDir.volumes,
+      });
+
+      expect(fs.move).not.toHaveBeenCalled();
     });
 
     it('should throw an error if the file does not exist', async () => {

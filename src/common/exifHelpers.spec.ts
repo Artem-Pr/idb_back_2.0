@@ -1,3 +1,12 @@
+import { exifData as Canon_EOS_60D_exif } from '../../test-data/exifDataMock/Canon_EOS_60D';
+import { exifData as Xiaomi_Mi_Note_3_exif } from '../../test-data/exifDataMock/Xiaomi_Mi_Note_3';
+import { exifData as PS4_screenshot_exif } from '../../test-data/exifDataMock/PS4_screenshot';
+import { exifData as PS4_video_exif } from '../../test-data/exifDataMock/PS4_video';
+import { exifData as iPhone_SE_1st_gen_video_from_life_photo_exif } from '../../test-data/exifDataMock/iPhone_SE_1st_gen_video_from_life_photo';
+import { exifData as iPhone_12_Pro_exif } from '../../test-data/exifDataMock/iPhone_12_Pro';
+import { exifData as iPhone_SE_1st_gen_photo_exif } from '../../test-data/exifDataMock/iPhone_SE_1st_gen_photo';
+import { exifData as iPhone_13_photo_exif } from '../../test-data/exifDataMock/iPhone_13_photo';
+import { exifData as Xiaomi_Yi_Action_Camera_exif } from '../../test-data/exifDataMock/Xiaomi_Yi_Action_Camera';
 import {
   getDescriptionFromExif,
   getKeywordsFromExif,
@@ -51,32 +60,76 @@ describe('exifHelpers', () => {
   });
 
   describe('getOriginalDateFromExif', () => {
-    it('should return CreationDate for Apple quicktime video', () => {
-      const exif: Tags = {
-        HandlerVendorID: 'Apple',
-        MIMEType: 'video/quicktime',
-        CreationDate: '2020-01-01',
-      };
-      expect(getOriginalDateFromExif(exif)).toBe('2020-01-01');
+    it('should return DateCreated for Canon EOS 60D', () => {
+      const exif = Canon_EOS_60D_exif;
+
+      expect(getOriginalDateFromExif(exif as any)).toEqual(
+        new Date('2019-09-19T21:21:26.130Z'),
+      );
     });
 
-    it('Should MediaCreateDate if CreationDate does not exist for Apple quicktime video', () => {
-      const exif: Tags = {
-        HandlerVendorID: 'Apple',
-        MIMEType: 'video/quicktime',
-        MediaCreateDate: '2020-01-01',
-      };
-      expect(getOriginalDateFromExif(exif)).toBe('2020-01-01');
+    it('should return SubSecModifyDate for Xiaomi Mi Note 3', () => {
+      const exif = Xiaomi_Mi_Note_3_exif;
+
+      expect(getOriginalDateFromExif(exif as any)).toEqual(
+        new Date('2021-12-06T10:26:49.366Z'),
+      );
     });
 
-    it('should return DateTimeOriginal if available', () => {
-      const exif: Tags = { DateTimeOriginal: '2020-01-01' };
-      expect(getOriginalDateFromExif(exif)).toBe('2020-01-01');
+    it('should return CreateDate for PS4 screenshots', () => {
+      const exif = PS4_screenshot_exif;
+
+      expect(getOriginalDateFromExif(exif as any)).toEqual(
+        new Date('2022-04-20T16:20:00.000Z'),
+      );
     });
 
-    it('should return MediaCreateDate if DateTimeOriginal does not exist', () => {
-      const exif: Tags = { MediaCreateDate: '2020-01-01' };
-      expect(getOriginalDateFromExif(exif)).toBe('2020-01-01');
+    it('should return TrackCreateDate for PS4 video', () => {
+      const exif = PS4_video_exif;
+
+      expect(getOriginalDateFromExif(exif as any)).toEqual(
+        new Date('2022-05-07T09:07:48.000Z'),
+      );
+    });
+
+    it('should return SubSecCreateDate for "iPhone SE 1st gen" photo', () => {
+      const exif = iPhone_SE_1st_gen_photo_exif;
+
+      expect(getOriginalDateFromExif(exif as any)).toEqual(
+        new Date('2022-09-03T12:06:30.841Z'),
+      );
+    });
+
+    it('should return CreateDate for "iPhone SE 1st gen" video from life photo', () => {
+      const exif = iPhone_SE_1st_gen_video_from_life_photo_exif;
+
+      expect(getOriginalDateFromExif(exif as any)).toEqual(
+        new Date('2019-05-18T12:10:18.000Z'),
+      );
+    });
+
+    it('should return SubSecCreateDate for iPhone 12 Pro photo', () => {
+      const exif = iPhone_12_Pro_exif;
+
+      expect(getOriginalDateFromExif(exif as any)).toEqual(
+        new Date('2023-07-02T15:59:47.929Z'),
+      );
+    });
+
+    it('should return SubSecCreateDate for iPhone 13 photo', () => {
+      const exif = iPhone_13_photo_exif;
+
+      expect(getOriginalDateFromExif(exif as any)).toEqual(
+        new Date('2023-07-02T14:51:58.508Z'),
+      );
+    });
+
+    it('should return DateTimeOriginal for Xiaomi_Yi_Action_Camera photo', () => {
+      const exif = Xiaomi_Yi_Action_Camera_exif;
+
+      expect(getOriginalDateFromExif(exif as any)).toEqual(
+        new Date('2019-01-12T12:00:00.000Z'),
+      );
     });
   });
 });

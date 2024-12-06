@@ -59,8 +59,9 @@ export class CustomLogger extends Logger {
     const duration = processId ? this.endTimer(processId) : '';
     super.error(
       processId
-        ? `❌ Process ${processName}: ${processId}${errorData ? ` - ${this.formatData(errorData)}` : ''} ${duration}`
-        : `❌ ${processName}: ${errorData ? this.formatData(errorData) : ''}`,
+        ? `❌ Process ${processName}: ${processId} ${duration}`
+        : `❌ ${processName}`,
+      errorData && [errorData],
     );
   }
 
@@ -97,7 +98,8 @@ export class CustomLogger extends Logger {
   }: EndpointDataWithId): void {
     const duration = processId ? this.endTimer(processId) : '';
     super.error(
-      `❌ Endpoint ${method} (${endpoint}): ${processId}${errorData ? ` - ${this.formatData(errorData)}` : ''} ${duration}`,
+      `❌ Endpoint ${method} (${endpoint}): ${processId} ${duration}`,
+      errorData && [errorData],
     );
   }
 
@@ -112,11 +114,10 @@ export class CustomLogger extends Logger {
   }: {
     message: string;
     method?: string;
-    errorData?: Record<string, any>;
+    errorData?: unknown;
   }): void {
     const methodMessage = method ? `${method}: ` : '';
-    const dataMessage = errorData ? ` - ${this.formatData(errorData)}` : '';
-    super.error(`${methodMessage}${message}${dataMessage}`);
+    super.error(`${methodMessage}${message}`, errorData && [errorData]);
   }
 
   private formatData(data?: any): string {

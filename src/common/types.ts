@@ -14,6 +14,9 @@ type YYYYMMDD = string;
 export type ConvertSlashToDash<T> =
   T extends `${infer Prefix}/${infer Extension}` ? `${Prefix}-${Extension}` : T;
 
+export type RemoveDoubleSlashes<T extends string> =
+  T extends `${infer P1}//${infer P2}` ? RemoveDoubleSlashes<`${P1}/${P2}`> : T;
+
 export type SupportedMimetypes = {
   image: SupportedImageMimetypes;
   video: SupportedVideoMimeTypes;
@@ -52,6 +55,14 @@ export type NormalizedVideoPath<
 > = `${NormalizedMainDir<Env, MainFolder>}/${FileNameWithVideoExt}`;
 
 export type NormalizedMediaPath = NormalizedImagePath | NormalizedVideoPath;
+export type NormalizedPath<
+  Env extends Envs = Envs,
+  MainFolder extends MainDir = MainDir,
+  FileName extends
+    | FileNameWithExt
+    | PreviewName
+    | FullSizeName = FileNameWithExt,
+> = `${NormalizedMainDir<Env, MainFolder>}/${FileName}`;
 
 type PreviewOrFullSizeName<T extends PreviewPostfix> =
   `${string}-${T}.${SupportedImageExtensions.jpg}`;
@@ -70,7 +81,13 @@ export type FullSizeNormalizedPath<
   MainFolder extends MainDir = MainDir,
 > = `${NormalizedMainDir<Env, MainFolder>}/${FullSizeName}`;
 
-export type PathWithMainDir = `${MainDir}/${FileNameWithExt}`;
+export type PathWithMainDir<
+  MainFolder extends MainDir = MainDir,
+  FileName extends
+    | FileNameWithExt
+    | PreviewName
+    | FullSizeName = FileNameWithExt,
+> = `${MainFolder}/${FileName}`;
 
 export type DBFilePath = `/${FileNameWithExt}`;
 export type DBPreviewPath = `/${PreviewName}`;

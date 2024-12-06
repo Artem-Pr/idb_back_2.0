@@ -1,19 +1,26 @@
 import { InjectQueue } from '@nestjs/bull';
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import type { Job, Queue } from 'bull';
 import { MainDir, PreviewPostfix, Processors } from 'src/common/constants';
-import type { FileProcessingJob } from 'src/jobs/files.processor';
+import type { CreatePreviewJob } from 'src/jobs/files.processor';
 import type { ExifData, GetExifJob } from 'src/jobs/exif.processor';
 import type { ImageStoreServiceOutputDto } from 'src/jobs/dto/image-store-service-output.dto';
 import type {
   DBFilePath,
   DBFullSizePath,
   DBPreviewPath,
+  FileNameWithVideoExt,
 } from 'src/common/types';
-import { resolveAllSettled } from 'src/common/utils';
+import { shallowCopyOfMedia, resolveAllSettled } from 'src/common/utils';
 import {
   getFullPathWithoutNameAndFirstSlash,
   getPreviewPath,
+  isSupportedVideoMimeType,
+  removeExtraSlashes,
   removeMainDir,
 } from 'src/common/fileNameHelpers';
 import type { UpdateMedia } from './mediaDB.service';
@@ -29,6 +36,7 @@ import type {
   GetSameFilesIfExist,
   MediaOutput,
   ProcessFile,
+  StaticPathsObj,
 } from './types';
 import type { CheckDuplicatesFilePathsOutputDto } from './dto/check-duplicates-file-paths-output.dto';
 import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
@@ -38,7 +46,7 @@ import { getKeywordsFromMediaList } from 'src/keywords/helpers/keywordsHelpers';
 import { KeywordsService } from 'src/keywords/keywords.service';
 import { PathsService } from 'src/paths/paths.service';
 import type { GetFilesInputDto } from './dto/get-files-input.dto';
-import { omit } from 'ramda';
+import { isEmpty, omit, pickBy } from 'ramda';
 import type { GetFilesOutputDto } from './dto/get-files-output.dto';
 import type { DeleteFilesInputDto } from './dto/delete-files-input.dto';
 
@@ -53,7 +61,7 @@ export class FilesService {
   private readonly logger = new CustomLogger(FilesService.name);
   constructor(
     @InjectQueue(Processors.fileProcessor)
-    private fileQueue: Queue<FileProcessingJob>,
+    private fileQueue: Queue<CreatePreviewJob>,
     @InjectQueue(Processors.exifProcessor)
     private exifQueue: Queue<GetExifJob>,
     private mediaDB: MediaDBService,
@@ -77,11 +85,8 @@ export class FilesService {
     return {
       ...omit(['_id', 'preview', 'fullSizeJpg'], media),
       id: media._id.toString(),
-      staticPath: media.fullSizeJpg
-        ? this.getStaticPath(media.fullSizeJpg, mainDirPreview)
-        : this.getStaticPath(media.filePath, mainDirFilePath),
-      staticPreview: this.getStaticPath(media.preview, mainDirPreview),
       duplicates: customFields?.duplicates || [],
+      ...this.getStaticPathsFromMedia(media, mainDirFilePath, mainDirPreview),
       ...customFields,
     };
   }
@@ -199,24 +204,103 @@ export class FilesService {
     }
   }
 
+  private async updateVideoPreviews(
+    mediaWithNewTimeStamp: Media,
+    originalFilePath: DBFilePath, // in case filePath is updated
+  ): Promise<Media> {
+    const { mimetype, timeStamp, originalDate } = mediaWithNewTimeStamp;
+    const previewJob = await this.fileQueue.add({
+      dirName: MainDir.volumes,
+      fileName: removeExtraSlashes(originalFilePath) as FileNameWithVideoExt,
+      fileType: mimetype,
+      date: originalDate,
+      videoPreviewOptions: {
+        timestamps: timeStamp ? [timeStamp] : undefined,
+      },
+    });
+
+    const previewJobResult: ImageStoreServiceOutputDto =
+      await previewJob.finished();
+
+    const preview = removeMainDir(previewJobResult.previewPath);
+    const fullSize = previewJobResult.fullSizePath
+      ? removeMainDir(previewJobResult.fullSizePath)
+      : null;
+
+    const newMediaWithUpdatedPreviews = shallowCopyOfMedia(
+      mediaWithNewTimeStamp,
+    );
+    newMediaWithUpdatedPreviews.preview = preview;
+    newMediaWithUpdatedPreviews.fullSizeJpg = fullSize;
+
+    return newMediaWithUpdatedPreviews;
+  }
+
+  private async updateVideoPreviewsWithNewTimeStamp(
+    updatedMediaList: UpdateMedia[],
+  ): Promise<UpdateMedia[]> {
+    const previewJobsPromises: Promise<UpdateMedia>[] = updatedMediaList.map(
+      async ({ newMedia, oldMedia }) => {
+        const needToUpdatePreview = Boolean(
+          newMedia.timeStamp && newMedia.timeStamp !== oldMedia.timeStamp,
+        );
+
+        return {
+          newMedia: needToUpdatePreview
+            ? await this.updateVideoPreviews(newMedia, oldMedia.filePath)
+            : newMedia,
+          oldMedia,
+        };
+      },
+    );
+
+    return resolveAllSettled(previewJobsPromises);
+  }
+
+  private async removeAbandonedPreviews(updatedMediaList: UpdateMedia[]) {
+    const mediasWithAbandonedPreviews = updatedMediaList
+      .filter(
+        ({ oldMedia, newMedia }) =>
+          newMedia.timeStamp && newMedia.timeStamp !== oldMedia.timeStamp,
+      )
+      .map(({ oldMedia }) => oldMedia);
+
+    await this.diskStorageService.removePreviews(
+      this.pathsService.getPreviewsAndFullPathsFormMediaList(
+        mediasWithAbandonedPreviews,
+      ),
+    );
+  }
+
   async updateFiles(filesToUpdate: UpdatedFilesInputDto): Promise<Media[]> {
     let mediaDataForRestore: Media[] = [];
 
+    await this.validateDuplicates(filesToUpdate);
+
     try {
-      const updatedMediaList: UpdateMedia[] =
+      const updatedMediaListWithoutUpdatingPreviews: UpdateMedia[] =
         await this.mediaDB.getUpdatedMediaList(filesToUpdate, DBType.DBMedia);
 
-      mediaDataForRestore = updatedMediaList.map(({ oldMedia }) => oldMedia);
+      mediaDataForRestore = updatedMediaListWithoutUpdatingPreviews.map(
+        ({ oldMedia }) => oldMedia,
+      );
+
+      const updatedMediaList: UpdateMedia[] =
+        await this.updateVideoPreviewsWithNewTimeStamp(
+          updatedMediaListWithoutUpdatingPreviews,
+        );
+
       const updatedMediaDBList = updatedMediaList.map(
         ({ newMedia }) => newMedia,
       );
-      await this.mediaDB.updateMediaInDB(updatedMediaDBList);
+      await this.mediaDB.replaceMediaInDB(updatedMediaDBList);
       await this.updateKeywordsList(updatedMediaList);
       await this.saveNewDirectories(updatedMediaDBList);
       await this.diskStorageService.moveMediaToNewDir(
         updatedMediaList,
         MainDir.volumes,
       );
+      await this.removeAbandonedPreviews(updatedMediaList);
 
       return updatedMediaDBList;
     } catch (error) {
@@ -276,9 +360,9 @@ export class FilesService {
   async startAllProcessFileQueues({
     fileName,
     fileType,
-  }: Pick<FileProcessingJob, 'fileName' | 'fileType'>): Promise<{
+  }: Pick<CreatePreviewJob, 'fileName' | 'fileType'>): Promise<{
     exifJob: Job<GetExifJob>;
-    previewJob: Job<FileProcessingJob>;
+    previewJob: Job<CreatePreviewJob>;
   }> {
     const exifJob = await this.exifQueue.add({
       filePaths: [fileName],
@@ -299,7 +383,7 @@ export class FilesService {
     previewJob,
   }: {
     exifJob: Job<GetExifJob>;
-    previewJob: Job<FileProcessingJob>;
+    previewJob: Job<CreatePreviewJob>;
   }): Promise<{
     exifJobResult: ExifData;
     previewJobResult: ImageStoreServiceOutputDto;
@@ -377,19 +461,42 @@ export class FilesService {
     where: GetSameFilesIfExist,
   ): Promise<DuplicateFile[]> {
     const duplicates = await this.mediaDB.getSameFilesIfExist(where);
-    const preparedDuplicates = duplicates.map(
-      ({ filePath, fullSizeJpg, originalName, mimetype, preview }) => ({
+    const preparedDuplicates = duplicates.map((media) => {
+      const { filePath, mimetype, originalName } = media;
+      return {
         filePath,
         mimetype,
         originalName,
-        staticPreview: this.getStaticPath(preview, MainDir.previews),
-        staticPath: fullSizeJpg
-          ? this.getStaticPath(fullSizeJpg, MainDir.previews)
-          : this.getStaticPath(filePath, MainDir.volumes),
-      }),
-    );
+        ...this.getStaticPathsFromMedia(
+          media,
+          MainDir.volumes,
+          MainDir.previews,
+        ),
+      };
+    });
 
     return preparedDuplicates;
+  }
+
+  private async validateDuplicates(
+    filesToUpdate: UpdatedFilesInputDto,
+  ): Promise<void> {
+    const newFilePaths = filesToUpdate.files
+      .map(({ updatedFields }) => updatedFields.filePath)
+      .filter(Boolean);
+    const mappedNewFilePathsWithDuplicates =
+      await this.getDuplicatesFromMediaDBByFilePaths(newFilePaths);
+
+    const duplicates = pickBy<
+      CheckDuplicatesFilePathsOutputDto,
+      CheckDuplicatesFilePathsOutputDto
+    >((value) => value.length, mappedNewFilePathsWithDuplicates);
+
+    if (!isEmpty(duplicates)) {
+      throw new ConflictException('Files already exist', {
+        cause: duplicates,
+      });
+    }
   }
 
   async deleteFilesByIds(ids: DeleteFilesInputDto['ids']): Promise<void> {
@@ -440,5 +547,25 @@ export class FilesService {
     mainDir: MainDir,
   ): StaticPath<T> {
     return `${this.configService.domain}/${mainDir}${filePath}`;
+  }
+
+  getStaticPathsFromMedia(
+    media: Media,
+    mainDirFilePath: MainDir,
+    mainDirPreview: MainDir,
+  ): StaticPathsObj {
+    const isVideo = isSupportedVideoMimeType(media.mimetype);
+
+    return {
+      staticPath:
+        !isVideo && media.fullSizeJpg
+          ? this.getStaticPath(media.fullSizeJpg, mainDirPreview)
+          : this.getStaticPath(media.filePath, mainDirFilePath),
+      staticPreview: this.getStaticPath(media.preview, mainDirPreview),
+      staticVideoFullSize:
+        isVideo && media.fullSizeJpg
+          ? this.getStaticPath(media.fullSizeJpg, mainDirPreview)
+          : null,
+    };
   }
 }

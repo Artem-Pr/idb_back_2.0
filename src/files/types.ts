@@ -6,12 +6,12 @@ import type {
 } from 'src/common/types';
 import type { StaticPath } from 'src/config/config.service';
 import { Media } from './entities/media.entity';
-import type { FileProcessingJob } from 'src/jobs/files.processor';
+import type { CreatePreviewJob } from 'src/jobs/files.processor';
 import type { UpdatedFieldsInputDto } from './dto/update-files-input.dto';
 
 export interface ProcessFile extends Express.Multer.File {
-  filename: FileProcessingJob['fileName'];
-  mimetype: FileProcessingJob['fileType'];
+  filename: CreatePreviewJob['fileName'];
+  mimetype: CreatePreviewJob['fileType'];
   originalname: FileNameWithExt;
 }
 
@@ -36,6 +36,7 @@ export interface MediaOutput
 export interface StaticPathsObj {
   staticPath: StaticPath<DBFilePath | DBFullSizePath>;
   staticPreview: StaticPath<DBPreviewPath>;
+  staticVideoFullSize: StaticPath<DBFullSizePath> | null;
 }
 
 export interface FileProperties extends Omit<MediaOutput, 'filePath'> {

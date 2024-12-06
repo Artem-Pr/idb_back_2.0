@@ -54,6 +54,8 @@ export class ImageStoreServiceInputDto {
   fileNameWithExtension: string;
   outputPreviewMainDirName?: MainDir;
   outputFullSizeMainDirName?: MainDir;
+  outputPreviewFilePath?: string;
+  outputFullSizeFilePath?: string;
   previewSubfolder?: string;
   fullSizeSubfolder?: string;
   fileType?: string;
