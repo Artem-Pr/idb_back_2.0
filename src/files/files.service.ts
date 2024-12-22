@@ -462,8 +462,9 @@ export class FilesService {
   ): Promise<DuplicateFile[]> {
     const duplicates = await this.mediaDB.getSameFilesIfExist(where);
     const preparedDuplicates = duplicates.map((media) => {
-      const { filePath, mimetype, originalName } = media;
+      const { exif, filePath, mimetype, originalName } = media;
       return {
+        exif,
         filePath,
         mimetype,
         originalName,

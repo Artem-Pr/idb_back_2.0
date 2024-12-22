@@ -30,7 +30,7 @@ import { PathsService } from 'src/paths/paths.service';
 import { KeywordsService } from 'src/keywords/keywords.service';
 import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
 import { GetFilesInputDto } from './dto/get-files-input.dto';
-import { omit } from 'ramda';
+import { omit, clone } from 'ramda';
 import { InternalServerErrorException } from '@nestjs/common';
 
 const exifJobResult: ExifData = {
@@ -73,6 +73,7 @@ const resetMockUpload = () => {
     'http://localhost:3000/temp/path/to/mockTempFile-preview.jpg';
   mockUpload.duplicates = [
     {
+      exif: exifDataMock,
       filePath: '/path/to/duplicate1.jpg',
       mimetype: SupportedImageMimetypes.jpg,
       originalName: 'duplicate.jpg',
@@ -83,6 +84,7 @@ const resetMockUpload = () => {
         'http://localhost:3000/previews/path/to/duplicate1-preview.jpg',
     },
     {
+      exif: exifDataMock,
       filePath: '/path/to/duplicate2.jpg',
       mimetype: SupportedImageMimetypes.jpg,
       originalName: 'duplicate.jpg',
@@ -1085,7 +1087,7 @@ describe('FilesService', () => {
         .spyOn(mediaDBService, 'getSameFilesIfExist')
         .mockReturnValue(new Promise((resolve) => resolve(newMockDuplicates)));
 
-      const expectedDuplicates = utils.deepCopy(
+      const expectedDuplicates = clone(
         mockUpload.uploadFile.properties.duplicates,
       );
       expectedDuplicates[0].staticPath =

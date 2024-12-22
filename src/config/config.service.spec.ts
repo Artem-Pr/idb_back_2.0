@@ -209,9 +209,9 @@ describe('ConfigService', () => {
   describe('rootPaths', () => {
     it('should return development paths when the environment is not set', () => {
       expect(configService.rootPaths).toEqual({
-        temp: '../../test-data/temp',
-        volumes: '../../test-data/volumes',
-        previews: '../../test-data/previews',
+        previews: '/Volumes/Lexar_SL500/MEGA_sync/IDBase-test/previews',
+        temp: '/Volumes/Lexar_SL500/MEGA_sync/IDBase-test/temp',
+        volumes: '/Volumes/Lexar_SL500/MEGA_sync/IDBase-test/volumes',
       });
     });
 

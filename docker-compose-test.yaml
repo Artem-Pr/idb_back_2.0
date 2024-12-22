@@ -1,23 +1,24 @@
 services:
-  # mongo-test:
-  #   image : mongo:4.4
-  #   container_name: IDB_2.0_mongodb_test
-  #   user: nobody
-  #   volumes:
-  #     # - /Users/artempriadkin/Documents/IDBVolume/mongodb:/data/db
-  #     - /Users/artempriadkin/Development/test-data/mongo:/data/db
-  #   ports:
-  #     - "27017:27017"
-  #   restart: unless-stopped
+  mongo-test:
+    image : mongo:4.4
+    container_name: IDB_2.0_mongodb_test
+    user: nobody
+    volumes:
+      # - /Users/artempriadkin/Documents/IDBVolume/mongodb:/data/db
+      # - /Users/artempriadkin/Development/test-data/mongo:/data/db
+      - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/mongodb:/data/db
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
 
-  # redis:
-  #   image: redis:7.2
-  #   container_name: IDB_redis
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - /Users/artempriadkin/Development/test-data/redis:/data
-  #   restart: unless-stopped
+  redis:
+    image: redis:7.2
+    container_name: IDB_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/redis:/data
+    restart: unless-stopped
 
   image_store_service:
     build: ../image_store_service
@@ -25,7 +26,11 @@ services:
     ports:
       - "3005:3005"
     volumes:
-      - /Users/artempriadkin/Development/test-data/temp:/app/temp
-      - /Users/artempriadkin/Development/test-data/volumes:/app/volumes
-      - /Users/artempriadkin/Development/test-data/previews:/app/previews
+      # sudo chmod -R 777 /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/temp
+      # - /Users/artempriadkin/Development/test-data/temp:/app/temp
+      # - /Users/artempriadkin/Development/test-data/volumes:/app/volumes
+      # - /Users/artempriadkin/Development/test-data/previews:/app/previews
+      - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/temp:/app/temp
+      - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/volumes:/app/volumes
+      - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/previews:/app/previews
     restart: unless-stopped

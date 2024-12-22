@@ -45,7 +45,7 @@ export interface FileProperties extends Omit<MediaOutput, 'filePath'> {
 
 export type DuplicateFile = Pick<
   Media,
-  'filePath' | 'originalName' | 'mimetype'
+  'filePath' | 'originalName' | 'mimetype' | 'exif'
 > &
   StaticPathsObj;
 

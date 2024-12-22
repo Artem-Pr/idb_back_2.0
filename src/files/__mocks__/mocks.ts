@@ -35,6 +35,7 @@ export const uploadFileMock: UploadFileOutputDto = {
     changeDate: null,
     duplicates: [
       {
+        exif: exifDataMock,
         filePath: '/main/для теста базы/IMG_1728.heic',
         mimetype: SupportedImageMimetypes.heic,
         originalName: 'IMG_1728.heic',
@@ -45,6 +46,7 @@ export const uploadFileMock: UploadFileOutputDto = {
         staticVideoFullSize: null,
       },
       {
+        exif: exifDataMock,
         filePath: '/main/SD/IMG_1728.heic',
         mimetype: SupportedImageMimetypes.heic,
         originalName: 'IMG_1728.heic',
