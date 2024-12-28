@@ -5,6 +5,8 @@ import {
   getEscapedString,
   resolveAllSettled,
   shallowCopyOfMedia,
+  generatePid,
+  generatePidNumber,
 } from './utils';
 import { getRandomId } from './utils';
 import { createMediaMock } from 'src/files/__mocks__/mocks';
@@ -236,6 +238,42 @@ describe('Utils', () => {
       const encodedString = '\x48\xC3\xA9\x6C\x6C\xC3\xB8'; // 'Héllø' in binary
       const result = decodeString(encodedString);
       expect(result).toBe('Héllø');
+    });
+  });
+  describe('generatePid', () => {
+    it('should return a string of length 6', () => {
+      const pid = generatePid();
+      expect(pid).toHaveLength(6);
+    });
+
+    it('should return a string containing only digits', () => {
+      const pid = generatePid();
+      expect(pid).toMatch(/^\d{6}$/);
+    });
+
+    it('should return different values on subsequent calls', () => {
+      const pid1 = generatePid();
+      const pid2 = generatePid();
+      expect(pid1).not.toBe(pid2);
+    });
+  });
+
+  describe('generatePidNumber', () => {
+    it('should return a number', () => {
+      const pidNumber = generatePidNumber();
+      expect(typeof pidNumber).toBe('number');
+    });
+
+    it('should return a number with 6 digits', () => {
+      const pidNumber = generatePidNumber();
+      expect(pidNumber).toBeGreaterThanOrEqual(100000);
+      expect(pidNumber).toBeLessThan(1000000);
+    });
+
+    it('should return different values on subsequent calls', () => {
+      const pidNumber1 = generatePidNumber();
+      const pidNumber2 = generatePidNumber();
+      expect(pidNumber1).not.toBe(pidNumber2);
     });
   });
 });

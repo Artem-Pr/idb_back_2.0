@@ -1,5 +1,6 @@
 import {
   MainDir,
+  MainDirPath,
   PreviewPostfix,
   SUPPORTED_IMAGE_EXTENSIONS,
   SUPPORTED_IMAGE_MIMETYPES,
@@ -16,6 +17,7 @@ import {
   getFullPathWithoutNameAndFirstSlash,
   getPreviewPath,
   getPreviewPathDependsOnMainDir,
+  getUniqPathsRecursively,
   isSupportedExtension,
   isSupportedImageExtension,
   isSupportedImageMimeType,
@@ -27,8 +29,13 @@ import {
   removeExtraLastSlash,
   removeExtraSlashes,
   removeMainDir,
+  removeMainDirPath,
 } from './fileNameHelpers';
 import { toDateUTC } from './datesHelper';
+
+const MainDirPathMock = {
+  dev: '/Volumes/Lexar_SL500/MEGA_sync/IDBase-test',
+} as unknown as typeof MainDirPath;
 
 describe('Utils', () => {
   describe('getFullPathWithoutNameAndFirstSlash', () => {
@@ -495,6 +502,99 @@ describe('Utils', () => {
     it('should return false for non-image and non-video MIME type', () => {
       const nonMediaMimeType = 'text/plain';
       expect(isSupportedMimeType(nonMediaMimeType)).toBe(false);
+    });
+  });
+
+  describe('removeMainDirPath', () => {
+    const mockMainDirPath: `${MainDirPath}/${MainDir.volumes}` = `${MainDirPathMock.dev}/${MainDir.volumes}`;
+
+    it('should remove the main directory path from a given path', () => {
+      const path: `${typeof mockMainDirPath}/subfolder/file.jpg` = `${mockMainDirPath}/subfolder/file.jpg`;
+      const expectedPath = 'subfolder/file.jpg';
+      const result = removeMainDirPath(path, mockMainDirPath);
+      expect(result).toBe(expectedPath);
+    });
+
+    it('should remove the main directory path from a given path without fileName', () => {
+      const path: `${typeof mockMainDirPath}/subfolder/bom-bom` = `${mockMainDirPath}/subfolder/bom-bom`;
+      const expectedPath = 'subfolder/bom-bom';
+      const result = removeMainDirPath(path, mockMainDirPath);
+      expect(result).toBe(expectedPath);
+    });
+
+    it('should handle paths without subdirectories', () => {
+      const path: `${typeof mockMainDirPath}/file.jpg` = `${mockMainDirPath}/file.jpg`;
+      const expectedPath = 'file.jpg';
+      const result = removeMainDirPath(path, mockMainDirPath);
+      expect(result).toBe(expectedPath);
+    });
+
+    it('should handle paths with multiple subdirectories', () => {
+      const path: `${typeof mockMainDirPath}/a/b/c/file.jpg` = `${mockMainDirPath}/a/b/c/file.jpg`;
+      const expectedPath = 'a/b/c/file.jpg';
+      const result = removeMainDirPath(path, mockMainDirPath);
+      expect(result).toBe(expectedPath);
+    });
+
+    it('should throw an error if mainDirPath does not match', () => {
+      const path: `${typeof mockMainDirPath}/subfolder/file.jpg` =
+        'otherDirPath/mainDir/subfolder/file.jpg' as `${typeof mockMainDirPath}/subfolder/file.jpg`;
+      expect(() => removeMainDirPath(path, mockMainDirPath)).toThrow(
+        'removeMainDirPath - path does not start with mainDirPath: otherDirPath/mainDir/subfolder/file.jpg',
+      );
+    });
+
+    it('should throw an error if path has no mainDirPath', () => {
+      const path: `${typeof mockMainDirPath}/subfolder/file.jpg` =
+        'subfolder/file.jpg' as `${typeof mockMainDirPath}/subfolder/file.jpg`;
+      expect(() => removeMainDirPath(path, mockMainDirPath)).toThrow(
+        'removeMainDirPath - path does not start with mainDirPath: subfolder/file.jpg',
+      );
+    });
+
+    it('should throw an error if path is empty', () => {
+      const path: `${typeof mockMainDirPath}/subfolder/file.jpg` =
+        '' as `${typeof mockMainDirPath}/subfolder/file.jpg`;
+      expect(() => removeMainDirPath(path, mockMainDirPath)).toThrow(
+        'removeMainDirPath - path does not start with mainDirPath: empty path',
+      );
+    });
+  });
+
+  describe('getUniqPathsRecursively', () => {
+    it('should return unique paths including subfolders', () => {
+      const paths = ['folder1', 'folder2/subfolder1', 'folder2/subfolder2'];
+      const expected = [
+        'folder1',
+        'folder2',
+        'folder2/subfolder1',
+        'folder2/subfolder2',
+      ].sort();
+      expect(getUniqPathsRecursively(paths)).toEqual(expected);
+    });
+
+    it('should handle paths with multiple subdirectories', () => {
+      const paths = ['a/b/c/d', 'a/b/c'];
+      const expected = ['a', 'a/b', 'a/b/c', 'a/b/c/d'].sort();
+      expect(getUniqPathsRecursively(paths)).toEqual(expected);
+    });
+
+    it('should handle paths without subdirectories', () => {
+      const paths = ['folder3', 'folder2', 'folder1'];
+      const expected = paths.sort();
+      expect(getUniqPathsRecursively(paths)).toEqual(expected);
+    });
+
+    it('should handle duplicate paths gracefully', () => {
+      const paths = ['folder/subfolder', 'folder/subfolder'];
+      const expected = ['folder', 'folder/subfolder'].sort();
+      expect(getUniqPathsRecursively(paths)).toEqual(expected);
+    });
+
+    it('should handle an empty array of paths', () => {
+      const paths: string[] = [];
+      const expected: string[] = [];
+      expect(getUniqPathsRecursively(paths)).toEqual(expected);
     });
   });
 });

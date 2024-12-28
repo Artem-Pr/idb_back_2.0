@@ -4,6 +4,16 @@ import { Media } from 'src/files/entities/media.entity';
 export const deepCopy = <T extends object>(obj: T) =>
   JSON.parse(JSON.stringify(obj)) as T;
 
+export const generatePid = (): string =>
+  Math.floor(Math.random() * 1000000)
+    .toString()
+    .padStart(6, '0');
+
+export const generatePidNumber = (): number => {
+  const pidNumber = Number(generatePid());
+  return pidNumber < 100000 ? pidNumber + 100000 : pidNumber;
+};
+
 export const shallowCopyOfMedia = (media: Media) => {
   const mediaCopy = new Media();
   Object.keys(media).forEach((key) => {

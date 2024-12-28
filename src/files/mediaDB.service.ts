@@ -28,6 +28,7 @@ import type {
 import { MediaDBQueryCreators } from './mediaDBQueryCreators';
 import {
   getFullPathWithoutNameAndFirstSlash,
+  getUniqPathsRecursively,
   isSupportedVideoMimeType,
   removeExtraSlashes,
 } from 'src/common/fileNameHelpers';
@@ -106,7 +107,7 @@ export class MediaDBService extends MediaDBQueryCreators {
     return await this.tempRepository.save(mediaTemp);
   }
 
-  @LogMethod('mediaRepository.save')
+  @LogMethod('mediaRepository.save.addMediaToDB')
   async addMediaToDB<T extends Media | Media[]>(media: T): Promise<T> {
     return await this.mediaRepository.save(media as any);
   }
@@ -123,12 +124,12 @@ export class MediaDBService extends MediaDBQueryCreators {
     );
   }
 
-  @LogMethod('mediaRepository.find')
+  @LogMethod('mediaRepository.find.findMediaByIdsInDB')
   async findMediaByIdsInDB(ids: string[]): Promise<Media[]> {
     return this.mediaRepository.find(this.ormFindByIdsQuery(ids));
   }
 
-  @LogMethod('tempRepository.find')
+  @LogMethod('tempRepository.find.findMediaByIdsInDBTemp')
   async findMediaByIdsInDBTemp(ids: string[]): Promise<MediaTemp[]> {
     return this.tempRepository.find(this.ormFindByIdsQuery(ids));
   }
@@ -271,7 +272,7 @@ export class MediaDBService extends MediaDBQueryCreators {
     });
   }
 
-  private async getFoldersPathsList(
+  async getFoldersPathsList(
     conditions?: MongoFilterCondition[],
   ): Promise<DBFilePath[]> {
     const filePathListQueryFacet = this.getMongoDynamicFoldersFacet();
@@ -287,23 +288,6 @@ export class MediaDBService extends MediaDBQueryCreators {
     return mongoResponse?.response[0]?.filePathSet || [];
   }
 
-  private getUniqPathsRecursively = (paths: string[]) => {
-    const getArrayOfSubfolders = (fullPath: string): string[] => {
-      const fullPathParts = fullPath.split('/');
-      const fullPathWithoutLastFolder = fullPathParts.slice(0, -1).join('/');
-      return fullPathParts.length === 1
-        ? fullPathParts
-        : [...getArrayOfSubfolders(fullPathWithoutLastFolder), fullPath];
-    };
-
-    const pathsWithSubfolders = paths
-      .reduce<
-        string[]
-      >((accum, currentPath) => [...accum, ...getArrayOfSubfolders(currentPath)], [])
-      .filter(Boolean);
-    return Array.from(new Set(pathsWithSubfolders)).sort();
-  };
-
   async getDynamicFoldersRecursively(conditions?: MongoFilterCondition[]) {
     const filePaths = await this.getFoldersPathsList(conditions);
     const folderPathsWithoutNames = filePaths.map((filePath) =>
@@ -311,7 +295,7 @@ export class MediaDBService extends MediaDBQueryCreators {
     );
 
     const dynamicFolders =
-      this.getUniqPathsRecursively(uniq(folderPathsWithoutNames)) || [];
+      getUniqPathsRecursively(uniq(folderPathsWithoutNames)) || [];
 
     return dynamicFolders;
   }
@@ -420,5 +404,36 @@ export class MediaDBService extends MediaDBQueryCreators {
       .toArray()) as unknown as [T];
 
     return aggregatedResult[0];
+  }
+
+  async updateMediaInOldDBToMakeItValid(): Promise<BulkWriteResult> {
+    const mediaList = await this.mediaRepository.find({
+      exif: { $exists: false },
+    });
+
+    const updatedMediaList = mediaList.map((media) => {
+      const updatedMedia = new Media();
+      updatedMedia._id = media._id;
+      updatedMedia.changeDate = media.changeDate;
+      updatedMedia.description = media.description || null;
+      updatedMedia.exif = {};
+      updatedMedia.filePath = media.filePath;
+      updatedMedia.fullSizeJpg = media.fullSizeJpg || null;
+      updatedMedia.imageSize = media.imageSize;
+      updatedMedia.keywords = media.keywords;
+      updatedMedia.megapixels = media.megapixels;
+      updatedMedia.mimetype = media.mimetype;
+      updatedMedia.originalDate = media.originalDate;
+      updatedMedia.originalName = media.originalName;
+      updatedMedia.preview = media.preview;
+      updatedMedia.rating = media.rating || null;
+      updatedMedia.timeStamp = media.timeStamp || null;
+      updatedMedia.size = media.size;
+      updatedMedia.old = true;
+
+      return updatedMedia;
+    });
+
+    return this.replaceMediaInDB(updatedMediaList);
   }
 }

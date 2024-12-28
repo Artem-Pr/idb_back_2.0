@@ -4,7 +4,6 @@ import {
   IsDefined,
   IsISO8601,
   IsNotEmpty,
-  IsNotEmptyObject,
   IsNumber,
   IsOptional,
   IsString,
@@ -121,7 +120,6 @@ export class GetFilesInputDto {
   sorting: GetFilesSortInputDto;
 
   @IsDefined()
-  @IsNotEmptyObject()
   @ValidateNested()
   @Type(() => GetFilesFoldersDto)
   folders: GetFilesFoldersDto;

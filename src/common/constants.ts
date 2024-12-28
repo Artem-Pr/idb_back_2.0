@@ -97,6 +97,7 @@ export enum ControllerPrefix {
   directory = 'directory',
   cleanTemp = 'clean-temp',
   updateMediaEntities = 'update-media-entities',
+  testSystemMatchFiles = 'test-system/matching-files',
 }
 
 export enum PreviewPostfix {

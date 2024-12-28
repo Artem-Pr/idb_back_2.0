@@ -8,6 +8,11 @@ import { setGlobalConfigService } from './common/global-config-accessor';
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
+  // app.enableCors({
+  //   origin: ['http://example.com'], // Specify allowed origins
+  //   methods: 'GET,HEAD,POST', // Specify allowed HTTP methods
+  //   credentials: true, // Allow cookies
+  // });
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({

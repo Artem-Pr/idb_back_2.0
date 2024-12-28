@@ -32,13 +32,13 @@ import { GetFilesOutputDto } from './dto/get-files-output.dto';
 import { LogController } from 'src/logger/logger.decorator';
 import { FileUploadDto } from './dto/upload-file-input.dto';
 import { DeleteFilesInputDto } from './dto/delete-files-input.dto';
-// import { MediaDBService } from './mediaDB.service';
+import { MediaDBService } from './mediaDB.service';
 
 @Controller() // TODO : Define a POST endpoint at /files/uploadItem : @Controller('file')
 export class FilesController {
   constructor(
     private filesService: FilesService,
-    // private mediaDBService: MediaDBService,
+    private mediaDBService: MediaDBService,
   ) {}
 
   @Post(ControllerPrefix.getFiles)
@@ -123,10 +123,10 @@ export class FilesController {
     return this.filesService.cleanTemp();
   }
 
-  // @Put(ControllerPrefix.updateMediaEntities)
-  // @HttpCode(HttpStatus.NO_CONTENT)
-  // @LogController(ControllerPrefix.updateMediaEntities)
-  // async updateMediaEntities() {
-  //   await this.mediaDBService.updateMediaInOldDBToMakeItValid();
-  // }
+  @Put(ControllerPrefix.updateMediaEntities)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @LogController(ControllerPrefix.updateMediaEntities)
+  async updateMediaEntities() {
+    await this.mediaDBService.updateMediaInOldDBToMakeItValid();
+  }
 }

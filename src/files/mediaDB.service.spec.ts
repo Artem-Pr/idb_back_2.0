@@ -709,43 +709,6 @@ describe('MediaDB', () => {
     });
   });
 
-  describe('getUniqPathsRecursively', () => {
-    it('should return unique paths including subfolders', () => {
-      const paths = ['folder1', 'folder2/subfolder1', 'folder2/subfolder2'];
-      const expected = [
-        'folder1',
-        'folder2',
-        'folder2/subfolder1',
-        'folder2/subfolder2',
-      ].sort();
-      expect(service['getUniqPathsRecursively'](paths)).toEqual(expected);
-    });
-
-    it('should handle paths with multiple subdirectories', () => {
-      const paths = ['a/b/c/d', 'a/b/c'];
-      const expected = ['a', 'a/b', 'a/b/c', 'a/b/c/d'].sort();
-      expect(service['getUniqPathsRecursively'](paths)).toEqual(expected);
-    });
-
-    it('should handle paths without subdirectories', () => {
-      const paths = ['folder3', 'folder2', 'folder1'];
-      const expected = paths.sort();
-      expect(service['getUniqPathsRecursively'](paths)).toEqual(expected);
-    });
-
-    it('should handle duplicate paths gracefully', () => {
-      const paths = ['folder/subfolder', 'folder/subfolder'];
-      const expected = ['folder', 'folder/subfolder'].sort();
-      expect(service['getUniqPathsRecursively'](paths)).toEqual(expected);
-    });
-
-    it('should handle an empty array of paths', () => {
-      const paths: string[] = [];
-      const expected: string[] = [];
-      expect(service['getUniqPathsRecursively'](paths)).toEqual(expected);
-    });
-  });
-
   describe('getDynamicFoldersRecursively', () => {
     const getMockedAggregationReturnValue = (
       mockedReturnValue: DBFilePath[],

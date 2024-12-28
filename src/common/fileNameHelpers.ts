@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
 import {
   MainDir,
+  MainDirPath,
   PreviewPostfix,
   SUPPORTED_EXTENSIONS_REGEX,
   SUPPORTED_IMAGE_EXTENSIONS_REGEX,
@@ -146,6 +147,40 @@ export const removeMainDir = <T extends `${MainDir}/${string}`>(
   return `/${path.split('/').slice(1).join('/')}` as T extends `${MainDir}/${infer R}`
     ? `/${R}`
     : never;
+};
+
+export const removeMainDirPath = <
+  T extends `${MainDirPath}/${MainDir}/${string}`,
+>(
+  path: T,
+  mainDirPath: `${MainDirPath}/${MainDir}`,
+) => {
+  if (!path.startsWith(mainDirPath)) {
+    throw new Error(
+      `removeMainDirPath - path does not start with mainDirPath: ${path || 'empty path'}`,
+    );
+  }
+
+  return path.slice(
+    `${mainDirPath}/`.length,
+  ) as T extends `${MainDirPath}/${MainDir}/${infer R}` ? R : never;
+};
+
+export const getUniqPathsRecursively = <T extends string>(paths: T[]): T[] => {
+  const getArrayOfSubfolders = (fullPath: string): string[] => {
+    const fullPathParts = fullPath.split('/');
+    const fullPathWithoutLastFolder = fullPathParts.slice(0, -1).join('/');
+    return fullPathParts.length === 1
+      ? fullPathParts
+      : [...getArrayOfSubfolders(fullPathWithoutLastFolder), fullPath];
+  };
+
+  const pathsWithSubfolders = paths
+    .reduce<
+      string[]
+    >((accum, currentPath) => [...accum, ...getArrayOfSubfolders(currentPath)], [])
+    .filter(Boolean);
+  return Array.from(new Set(pathsWithSubfolders)).sort() as T[];
 };
 
 export const isSupportedImageExtension = (

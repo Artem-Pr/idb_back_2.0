@@ -16,6 +16,7 @@ import type { GetFilesOutputDto } from './dto/get-files-output.dto';
 import { SupportedImageMimetypes } from 'src/common/constants';
 import { DiscStorageService } from './discStorage.service';
 import { FileUploadDto } from './dto/upload-file-input.dto';
+import { MediaDBService } from './mediaDB.service';
 
 describe('FilesController', () => {
   let filesController: FilesController;
@@ -47,6 +48,10 @@ describe('FilesController', () => {
         },
         { provide: FilesService, useValue: mockFilesService },
         { provide: ConfigService, useValue: configService },
+        {
+          provide: MediaDBService,
+          useValue: { updateMediaInOldDBToMakeItValid: jest.fn() },
+        },
         {
           provide: DiscStorageService,
           useValue: { emptyDirectory: jest.fn() },

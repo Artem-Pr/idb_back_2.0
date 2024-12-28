@@ -14,6 +14,7 @@ import { MainDir } from './common/constants';
 import { ConfigModule } from './config/config.module';
 import { values } from 'ramda';
 import { LoggerModule } from './logger/logger.module';
+import { SystemTestsModule } from './mainTests/systemTests.module';
 
 @Module({
   imports: [
@@ -48,11 +49,12 @@ import { LoggerModule } from './logger/logger.module';
       },
       inject: [ConfigService],
     }),
-    KeywordsModule,
-    PathsModule,
     FilesModule,
-    QueueModule,
+    KeywordsModule,
     LoggerModule,
+    PathsModule,
+    QueueModule,
+    SystemTestsModule,
   ],
 })
 export class AppModule {}

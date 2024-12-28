@@ -37,6 +37,7 @@ export class PathsService {
     private diskStorageService: DiscStorageService,
   ) {}
 
+  @LogMethod('getAllPathsFromDB - pathsRepository.find')
   async getAllPathsFromDB(): Promise<string[]> {
     const pathsEntities = await this.pathsRepository.find();
     return pathsEntities.map((pathEntity) => pathEntity.path);
