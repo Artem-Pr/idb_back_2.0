@@ -112,8 +112,8 @@ export enum MainDir {
 }
 
 export enum MainDirPath {
-  // dev = '../../test-data',
-  dev = '/Volumes/Lexar_SL500/MEGA_sync/IDBase-test',
+  // dev = '/Volumes/Lexar_SL500/MEGA_sync/IDBase-test',
+  dev = '/Volumes/Lexar_SL500/MEGA_sync/IDBase',
   prod = '/Users/artempriadkin/Development/test-data',
   docker = '/app',
   test = 'test-data',

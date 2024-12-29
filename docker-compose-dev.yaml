@@ -1,0 +1,31 @@
+services:
+  mongo:
+    image : mongo:4.4
+    container_name: IDB_2.0_mongodb_test
+    user: nobody
+    volumes:
+      - /Volumes/Lexar_SL500/MEGA_sync/IDBase/mongodb:/data/db
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2
+    container_name: IDB_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - /Volumes/Lexar_SL500/MEGA_sync/IDBase/redis:/data
+    restart: unless-stopped
+
+  image_store_service:
+    build: ../image_store_service
+    container_name: image_store_service
+    ports:
+      - "3005:3005"
+    volumes:
+      # sudo chmod -R 777 /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/temp
+      - /Volumes/Lexar_SL500/MEGA_sync/IDBase/temp:/app/temp
+      - /Volumes/Lexar_SL500/MEGA_sync/IDBase/volumes:/app/volumes
+      - /Volumes/Lexar_SL500/MEGA_sync/IDBase/previews:/app/previews
+    restart: unless-stopped

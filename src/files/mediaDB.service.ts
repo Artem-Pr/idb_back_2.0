@@ -429,7 +429,6 @@ export class MediaDBService extends MediaDBQueryCreators {
       updatedMedia.rating = media.rating || null;
       updatedMedia.timeStamp = media.timeStamp || null;
       updatedMedia.size = media.size;
-      updatedMedia.old = true;
 
       return updatedMedia;
     });

@@ -75,7 +75,4 @@ export class Media {
 
   @Column()
   exif: Tags;
-
-  @Column()
-  old?: boolean;
 }
