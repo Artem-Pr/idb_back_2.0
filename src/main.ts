@@ -3,7 +3,10 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from './config/config.service';
 import { HttpExceptionFilter } from './logger/http-exception.filter';
-import { setGlobalConfigService } from './common/global-config-accessor';
+import { setGlobalConfigService } from './config/global-config-accessor';
+import { CustomLogger } from './logger/logger.service';
+
+const logger = new CustomLogger('INIT');
 
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,6 +30,6 @@ export async function bootstrap() {
   const port = configService.port;
 
   await app.listen(port);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  logger.debug(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

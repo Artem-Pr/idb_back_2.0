@@ -25,6 +25,7 @@ export type MongoAggregationPipeline = Partial<
 
 interface MongoAggregationIncomingProps {
   conditions?: MongoFilterCondition[];
+  additionalAggregation?: MongoAggregationPipeline;
   facet?: MongoAggregationFacet;
   sorting?: SortingObject;
   sample?: { size: number };
@@ -44,7 +45,7 @@ export class MediaDBQueryCreators {
     };
   }
 
-  getUpdateMediaQuery(updatedMedia: Media[]) {
+  getUpdateMediaQuery(updatedMedia: Partial<Media>[]) {
     return updatedMedia.map((media) => ({
       updateOne: {
         filter: { _id: media._id },
@@ -188,7 +189,7 @@ export class MediaDBQueryCreators {
     };
   }
 
-  getMongoUsedKeywordsAggregation() {
+  getMongoUsedKeywordsAggregation(): MongoAggregationPipeline {
     return [
       {
         $group: {
@@ -211,6 +212,24 @@ export class MediaDBQueryCreators {
     ];
   }
 
+  // getMongoPreviewsAggregation(): MongoAggregationPipeline {
+  //   return [
+  //     {
+  //       $group: {
+  //         _id: null,
+  //         response: {
+  //           $push: {
+  //             _id: '$_id',
+  //             fullSizeJpg: '$fullSizeJpg',
+  //             preview: '$preview',
+  //             mimetype: '$mimetype',
+  //           },
+  //         },
+  //       },
+  //     },
+  //   ];
+  // }
+
   private hasSorting(
     sorting?: MongoAggregationIncomingProps['sorting'],
     sample?: MongoAggregationIncomingProps['sample'],
@@ -219,13 +238,16 @@ export class MediaDBQueryCreators {
   }
 
   createMongoAggregationPipeline({
+    additionalAggregation,
     conditions,
     facet,
     sample,
     sorting,
   }: MongoAggregationIncomingProps): MongoAggregationPipeline {
-    const aggregation: MongoAggregationPipeline = [];
+    let aggregation: MongoAggregationPipeline = [];
     conditions?.length && aggregation.push({ $match: { $and: conditions } }); // conditionArr.length ? {$and: conditionArr} : {}
+    additionalAggregation?.length &&
+      (aggregation = [...aggregation, ...additionalAggregation]);
     this.hasSorting(sorting, sample) && aggregation.push({ $sort: sorting });
     sample && aggregation.push({ $sample: sample });
     facet && aggregation.push({ $facet: facet });

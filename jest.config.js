@@ -1,4 +1,5 @@
 module.exports = {
+  prettierPath: null,
   preset: 'ts-jest',
   moduleFileExtensions: ['js', 'json', 'ts'],
   setupFilesAfterEnv: ['<rootDir>/../test/setup.ts'],

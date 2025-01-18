@@ -8,6 +8,8 @@ import {
   DEFAULT_IMAGE_STORE_SERVICE_PORT,
   DEFAULT_MONGODB_URI,
   DEFAULT_PORT,
+  DEFAULT_WS_HOST,
+  DEFAULT_WS_PORT,
   Envs,
   Folders,
   MainDir,
@@ -21,6 +23,7 @@ import type { DBFilePath } from 'src/common/types';
 export type Host = `${Protocols}://${typeof defaultHost}`;
 export type StaticHost =
   `${Protocols.HTTP | Protocols.HTTPS}://${typeof defaultHost}`;
+export type StaticWSHost = `${Protocols.WS}://${typeof defaultHost}`;
 export type Domain = `${Host}${`:${number}` | ''}`;
 export type StaticDomain = `${StaticHost}${`:${number}` | ''}`;
 export type StaticPath<T extends DBFilePath = DBFilePath> =
@@ -53,6 +56,8 @@ const isValidPort = (
 export class ConfigService {
   private _port: number = DEFAULT_PORT;
   private _host: StaticHost = DEFAULT_HOST;
+  private _WSPort: number = DEFAULT_WS_PORT;
+  private _WSHost: StaticWSHost = DEFAULT_WS_HOST;
   private _nodeEnv: Envs = Envs.DEV;
   private _mongoDBUrl: string = DEFAULT_MONGODB_URI;
   private _dbName: string = DEFAULT_DB_NAME;
@@ -82,6 +87,33 @@ export class ConfigService {
 
   get host(): StaticHost {
     return this._host;
+  }
+
+  set wsPort(wsPort: string | number | undefined) {
+    if (isValidPort(wsPort, 'ws port', DEFAULT_WS_PORT)) {
+      this._WSPort = Number(wsPort);
+    } else {
+      this._WSPort = DEFAULT_WS_PORT;
+    }
+  }
+
+  get wsPort(): number {
+    return this._WSPort;
+  }
+
+  set wsHost(wsHost: StaticWSHost | undefined) {
+    if (!wsHost) {
+      console.warn(
+        `No ws host provided, using default ${DEFAULT_WS_HOST} host`,
+      );
+      this._WSHost = DEFAULT_WS_HOST;
+    } else {
+      this._WSHost = wsHost;
+    }
+  }
+
+  get wsHost(): StaticWSHost {
+    return this._WSHost;
   }
 
   get domain(): StaticDomain {

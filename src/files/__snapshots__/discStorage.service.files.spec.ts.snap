@@ -1,0 +1,27 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DiscStorageService getAllFilesOnDisk should return all files on disk 1`] = `
+{
+  "directoriesList": [
+    "main",
+    "main/subdirectory",
+    "main/subdirectory/test-sub-sub-dir",
+    "main2",
+    "main2/subdirectory",
+  ],
+  "filesList": [
+    "IMG_6105.JPG",
+    "main/subdirectory/0a7b6907-76a6-44e2-be16-2e6460d10557-preview.jpg",
+    "main/subdirectory/IMG_20210501_185853-fullsize.jpg",
+    "main/subdirectory/IMG_20220226_125837.jpg",
+    "main/subdirectory/IMG_6105.JPG",
+    "main/subdirectory/IMG_6107.JPG",
+    "main/subdirectory/test-sub-sub-dir/IMG_6107.JPG",
+    "main2/subdirectory/0a7b6907-76a6-44e2-be16-2e6460d10557-preview.jpg",
+    "main2/subdirectory/IMG_20210501_185853-fullsize.jpg",
+    "main2/subdirectory/IMG_20220226_125837.jpg",
+    "main2/subdirectory/IMG_6105.JPG",
+    "main2/subdirectory/IMG_6107.JPG",
+  ],
+}
+`;

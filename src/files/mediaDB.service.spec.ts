@@ -226,6 +226,25 @@ describe('MediaDB', () => {
     });
   });
 
+  describe('findNotEmptyPreviewsInDB', () => {
+    it('should call mediaRepository.find with the correct data', async () => {
+      const expectedValue = {
+        where: {
+          $and: [
+            { preview: { $exists: true } },
+            { preview: { $ne: null } },
+            { preview: { $ne: '' } },
+          ],
+        },
+        select: ['_id', 'fullSizeJpg', 'preview'],
+      };
+      jest.spyOn(mediaRepository, 'find').mockResolvedValue([]);
+
+      await service.findNotEmptyPreviewsInDB();
+      expect(mediaRepository.find).toHaveBeenCalledWith(expectedValue);
+    });
+  });
+
   describe('getSameFilesIfExist', () => {
     it('should return an array of files with the same original name', async () => {
       const originalNameMock: GetSameFilesIfExist = {

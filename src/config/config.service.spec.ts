@@ -1,4 +1,4 @@
-import { ConfigService, StaticHost } from './config.service';
+import { ConfigService, StaticHost, StaticWSHost } from './config.service';
 import {
   DEFAULT_DB_NAME,
   DEFAULT_DB_SYNCHRONIZE,
@@ -7,6 +7,8 @@ import {
   DEFAULT_IMAGE_STORE_SERVICE_PORT,
   DEFAULT_MONGODB_URI,
   DEFAULT_PORT,
+  DEFAULT_WS_HOST,
+  DEFAULT_WS_PORT,
   Envs,
   Folders,
   MainDirPath,
@@ -28,116 +30,232 @@ describe('ConfigService', () => {
   it('should be defined', () => {
     expect(configService).toBeDefined();
   });
-  describe('port', () => {
-    it('should return the default port if no port is set', () => {
-      expect(configService.port).toBe(DEFAULT_PORT);
-    });
+  describe('HTTP and WS ports', () => {
+    describe('HTTP port', () => {
+      it('should return the default HTTP port if no port is set', () => {
+        expect(configService.port).toBe(DEFAULT_PORT);
+      });
 
-    it('should properly set a valid port number', () => {
-      const validPort = 3001;
-      configService.port = validPort;
-      expect(configService.port).toBe(validPort);
-    });
+      it('should properly set a valid HTTP port number', () => {
+        const validPort = 3001;
+        configService.port = validPort;
+        expect(configService.port).toBe(validPort);
+      });
 
-    it('should accept a string that is a valid port number', () => {
-      const validPort = '3002';
-      configService.port = validPort;
-      expect(configService.port).toBe(Number(validPort));
-    });
+      it('should accept a string that is a valid HTTP port number', () => {
+        const validPort = '3002';
+        configService.port = validPort;
+        expect(configService.port).toBe(Number(validPort));
+      });
 
-    it('should warn and use the default port when given a non-numeric string', () => {
-      const invalidPort = 'notAPort';
-      configService.port = invalidPort;
-      expect(console.warn).toHaveBeenCalledWith(
-        `Invalid port provided: ${invalidPort}, using default ${DEFAULT_PORT} port`,
-      );
-      expect(configService.port).toBe(DEFAULT_PORT);
-    });
+      it('should warn and use the default HTTP port when given a non-numeric string', () => {
+        const invalidPort = 'notAPort';
+        configService.port = invalidPort;
+        expect(console.warn).toHaveBeenCalledWith(
+          `Invalid port provided: ${invalidPort}, using default ${DEFAULT_PORT} port`,
+        );
+        expect(configService.port).toBe(DEFAULT_PORT);
+      });
 
-    it('should warn and use the default port when given null', () => {
-      configService.port = null as any;
-      expect(console.warn).toHaveBeenCalledWith(
-        `No port provided, using default ${DEFAULT_PORT} port`,
-      );
-      expect(configService.port).toBe(DEFAULT_PORT);
-    });
+      it('should warn and use the default HTTP port when given null', () => {
+        configService.port = null as any;
+        expect(console.warn).toHaveBeenCalledWith(
+          `No port provided, using default ${DEFAULT_PORT} port`,
+        );
+        expect(configService.port).toBe(DEFAULT_PORT);
+      });
 
-    it('should warn and use the default port when given undefined', () => {
-      configService.port = undefined;
-      expect(console.warn).toHaveBeenCalledWith(
-        `No port provided, using default ${DEFAULT_PORT} port`,
-      );
-      expect(configService.port).toBe(DEFAULT_PORT);
-    });
+      it('should warn and use the default HTTP port when given undefined', () => {
+        configService.port = undefined;
+        expect(console.warn).toHaveBeenCalledWith(
+          `No port provided, using default ${DEFAULT_PORT} port`,
+        );
+        expect(configService.port).toBe(DEFAULT_PORT);
+      });
 
-    it('should warn and use the default port when given an empty string', () => {
-      configService.port = '';
-      expect(console.warn).toHaveBeenCalledWith(
-        `No port provided, using default ${DEFAULT_PORT} port`,
-      );
-      expect(configService.port).toBe(DEFAULT_PORT);
-    });
+      it('should warn and use the default HTTP port when given an empty string', () => {
+        configService.port = '';
+        expect(console.warn).toHaveBeenCalledWith(
+          `No port provided, using default ${DEFAULT_PORT} port`,
+        );
+        expect(configService.port).toBe(DEFAULT_PORT);
+      });
 
-    it('should warn and use the default port when given a negative number', () => {
-      const invalidPort = -3000;
-      configService.port = invalidPort;
-      expect(console.warn).toHaveBeenCalledWith(
-        `Invalid port provided: ${invalidPort}, using default ${DEFAULT_PORT} port`,
-      );
-      expect(configService.port).toBe(DEFAULT_PORT);
-    });
+      it('should warn and use the default HTTP port when given a negative number', () => {
+        const invalidPort = -3000;
+        configService.port = invalidPort;
+        expect(console.warn).toHaveBeenCalledWith(
+          `Invalid port provided: ${invalidPort}, using default ${DEFAULT_PORT} port`,
+        );
+        expect(configService.port).toBe(DEFAULT_PORT);
+      });
 
-    it('should warn and use the default port when given a number greater than 65535', () => {
-      const invalidPort = 70000;
-      configService.port = invalidPort;
-      expect(console.warn).toHaveBeenCalledWith(
-        `Invalid port provided: ${invalidPort}, using default ${DEFAULT_PORT} port`,
-      );
-      expect(configService.port).toBe(DEFAULT_PORT);
-    });
+      it('should warn and use the default HTTP port when given a number greater than 65535', () => {
+        const invalidPort = 70000;
+        configService.port = invalidPort;
+        expect(console.warn).toHaveBeenCalledWith(
+          `Invalid port provided: ${invalidPort}, using default ${DEFAULT_PORT} port`,
+        );
+        expect(configService.port).toBe(DEFAULT_PORT);
+      });
 
-    it('should warn and use the default port when given zero', () => {
-      const invalidPort = 0;
-      configService.port = invalidPort;
-      expect(console.warn).toHaveBeenCalledWith(
-        `Invalid port provided: ${invalidPort}, using default ${DEFAULT_PORT} port`,
-      );
-      expect(configService.port).toBe(DEFAULT_PORT);
+      it('should warn and use the default HTTP port when given zero', () => {
+        const invalidPort = 0;
+        configService.port = invalidPort;
+        expect(console.warn).toHaveBeenCalledWith(
+          `Invalid port provided: ${invalidPort}, using default ${DEFAULT_PORT} port`,
+        );
+        expect(configService.port).toBe(DEFAULT_PORT);
+      });
+    });
+    describe('WS port', () => {
+      it('should return the default WS port if no port is set', () => {
+        expect(configService.wsPort).toBe(DEFAULT_WS_PORT);
+      });
+
+      it('should properly set a valid WS port number', () => {
+        const validPort = 3001;
+        configService.wsPort = validPort;
+        expect(configService.wsPort).toBe(validPort);
+      });
+
+      it('should accept a string that is a valid WS port number', () => {
+        const validPort = '3002';
+        configService.wsPort = validPort;
+        expect(configService.wsPort).toBe(Number(validPort));
+      });
+
+      it('should warn and use the default WS port when given a non-numeric string', () => {
+        const invalidPort = 'notAPort';
+        configService.wsPort = invalidPort;
+        expect(console.warn).toHaveBeenCalledWith(
+          `Invalid ws port provided: ${invalidPort}, using default ${DEFAULT_WS_PORT} port`,
+        );
+        expect(configService.wsPort).toBe(DEFAULT_WS_PORT);
+      });
+
+      it('should warn and use the default WS port when given null', () => {
+        configService.wsPort = null as any;
+        expect(console.warn).toHaveBeenCalledWith(
+          `No ws port provided, using default ${DEFAULT_WS_PORT} port`,
+        );
+        expect(configService.wsPort).toBe(DEFAULT_WS_PORT);
+      });
+
+      it('should warn and use the default WS port when given undefined', () => {
+        configService.wsPort = undefined;
+        expect(console.warn).toHaveBeenCalledWith(
+          `No ws port provided, using default ${DEFAULT_WS_PORT} port`,
+        );
+        expect(configService.wsPort).toBe(DEFAULT_WS_PORT);
+      });
+
+      it('should warn and use the default WS port when given an empty string', () => {
+        configService.wsPort = '';
+        expect(console.warn).toHaveBeenCalledWith(
+          `No ws port provided, using default ${DEFAULT_WS_PORT} port`,
+        );
+        expect(configService.wsPort).toBe(DEFAULT_WS_PORT);
+      });
+
+      it('should warn and use the default WS port when given a negative number', () => {
+        const invalidPort = -3000;
+        configService.wsPort = invalidPort;
+        expect(console.warn).toHaveBeenCalledWith(
+          `Invalid ws port provided: ${invalidPort}, using default ${DEFAULT_WS_PORT} port`,
+        );
+        expect(configService.wsPort).toBe(DEFAULT_WS_PORT);
+      });
+
+      it('should warn and use the default WS port when given a number greater than 65535', () => {
+        const invalidPort = 70000;
+        configService.wsPort = invalidPort;
+        expect(console.warn).toHaveBeenCalledWith(
+          `Invalid ws port provided: ${invalidPort}, using default ${DEFAULT_WS_PORT} port`,
+        );
+        expect(configService.wsPort).toBe(DEFAULT_WS_PORT);
+      });
+
+      it('should warn and use the default WS port when given zero', () => {
+        const invalidPort = 0;
+        configService.wsPort = invalidPort;
+        expect(console.warn).toHaveBeenCalledWith(
+          `Invalid ws port provided: ${invalidPort}, using default ${DEFAULT_WS_PORT} port`,
+        );
+        expect(configService.wsPort).toBe(DEFAULT_WS_PORT);
+      });
     });
   });
-  describe('host', () => {
-    it('should return the default host if no host is set', () => {
-      expect(configService.host).toBe(DEFAULT_HOST);
-    });
+  describe('HTTP and WS hosts', () => {
+    describe('HTTP host', () => {
+      it('should return the default HTTP host if no HTTP host is set', () => {
+        expect(configService.host).toBe(DEFAULT_HOST);
+      });
 
-    it('should properly set a valid host', () => {
-      const validHost: StaticHost = 'https://localhost';
-      configService.host = validHost;
-      expect(configService.host).toBe(validHost);
-    });
+      it('should properly set a valid HTTP host', () => {
+        const validHost: StaticHost = 'https://localhost';
+        configService.host = validHost;
+        expect(configService.host).toBe(validHost);
+      });
 
-    it('should warn and use the default host when given undefined', () => {
-      configService.host = undefined;
-      expect(console.warn).toHaveBeenCalledWith(
-        `No host provided, using default ${DEFAULT_HOST} host`,
-      );
-      expect(configService.host).toBe(DEFAULT_HOST);
-    });
+      it('should warn and use the default HTTP host when given undefined', () => {
+        configService.host = undefined;
+        expect(console.warn).toHaveBeenCalledWith(
+          `No host provided, using default ${DEFAULT_HOST} host`,
+        );
+        expect(configService.host).toBe(DEFAULT_HOST);
+      });
 
-    it('should warn and use the default host when given null', () => {
-      configService.host = null as unknown as StaticHost;
-      expect(console.warn).toHaveBeenCalledWith(
-        `No host provided, using default ${DEFAULT_HOST} host`,
-      );
-      expect(configService.host).toBe(DEFAULT_HOST);
-    });
+      it('should warn and use the default HTTP host when given null', () => {
+        configService.host = null as unknown as StaticHost;
+        expect(console.warn).toHaveBeenCalledWith(
+          `No host provided, using default ${DEFAULT_HOST} host`,
+        );
+        expect(configService.host).toBe(DEFAULT_HOST);
+      });
 
-    it('should warn and use the default host when given an empty string', () => {
-      configService.host = '' as unknown as StaticHost;
-      expect(console.warn).toHaveBeenCalledWith(
-        `No host provided, using default ${DEFAULT_HOST} host`,
-      );
-      expect(configService.host).toBe(DEFAULT_HOST);
+      it('should warn and use the default HTTP host when given an empty string', () => {
+        configService.host = '' as unknown as StaticHost;
+        expect(console.warn).toHaveBeenCalledWith(
+          `No host provided, using default ${DEFAULT_HOST} host`,
+        );
+        expect(configService.host).toBe(DEFAULT_HOST);
+      });
+    });
+    describe('WS host', () => {
+      it('should return the default WS host if no WS host is set', () => {
+        expect(configService.wsHost).toBe(DEFAULT_WS_HOST);
+      });
+
+      it('should properly set a valid WS host', () => {
+        const validHost: StaticWSHost = 'ws://localhost';
+        configService.wsHost = validHost;
+        expect(configService.wsHost).toBe(validHost);
+      });
+
+      it('should warn and use the default WS host when given undefined', () => {
+        configService.wsHost = undefined;
+        expect(console.warn).toHaveBeenCalledWith(
+          `No ws host provided, using default ${DEFAULT_WS_HOST} host`,
+        );
+        expect(configService.wsHost).toBe(DEFAULT_WS_HOST);
+      });
+
+      it('should warn and use the default WS host when given null', () => {
+        configService.wsHost = null as unknown as StaticWSHost;
+        expect(console.warn).toHaveBeenCalledWith(
+          `No ws host provided, using default ${DEFAULT_WS_HOST} host`,
+        );
+        expect(configService.wsHost).toBe(DEFAULT_WS_HOST);
+      });
+
+      it('should warn and use the default WS host when given an empty string', () => {
+        configService.wsHost = '' as unknown as StaticWSHost;
+        expect(console.warn).toHaveBeenCalledWith(
+          `No ws host provided, using default ${DEFAULT_WS_HOST} host`,
+        );
+        expect(configService.wsHost).toBe(DEFAULT_WS_HOST);
+      });
     });
   });
   describe('domain', () => {
@@ -208,11 +326,13 @@ describe('ConfigService', () => {
   });
   describe('rootPaths', () => {
     it('should return development paths when the environment is not set', () => {
-      expect(configService.rootPaths).toEqual({
-        previews: '/Volumes/Lexar_SL500/MEGA_sync/IDBase-test/previews',
-        temp: '/Volumes/Lexar_SL500/MEGA_sync/IDBase-test/temp',
-        volumes: '/Volumes/Lexar_SL500/MEGA_sync/IDBase-test/volumes',
-      });
+      expect(configService.rootPaths).toMatchInlineSnapshot(`
+        {
+          "previews": "/Volumes/Lexar_SL500/MEGA_sync/IDBase/previews",
+          "temp": "/Volumes/Lexar_SL500/MEGA_sync/IDBase/temp",
+          "volumes": "/Volumes/Lexar_SL500/MEGA_sync/IDBase/volumes",
+        }
+      `);
     });
 
     it('should return test paths when the environment is test', () => {
@@ -227,11 +347,13 @@ describe('ConfigService', () => {
     it('should return production paths when the environment is production', () => {
       configService.nodeEnv = Envs.PROD;
       expect(configService.rootPaths).toEqual(Folders[Envs.PROD]);
-      //   expect(configService.rootPaths).toEqual({
-      //     temp: '/Users/artempriadkin/Development/test-data/temp',
-      //     volumes: '/Users/artempriadkin/Development/test-data/volumes',
-      //     previews: '/Users/artempriadkin/Development/test-data/previews',
-      //   });
+      expect(configService.rootPaths).toMatchInlineSnapshot(`
+        {
+          "previews": "/Users/artempriadkin/Development/test-data/previews",
+          "temp": "/Users/artempriadkin/Development/test-data/temp",
+          "volumes": "/Users/artempriadkin/Development/test-data/volumes",
+        }
+      `);
     });
 
     it('should return docker paths when the environment is docker', () => {
@@ -251,7 +373,7 @@ describe('ConfigService', () => {
 
     it('should return the main directory path for staging environment', () => {
       configService.nodeEnv = Envs.TEST;
-      expect(configService.mainDirPath).toBe(MainDirPath.dev);
+      expect(configService.mainDirPath).toBe(MainDirPath.test);
     });
 
     it('should return the main directory path for production environment', () => {

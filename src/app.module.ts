@@ -15,6 +15,7 @@ import { ConfigModule } from './config/config.module';
 import { values } from 'ramda';
 import { LoggerModule } from './logger/logger.module';
 import { SystemTestsModule } from './mainTests/systemTests.module';
+import { FilesDataWSModule } from './filesDataWS/filesDataWS.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { SystemTestsModule } from './mainTests/systemTests.module';
     PathsModule,
     QueueModule,
     SystemTestsModule,
+    FilesDataWSModule,
   ],
 })
 export class AppModule {}

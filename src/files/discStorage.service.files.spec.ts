@@ -81,7 +81,10 @@ describe('DiscStorageService', () => {
         DiscStorageService,
         {
           provide: ConfigService,
-          useValue: { rootPaths: Folders[Envs.TEST] },
+          useValue: {
+            rootPaths: Folders[Envs.TEST],
+            mainDirPath: MainDirPath.test,
+          },
         },
         {
           provide: PathsService,
@@ -238,6 +241,31 @@ describe('DiscStorageService', () => {
         previewPathWithoutRoot:
           '/image-jpg/preview/2023.01.01 - originalDate/test-file-{hash}-preview.jpg',
       });
+    });
+  });
+
+  describe('getAllFilesOnDisk', () => {
+    const testSubSubDir = `${TEST_DIRECTORY_VOLUMES}/${SUBDIRECTORY}/test-sub-sub-dir/`;
+
+    beforeAll(() => {
+      copySync(MOCK_DIRECTORY, `${TEST_DIRECTORY_VOLUMES}/${SUBDIRECTORY}`);
+      copySync(MOCK_DIRECTORY, `${TEST_DIRECTORY_VOLUMES}/${SUBDIRECTORY_2}`);
+      copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME}`,
+        `${testSubSubDir}${DEFAULT_IMAGE_FILENAME}`,
+      );
+      copySync(
+        `${MOCK_DIRECTORY}/${DEFAULT_IMAGE_FILENAME_2}`,
+        `${TEST_DIRECTORY_VOLUMES}/${DEFAULT_IMAGE_FILENAME_2}`,
+      );
+    });
+
+    it('should return all files on disk', async () => {
+      const result = await service.getAllFilesOnDisk(MainDir.volumes);
+      result.directoriesList.sort();
+      result.filesList.sort();
+
+      expect(result).toMatchSnapshot();
     });
   });
 

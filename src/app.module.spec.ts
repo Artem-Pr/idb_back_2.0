@@ -3,23 +3,24 @@ import { AppModule } from './app.module';
 import { INestApplication } from '@nestjs/common';
 
 jest.spyOn(console, 'log').mockImplementation(() => {});
+jest.spyOn(console, 'warn').mockImplementation(() => {});
 
 describe('AppModule', () => {
   let appModule: AppModule;
-  let app: INestApplication; // Add this
+  let app: INestApplication;
 
   beforeEach(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
-    app = moduleRef.createNestApplication(); // Add this
-    await app.init(); // Add this
+    app = moduleRef.createNestApplication();
+    await app.init();
     appModule = moduleRef.get<AppModule>(AppModule);
   });
 
   afterEach(async () => {
-    await app.close(); // Add this to close the application
+    await app.close();
   });
 
   it('should be defined', () => {

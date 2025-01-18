@@ -15,5 +15,6 @@ import { SystemTestsController } from './systemTests.controller';
   ],
   controllers: [SystemTestsController],
   providers: [SystemTestsService],
+  exports: [SystemTestsService],
 })
 export class SystemTestsModule {}

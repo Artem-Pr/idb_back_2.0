@@ -21,6 +21,8 @@ export const ConfigModuleMetadata: ModuleMetadata = {
         const configService = new ConfigService();
         configService.port = nestConfigService.get(EnvConfigKeys.PORT);
         configService.host = nestConfigService.get(EnvConfigKeys.HOST);
+        configService.wsPort = nestConfigService.get(EnvConfigKeys.WS_PORT);
+        configService.wsHost = nestConfigService.get(EnvConfigKeys.WS_HOST);
         configService.nodeEnv = nestConfigService.get(EnvConfigKeys.NODE_ENV);
         configService.mongoDBUrl = nestConfigService.get(
           EnvConfigKeys.MONGODB_URI,

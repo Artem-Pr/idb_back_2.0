@@ -15,6 +15,8 @@ export const IMAGE_STORE_SERVICE_ENDPOINT = 'sharp';
 export const EXIFTOOL_TASK_TIMEOUT_MILLIS = 100000;
 export const DEFAULT_PORT = 3000;
 export const DEFAULT_HOST = `${Protocols.HTTP}://${defaultHost}`;
+export const DEFAULT_WS_PORT = 3002;
+export const DEFAULT_WS_HOST = `${Protocols.WS}://${defaultHost}`;
 export const DEFAULT_MONGODB_URI = 'mongodb://localhost:27017';
 export const DEFAULT_DB_NAME = 'IDBase';
 export const DEFAULT_DB_SYNCHRONIZE = false;
@@ -31,6 +33,8 @@ export enum EnvConfigKeys {
   NODE_ENV = 'NODE_ENV',
   PORT = 'PORT',
   HOST = 'HOST',
+  WS_PORT = 'WEB_SOCKET_PORT',
+  WS_HOST = 'WEB_SOCKET_HOST',
   MONGODB_URI = 'MONGODB_URI',
   DB_NAME = 'DB_NAME',
   DB_SYNCHRONIZE = 'DB_SYNCHRONIZE',
@@ -121,7 +125,7 @@ export enum MainDirPath {
 
 export const MainDirPaths = Object.freeze({
   [Envs.DEV]: MainDirPath.dev,
-  [Envs.TEST]: MainDirPath.dev,
+  [Envs.TEST]: MainDirPath.test,
   [Envs.PROD]: MainDirPath.prod,
   [Envs.DOCKER]: MainDirPath.docker,
 });

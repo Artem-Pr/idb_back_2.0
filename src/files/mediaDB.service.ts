@@ -64,6 +64,8 @@ export type GetFilesResponse = Promise<
   (Omit<GetFilesOutputDto, 'files'> & { files: Media[] }) | undefined
 >;
 
+export type PreviewListEntity = Pick<Media, '_id' | 'fullSizeJpg' | 'preview'>;
+
 @Injectable()
 export class MediaDBService extends MediaDBQueryCreators {
   private readonly logger = new CustomLogger(MediaDBService.name);
@@ -113,7 +115,7 @@ export class MediaDBService extends MediaDBQueryCreators {
   }
 
   @LogMethod('mediaRepository.bulkWrite.updateMediaInDB')
-  async updateMediaInDB(mediaList: Media[]): Promise<BulkWriteResult> {
+  async updateMediaInDB(mediaList: Partial<Media>[]): Promise<BulkWriteResult> {
     return this.mediaRepository.bulkWrite(this.getUpdateMediaQuery(mediaList));
   }
 
@@ -140,6 +142,20 @@ export class MediaDBService extends MediaDBQueryCreators {
     return this.mediaRepository.find({
       filePath: new RegExp(`^/${sanitizedDirectory}/`),
     });
+  }
+
+  @LogMethod('mediaRepository.find.findNotEmptyPreviewsInDB')
+  async findNotEmptyPreviewsInDB() {
+    return this.mediaRepository.find({
+      where: {
+        $and: [
+          { preview: { $exists: true } },
+          { preview: { $ne: null } },
+          { preview: { $ne: '' } },
+        ],
+      },
+      select: ['_id', 'fullSizeJpg', 'preview'],
+    }) as Promise<PreviewListEntity[]>;
   }
 
   async getSameFilesIfExist(where: GetSameFilesIfExist) {

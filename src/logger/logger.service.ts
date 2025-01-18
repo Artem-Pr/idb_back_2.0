@@ -107,6 +107,26 @@ export class CustomLogger extends Logger {
     super.log(`${message} - ${this.formatData(data)}`);
   }
 
+  logWSIn(message: string, data?: any): void {
+    data
+      ? super.debug(`WS: ⏪ ${message}`, data)
+      : super.debug(`WS: ⏪ ${message}`);
+  }
+
+  logWSOut(message: string, data?: any): void {
+    data
+      ? super.debug(`WS: ⏩ ${message}`, data)
+      : super.debug(`WS: ⏩ ${message}`);
+  }
+
+  errorWSIn(message: string, data?: any): void {
+    super.error(`WS ERROR: ⏪ ${message}`, data);
+  }
+
+  errorWSOut(message: string, data?: any): void {
+    super.error(`WS ERROR: ⏩ ${message}`, data);
+  }
+
   logError({
     message,
     method,

@@ -26,5 +26,5 @@ log() {
 log $INFO "Starting the mongo-test..."
 
 # docker compose -f docker-compose-test.yaml up -d
-docker compose -f docker-compose-test.yaml up --build
-# docker compose -f docker-compose-test.yaml up
+# docker compose -f docker-compose-test.yaml up --build
+docker compose -f docker-compose-test.yaml up

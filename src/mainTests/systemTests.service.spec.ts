@@ -6,6 +6,7 @@ import { PathsService } from 'src/paths/paths.service';
 import { MatchNumbersOfFilesTestOutputDto } from './dto/match-numbers-of-files-test-output.dto';
 import { MainDir } from 'src/common/constants';
 import { Stats } from 'fs-extra';
+import { DiscStorageService } from 'src/files/discStorage.service';
 
 jest.mock('fs/promises', () => ({
   readdir: jest.fn(() => []),
@@ -21,6 +22,7 @@ describe('SystemTestsService', () => {
   let configService: ConfigService;
   let mediaDBService: MediaDBService;
   let pathsService: PathsService;
+  let discStorageService: DiscStorageService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -47,6 +49,15 @@ describe('SystemTestsService', () => {
             getAllPathsFromDB: jest.fn(() => []),
           },
         },
+        {
+          provide: DiscStorageService,
+          useValue: {
+            getAllFilesOnDisk: jest.fn(() => ({
+              filesList: [],
+              directoriesList: [],
+            })),
+          },
+        },
       ],
     }).compile();
 
@@ -54,6 +65,7 @@ describe('SystemTestsService', () => {
     configService = module.get<ConfigService>(ConfigService);
     mediaDBService = module.get<MediaDBService>(MediaDBService);
     pathsService = module.get<PathsService>(PathsService);
+    discStorageService = module.get<DiscStorageService>(DiscStorageService);
   });
 
   it('should be defined', () => {
@@ -61,6 +73,7 @@ describe('SystemTestsService', () => {
     expect(configService).toBeDefined();
     expect(mediaDBService).toBeDefined();
     expect(pathsService).toBeDefined();
+    expect(discStorageService).toBeDefined();
   });
 
   it('should run matching number of files test', async () => {

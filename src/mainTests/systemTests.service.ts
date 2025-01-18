@@ -1,26 +1,15 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { MatchNumbersOfFilesTestOutputDto } from './dto/match-numbers-of-files-test-output.dto';
 import type { MatchNumbersOfFilesTestInputDto } from './dto/match-numbers-of-files-test-input.dto';
 import { PathsService } from 'src/paths/paths.service';
 import { MediaDBService } from 'src/files/mediaDB.service';
-import { readdir, stat } from 'fs/promises';
-import { ConfigService } from 'src/config/config.service';
-import { MainDir, MainDirPath } from 'src/common/constants';
+import { MainDir } from 'src/common/constants';
 import { LogMethod } from 'src/logger/logger.decorator';
-import {
-  getUniqPathsRecursively,
-  removeExtraFirstSlash,
-  removeMainDirPath,
-} from 'src/common/fileNameHelpers';
-import { difference, uniq } from 'ramda';
+import { removeExtraFirstSlash } from 'src/common/fileNameHelpers';
+import { difference } from 'ramda';
 import { CustomLogger } from 'src/logger/logger.service';
 import { generatePidNumber } from 'src/common/utils';
-
-type FolderInRootDirectory = `${MainDirPath}/${MainDir}/${string}`;
-interface FilesInRootDirectory {
-  filesList: string[];
-  directoriesList: FolderInRootDirectory[];
-}
+import { DiscStorageService } from 'src/files/discStorage.service';
 
 @Injectable()
 export class SystemTestsService {
@@ -32,7 +21,7 @@ export class SystemTestsService {
   } = {};
 
   constructor(
-    private configService: ConfigService,
+    private diskStorageService: DiscStorageService,
     private mediaDBService: MediaDBService,
     private pathsService: PathsService,
   ) {}
@@ -173,78 +162,15 @@ export class SystemTestsService {
     filesList: string[];
     directoriesList: string[];
   }> {
-    const getAllFilesRecursively = async function (
-      dirPath: string,
-      filesInRootDirectory: FilesInRootDirectory = {
-        filesList: [],
-        directoriesList: [],
-      },
-    ): Promise<FilesInRootDirectory> {
-      const files = await readdir(dirPath);
+    const filesOnDisk = await this.diskStorageService.getAllFilesOnDisk(
+      MainDir.volumes,
+    );
 
-      filesInRootDirectory = filesInRootDirectory || {
-        filesList: [],
-        directoriesList: [],
-      };
+    this.tests[pid].foldersInDirectory = filesOnDisk.directoriesList.length;
+    this.tests[pid].filesInDirectory = filesOnDisk.filesList.length;
+    this.increaseProgress('processDiskFolders', pid, progress);
 
-      const filesResponse = files.map(async function (file) {
-        const fileStat = await stat(dirPath + '/' + file);
-        if (fileStat.isDirectory()) {
-          filesInRootDirectory.directoriesList.push(
-            (dirPath + '/' + file) as FolderInRootDirectory,
-          );
-          filesInRootDirectory = await getAllFilesRecursively(
-            dirPath + '/' + file,
-            filesInRootDirectory,
-          );
-        } else {
-          !file.includes('thumbnail') &&
-            !file.startsWith('._') &&
-            filesInRootDirectory.filesList.push(dirPath + '/' + file);
-        }
-      });
-
-      await Promise.all(filesResponse);
-
-      return filesInRootDirectory;
-    };
-    try {
-      const response = await getAllFilesRecursively(
-        this.configService.rootPaths[MainDir.volumes],
-      );
-
-      const normalizedResponse = {
-        filesList: this.normalizedPathsArr(
-          response.filesList.map((path) =>
-            removeMainDirPath(
-              path as `${MainDirPath}/${MainDir}/${string}`,
-              `${MainDirPath.dev}/${MainDir.volumes}`,
-            ),
-          ),
-        ),
-        directoriesList: this.normalizedPathsArr(
-          getUniqPathsRecursively(
-            uniq(response.directoriesList || []).map((path) =>
-              removeMainDirPath(path, `${MainDirPath.dev}/${MainDir.volumes}`),
-            ),
-          ),
-        ),
-      };
-
-      this.tests[pid].foldersInDirectory =
-        normalizedResponse.directoriesList.length;
-      this.tests[pid].filesInDirectory = normalizedResponse.filesList.length;
-      this.increaseProgress('processDiskFolders', pid, progress);
-
-      return {
-        filesList: normalizedResponse.filesList,
-        directoriesList: normalizedResponse.directoriesList,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException(
-        `Error occurred getting folders from disk: ${error.message || error}`,
-      );
-    }
+    return filesOnDisk;
   }
 
   @LogMethod('processConfigFolders')

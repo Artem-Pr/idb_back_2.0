@@ -8,11 +8,13 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 describe('CustomLogger', () => {
   let customLogger: CustomLogger;
   let logSpy: jest.SpyInstance;
+  let debugSpy: jest.SpyInstance;
   let errorSpy: jest.SpyInstance;
 
   beforeEach(async () => {
     customLogger = new CustomLogger('testLogger');
     logSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
+    debugSpy = jest.spyOn(Logger.prototype, 'debug').mockImplementation();
     errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
   });
 
@@ -132,6 +134,37 @@ describe('CustomLogger', () => {
     const data = { key: 'value' };
     customLogger.logMessage(message, data);
     expect(logSpy).toHaveBeenCalledWith(`${message} - ${JSON.stringify(data)}`);
+  });
+
+  it('should log ws input correctly', () => {
+    const message = 'testMessage';
+    const data = { key: 'value' };
+    customLogger.logWSIn(message, data);
+    expect(debugSpy).toHaveBeenCalledWith(`WS: ⏪ ${message}`, data);
+    customLogger.logWSIn(message);
+    expect(debugSpy).toHaveBeenCalledWith(`WS: ⏪ ${message}`);
+  });
+
+  it('should log ws output correctly', () => {
+    const message = 'testMessage';
+    const data = { key: 'value' };
+    customLogger.logWSOut(message, data);
+    expect(debugSpy).toHaveBeenCalledWith(`WS: ⏩ ${message}`, data);
+    customLogger.logWSOut(message);
+    expect(debugSpy).toHaveBeenCalledWith(`WS: ⏩ ${message}`);
+  });
+
+  it('should log ws error correctly', () => {
+    const message = 'testMessage';
+    const data = { key: 'value' };
+    customLogger.errorWSIn(message, data);
+    expect(errorSpy).toHaveBeenCalledWith(`WS ERROR: ⏪ ${message}`, data);
+    customLogger.errorWSIn(message);
+    expect(errorSpy).toHaveBeenCalledWith(`WS ERROR: ⏪ ${message}`, undefined);
+    customLogger.errorWSOut(message, data);
+    expect(errorSpy).toHaveBeenCalledWith(`WS ERROR: ⏩ ${message}`, data);
+    customLogger.errorWSOut(message);
+    expect(errorSpy).toHaveBeenCalledWith(`WS ERROR: ⏩ ${message}`, undefined);
   });
 
   it('should add data to the message', () => {

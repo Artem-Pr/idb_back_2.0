@@ -7,15 +7,22 @@ import { Media } from './entities/media.entity';
 import { ConfigService } from 'src/config/config.service';
 import { dirname, normalize, resolve } from 'path';
 import type { MoveOptions } from 'fs-extra';
-import { emptyDir, ensureDir, move, readdir, remove } from 'fs-extra';
-import { Envs, MainDir, PreviewPostfix } from 'src/common/constants';
+import { emptyDir, ensureDir, move, readdir, remove, stat } from 'fs-extra';
+import {
+  Envs,
+  MainDir,
+  MainDirPath,
+  PreviewPostfix,
+} from 'src/common/constants';
 import { CustomLogger } from 'src/logger/logger.service';
 import type { UpdateMedia } from './mediaDB.service';
 import { resolveAllSettled } from 'src/common/utils';
 import {
   getFullPathWithoutNameAndFirstSlash,
   getPreviewPathDependsOnMainDir,
+  getUniqPathsRecursively,
   removeExtraSlashes,
+  removeMainDirPath,
 } from 'src/common/fileNameHelpers';
 import type {
   DBFilePath,
@@ -31,6 +38,7 @@ import type {
 } from 'src/common/types';
 import { PathsService } from 'src/paths/paths.service';
 import { LogMethod } from 'src/logger/logger.decorator';
+import { uniq } from 'ramda';
 
 interface ChangeFileDirectoryProps {
   oldFilePath: Media['filePath'];
@@ -45,6 +53,12 @@ interface GetFilePathWithPathsProps {
   filePath: FileNameWithExt;
   mimeType: SupportedMimetypes['allFiles'];
   date?: Date;
+}
+
+type FolderInRootDirectory = `${MainDirPath}/${MainDir}/${string}`;
+interface FilesInRootDirectory {
+  filesList: string[];
+  directoriesList: FolderInRootDirectory[];
 }
 
 @Injectable()
@@ -131,6 +145,85 @@ export class DiscStorageService {
       previewPathWithRoot,
       previewPathWithoutRoot,
     };
+  }
+
+  @LogMethod('getAllFilesOnDisk')
+  async getAllFilesOnDisk(mainDir: MainDir): Promise<{
+    filesList: string[];
+    directoriesList: string[];
+  }> {
+    const getAllFilesRecursively = async function (
+      dirPath: string,
+      filesInRootDirectory: FilesInRootDirectory = {
+        filesList: [],
+        directoriesList: [],
+      },
+    ): Promise<FilesInRootDirectory> {
+      const files = await readdir(dirPath);
+
+      filesInRootDirectory = filesInRootDirectory || {
+        filesList: [],
+        directoriesList: [],
+      };
+
+      const filesResponse = files.map(async function (file) {
+        const fileStat = await stat(dirPath + '/' + file);
+        if (fileStat.isDirectory()) {
+          filesInRootDirectory.directoriesList.push(
+            (dirPath + '/' + file) as FolderInRootDirectory,
+          );
+          filesInRootDirectory = await getAllFilesRecursively(
+            dirPath + '/' + file,
+            filesInRootDirectory,
+          );
+        } else {
+          // TODO: Check if it needed to be filtered
+          // !file.includes('thumbnail') &&
+          //   !file.startsWith('._') &&
+          filesInRootDirectory.filesList.push(dirPath + '/' + file);
+        }
+      });
+
+      await Promise.all(filesResponse);
+
+      return filesInRootDirectory;
+    };
+
+    try {
+      const response = await getAllFilesRecursively(
+        this.configService.rootPaths[mainDir],
+      );
+
+      const normalizedResponse = {
+        filesList: this.normalizedPathsArr(
+          response.filesList.map((path) =>
+            removeMainDirPath(
+              path as `${MainDirPath}/${MainDir}/${string}`,
+              `${this.configService.mainDirPath}/${mainDir}`,
+            ),
+          ),
+        ),
+        directoriesList: this.normalizedPathsArr(
+          getUniqPathsRecursively(
+            uniq(response.directoriesList || []).map((path) =>
+              removeMainDirPath(
+                path,
+                `${this.configService.mainDirPath}/${mainDir}`,
+              ),
+            ),
+          ),
+        ),
+      };
+
+      return {
+        filesList: normalizedResponse.filesList,
+        directoriesList: normalizedResponse.directoriesList,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Error occurred getting folders from disk: ${error.message || error}`,
+      );
+    }
   }
 
   @LogMethod('moveMediaToNewDir')
@@ -388,5 +481,9 @@ export class DiscStorageService {
 
       throw new InternalServerErrorException(error.message || error);
     }
+  }
+
+  normalizedPathsArr<T extends string>(paths: T[]): T[] {
+    return paths.map((path) => path.normalize() as T);
   }
 }

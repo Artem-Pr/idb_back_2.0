@@ -20,14 +20,24 @@ describe('ConfigModule', () => {
     expect(configService).toBeDefined();
   });
 
-  it('should have the correct port', () => {
+  it('should have the correct http port', () => {
     const port = nestConfigService.get(EnvConfigKeys.PORT);
     expect(configService.port).toBe(Number(port));
   });
 
-  it('should have the correct host', () => {
+  it('should have the correct http host', () => {
     const host = nestConfigService.get(EnvConfigKeys.HOST);
     expect(configService.host).toBe(host);
+  });
+
+  it('should have the correct ws port', () => {
+    const wsPort = nestConfigService.get(EnvConfigKeys.WS_PORT);
+    expect(configService.wsPort).toBe(Number(wsPort));
+  });
+
+  it('should have the correct ws host', () => {
+    const wsHost = nestConfigService.get(EnvConfigKeys.WS_HOST);
+    expect(configService.wsHost).toBe(wsHost);
   });
 
   it('should have the correct nodeEnv', () => {
