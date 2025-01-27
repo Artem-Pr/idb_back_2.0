@@ -28,6 +28,7 @@ import {
   isSupportedImageMimeType,
   isSupportedVideoExtension,
   isSupportedVideoMimeType,
+  removeExtraSlashes,
 } from 'src/common/fileNameHelpers';
 import { ConfigService } from 'src/config/config.service';
 import type { ImageStoreServiceInputDto } from './dto/image-store-service-input.dto';
@@ -47,6 +48,7 @@ export interface VideoPreviewJob extends CreatePreviewJob {
 
 export interface CreatePreviewJob {
   dirName: MainDir;
+  outputDirName?: MainDir;
   fileName: FileNameWithExt;
   fileType: SupportedMimetypes['allFiles'];
   date?: Date;
@@ -131,6 +133,7 @@ export class FileProcessor {
 
   async createImagePreview({
     dirName,
+    outputDirName,
     fileName,
     fileType,
     outputFullSizeFilePath,
@@ -139,10 +142,11 @@ export class FileProcessor {
     const url = `${this.configService.imageStoreServiceUrl}/${IMAGE_STORE_SERVICE_ENDPOINT}`;
 
     const imagePreviewParams: ImageStoreServiceInputDto = {
-      fileNameWithExtension: fileName,
+      fileNameWithExtension: removeExtraSlashes(fileName),
       fileType: fileType,
       inputMainDirName: dirName,
       jpegOptionsQuality: PreviewOptions.quality,
+      outputPreviewMainDirName: outputDirName || dirName,
       outputFullSizeFilePath,
       outputPreviewFilePath,
       resizeOptionsFit: PreviewOptions.fit,

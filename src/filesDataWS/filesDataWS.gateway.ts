@@ -15,6 +15,7 @@ import { FilesDataWSActionInputDto } from './dto/files-data-ws-input.dto';
 import { WSApiStatus, WebSocketActions } from './constants';
 import { plainToInstance } from 'class-transformer';
 import { validateOrReject } from 'class-validator';
+import { CreatePreviewsWSService } from './createPreviewsWS.service';
 
 @Injectable()
 export class FilesDataWSGateway
@@ -28,6 +29,8 @@ export class FilesDataWSGateway
     private readonly configService: ConfigService,
     @Inject(forwardRef(() => SyncPreviewsWSService))
     private readonly syncPreviewsWSService: SyncPreviewsWSService,
+    @Inject(forwardRef(() => CreatePreviewsWSService))
+    private readonly createPreviewsWS: CreatePreviewsWSService,
   ) {}
 
   send(request: FilesDataWSActionOutputDto) {
@@ -37,10 +40,7 @@ export class FilesDataWSGateway
     }
     this.client.send(request.stringify());
 
-    if (
-      request.data.status === WSApiStatus.ERROR ||
-      request.data.status === WSApiStatus.PENDING_ERROR
-    ) {
+    if (request.data.status === WSApiStatus.ERROR) {
       this.logger.errorWSOut('web-sockets', request.stringify());
     } else {
       this.logger.logWSOut(request.action, request.dataStringify(false));
@@ -51,6 +51,17 @@ export class FilesDataWSGateway
     switch (filesDataAction.action) {
       case WebSocketActions.SYNC_PREVIEWS:
         this.syncPreviewsWSService.startProcess();
+        break;
+      case WebSocketActions.CREATE_PREVIEWS:
+        this.createPreviewsWS.startProcess(
+          filesDataAction.data || {
+            folderPath: '',
+            mimeTypes: [],
+          },
+        );
+        break;
+      case WebSocketActions.CREATE_PREVIEWS_STOP:
+        this.createPreviewsWS.stopProcess();
         break;
       default:
         this.send(

@@ -31,9 +31,13 @@ import type {
   UpdatedFilesInputDto,
 } from './dto/update-files-input.dto';
 import type { MongoFilterCondition } from './mediaDBQueryCreators';
-import type { DBFilePath } from 'src/common/types';
+import type { DBFilePath, DBPreviewPath } from 'src/common/types';
 import type { Pagination } from './dto/get-files-output.dto';
 import type { GetFilesInputDto } from './dto/get-files-input.dto';
+import {
+  SupportedImageMimetypes,
+  SupportedVideoMimeTypes,
+} from 'src/common/constants';
 
 describe('MediaDB', () => {
   let service: MediaDBService;
@@ -832,7 +836,6 @@ describe('MediaDB', () => {
       },
       folders: { showSubfolders: true, isDynamicFolders: false },
       pagination: { page: 1, perPage: 50 },
-      settings: { dontSavePreview: true },
     };
 
     const mockFilesDBResponse: [GetFilesDBResponse] = [
@@ -1035,6 +1038,80 @@ describe('MediaDB', () => {
       const aggregationQuery = await service.makeAggregationQuery([]);
 
       expect(aggregationQuery).toEqual(mockedAggregationReturnValue[0]);
+    });
+  });
+
+  describe('findEmptyPreviewsInDB', () => {
+    it('should return media files for which preview or fullSizeJpg is empty', async () => {
+      const mediaJPEG = createMediaMock({
+        id: new ObjectId('66f7cb092b956392a532e556'),
+        name: 'mediaJPEG.jpg',
+      });
+      const mediaMP4 = createMediaMock({
+        id: new ObjectId('66f7cb092b956392a532e557'),
+        name: 'mediaMP4.jpg',
+      });
+      const mediaHEIC = createMediaMock({
+        id: new ObjectId('66f7cb092b956392a532e558'),
+        name: 'mediaHEIC.jpg',
+      });
+      mediaJPEG.preview = '' as DBPreviewPath;
+      mediaJPEG.fullSizeJpg = null;
+      mediaMP4.preview = '' as DBPreviewPath;
+      mediaMP4.mimetype = SupportedVideoMimeTypes.mp4;
+      mediaMP4.fullSizeJpg = '/path/to/name-fullSize.jpg';
+      mediaHEIC.preview = '/path/to/name-preview.jpg';
+      mediaHEIC.mimetype = SupportedImageMimetypes.heic;
+      mediaHEIC.fullSizeJpg = null;
+
+      const requestToCheckPreviewsOnly: Media[] = [mediaJPEG, mediaMP4];
+      const requestForHeicAndVideos: Media[] = [mediaMP4, mediaHEIC];
+      jest
+        .spyOn(mediaRepository, 'find')
+        .mockResolvedValueOnce(requestToCheckPreviewsOnly)
+        .mockResolvedValueOnce(requestForHeicAndVideos);
+
+      const result = await service.findEmptyPreviewsInDB({});
+
+      expect(result).toMatchSnapshot();
+      expect(mediaRepository.find).toHaveBeenCalledTimes(2);
+    });
+
+    it('should return media files for which only preview is empty if mimeTypes does not contain heic or videos', async () => {
+      const mediaJPEG = createMediaMock({
+        id: new ObjectId('66f7cb092b956392a532e556'),
+        name: 'mediaJPEG.jpg',
+      });
+      const mediaMP4 = createMediaMock({
+        id: new ObjectId('66f7cb092b956392a532e557'),
+        name: 'mediaMP4.jpg',
+      });
+      const mediaHEIC = createMediaMock({
+        id: new ObjectId('66f7cb092b956392a532e558'),
+        name: 'mediaHEIC.jpg',
+      });
+      mediaJPEG.preview = '' as DBPreviewPath;
+      mediaJPEG.fullSizeJpg = null;
+      mediaMP4.preview = '' as DBPreviewPath;
+      mediaMP4.mimetype = SupportedVideoMimeTypes.mp4;
+      mediaMP4.fullSizeJpg = '/path/to/name-fullSize.jpg';
+      mediaHEIC.preview = '/path/to/name-preview.jpg';
+      mediaHEIC.mimetype = SupportedImageMimetypes.heic;
+      mediaHEIC.fullSizeJpg = null;
+
+      const requestToCheckPreviewsOnly: Media[] = [mediaJPEG, mediaMP4];
+      const requestForHeicAndVideos: Media[] = [mediaMP4, mediaHEIC];
+      jest
+        .spyOn(mediaRepository, 'find')
+        .mockResolvedValueOnce(requestToCheckPreviewsOnly)
+        .mockResolvedValueOnce(requestForHeicAndVideos);
+
+      const result = await service.findEmptyPreviewsInDB({
+        mimeTypes: [SupportedImageMimetypes.jpeg],
+      });
+
+      expect(result).toMatchSnapshot();
+      expect(mediaRepository.find).toHaveBeenCalledTimes(1);
     });
   });
 });

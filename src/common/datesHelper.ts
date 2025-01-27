@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import timezone from 'dayjs/plugin/timezone';
+import duration from 'dayjs/plugin/duration';
 import type { Maybe } from 'exiftool-vendored';
 import { ExifDateTime } from 'exiftool-vendored';
 import { CustomLogger } from 'src/logger/logger.service';
@@ -12,8 +13,10 @@ const logger = new CustomLogger('datesHelper');
 dayjs.extend(utc);
 dayjs.extend(customParseFormat);
 dayjs.extend(timezone);
+dayjs.extend(duration);
 dayjs.tz.setDefault('UTC');
 
+export const TIME_STAMP_FORMAT = 'HH:mm:ss.SSS';
 export const DATE_TIME_FORMAT = 'YYYY.MM.DD HH:mm:ss';
 export const DATE_TIME_FORMAT_WITH_MILLISECONDS = 'YYYY:MM:DD HH:mm:ss.SSS';
 export const DATE_FORMAT = 'YYYY.MM.DD';
@@ -106,4 +109,55 @@ export const hasNoSeconds = (date: ConfigType): boolean => {
 
 export const hasNoMilliseconds = (date: ConfigType): boolean => {
   return dayjs.utc(date).millisecond() === 0;
+};
+
+export const nanosecondsToFormattedString = (
+  ns: bigint,
+  format: string = TIME_STAMP_FORMAT,
+): string => {
+  const msAsNumber = Number(ns / 1_000_000n);
+
+  if (!Number.isFinite(msAsNumber)) {
+    logger.logError({
+      method: 'nanosecondsToFormattedString',
+      message: 'Invalid input: bigint value is too large to convert to number',
+      errorData: { ns, format },
+    });
+    throw new Error('Input value is too large to be processed as a number');
+  }
+
+  const duration = dayjs.duration(msAsNumber).format(format);
+  const isValidDurationFormat = dayjs(duration, format).isValid();
+
+  if (!isValidDurationFormat) {
+    logger.logError({
+      method: 'nanosecondsToFormattedString',
+      message: 'Invalid duration format',
+      errorData: { ns, format },
+    });
+    throw new Error(`Invalid duration: ${duration}`);
+  }
+
+  return duration;
+};
+
+export const parseTimeStampToMilliseconds = (timeString: string): number => {
+  const dayjsTime = dayjs(timeString, TIME_STAMP_FORMAT);
+  if (!dayjsTime.isValid()) {
+    logger.logError({
+      method: 'parseTimeStampToMilliseconds',
+      message: 'Invalid time stamp',
+      errorData: timeString,
+    });
+    throw new Error(`Invalid time stamp: ${timeString}`);
+  }
+
+  return dayjs
+    .duration({
+      hours: dayjsTime.hour(),
+      minutes: dayjsTime.minute(),
+      seconds: dayjsTime.second(),
+      milliseconds: dayjsTime.millisecond(),
+    })
+    .asMilliseconds();
 };

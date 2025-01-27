@@ -1,8 +1,10 @@
 import {
   formatDate,
   isValidExifDateTime,
+  parseTimeStampToMilliseconds,
   toDateUTC,
   toMillisecondsUTC,
+  nanosecondsToFormattedString,
 } from './datesHelper';
 import { ExifDateTime } from 'exiftool-vendored';
 
@@ -109,6 +111,74 @@ describe('dataHelpers', () => {
       const invalidDate = 'not-a-real-date';
       const formattedDate = formatDate(invalidDate);
       expect(formattedDate).toBe('Invalid Date');
+    });
+  });
+
+  describe('nanosecondsToFormattedString', () => {
+    it('should format nanoseconds correctly for hours, minutes, seconds, and milliseconds', () => {
+      const nanoseconds: bigint = 11543892825672n;
+      const result = nanosecondsToFormattedString(nanoseconds);
+      expect(result).toBe('03:12:23.892');
+    });
+
+    it('should format nanoseconds correctly if custom format is provided', () => {
+      const nanoseconds = 11543892825672n;
+      const customFormat = 'HH:mm:ss';
+      const result = nanosecondsToFormattedString(nanoseconds, customFormat);
+      expect(result).toBe('03:12:23');
+    });
+
+    it('should format nanoseconds correctly for minutes, seconds, and milliseconds', () => {
+      const nanoseconds = 1154389282234n;
+      const result = nanosecondsToFormattedString(nanoseconds);
+      expect(result).toBe('00:19:14.389');
+    });
+
+    it('should throw an error if the duration format is invalid', () => {
+      const nanoseconds = 5415123n;
+      const invalidFormat = 'invalid';
+      expect(() =>
+        nanosecondsToFormattedString(nanoseconds, invalidFormat),
+      ).toThrow('Invalid duration: invundefinedliundefined');
+    });
+  });
+
+  describe('parseTimeStampToMilliseconds', () => {
+    it('should return the correct milliseconds for a valid timestamp string', () => {
+      const timeString = '01:30:15.123';
+      const result = parseTimeStampToMilliseconds(timeString);
+      expect(result).toBe(5415123); // 1 hour, 30 minutes, 15 seconds, 123 milliseconds in milliseconds
+    });
+
+    it('should return the correct milliseconds for a timestamp string with only hours and minutes', () => {
+      const timeString = '01:30:00.000';
+      const result = parseTimeStampToMilliseconds(timeString);
+      expect(result).toBe(5400000); // 1 hour, 30 minutes in milliseconds
+    });
+
+    it('should return the correct milliseconds for a timestamp string with only minutes and seconds', () => {
+      const timeString = '00:30:15.000';
+      const result = parseTimeStampToMilliseconds(timeString);
+      expect(result).toBe(1815000); // 30 minutes, 15 seconds in milliseconds
+    });
+
+    it('should return the correct milliseconds for a timestamp string with only seconds and milliseconds', () => {
+      const timeString = '00:00:15.123';
+      const result = parseTimeStampToMilliseconds(timeString);
+      expect(result).toBe(15123); // 15 seconds, 123 milliseconds in milliseconds
+    });
+
+    it('should return the correct milliseconds for a timestamp string with only seconds', () => {
+      const timeString = '00:00:15.000';
+      const result = parseTimeStampToMilliseconds(timeString);
+      expect(result).toBe(15000); // 15 seconds in milliseconds
+    });
+
+    it('should throw an error for an invalid timestamp string', () => {
+      const timeString = 'invalid-time';
+      expect(() => parseTimeStampToMilliseconds(timeString)).toThrow(
+        'Invalid time stamp: invalid-time',
+      );
     });
   });
 });

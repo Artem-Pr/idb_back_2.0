@@ -33,7 +33,6 @@ export class UpdatedFieldsInputDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayNotEmpty()
   keywords?: Media['keywords'];
 
   @IsOptional()
@@ -42,7 +41,6 @@ export class UpdatedFieldsInputDto {
 
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
   description?: Media['description'];
 
   @IsOptional()

@@ -7,7 +7,10 @@ import type {
   GetFilesPaginationInputDto,
 } from './dto/get-files-input.dto';
 import type { SortingObject } from './types';
-import { SupportedImageMimetypes } from 'src/common/constants';
+import {
+  SupportedImageMimetypes,
+  SupportedVideoMimeTypes,
+} from 'src/common/constants';
 import { createMediaMock } from './__mocks__/mocks';
 import type { Media } from './entities/media.entity';
 
@@ -267,6 +270,96 @@ describe('MediaDBQueryCreators', () => {
         { $match: { $and: conditions } },
         { $facet: facet },
       ]);
+    });
+  });
+
+  describe('getMongoEmptyPreviewsCondition', () => {
+    it('should return correct condition without mimeTypes and folderPath', () => {
+      const result = mediaDBQueryCreators.getMongoEmptyPreviewsCondition();
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should return correct condition with mimeTypes', () => {
+      const mimeTypes = [
+        SupportedImageMimetypes.jpeg,
+        SupportedVideoMimeTypes.mp4,
+      ];
+      const result =
+        mediaDBQueryCreators.getMongoEmptyPreviewsCondition(mimeTypes);
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should return correct condition with folderPath', () => {
+      const folderPath = 'path/to/folder';
+      const result = mediaDBQueryCreators.getMongoEmptyPreviewsCondition(
+        undefined,
+        folderPath,
+      );
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should return correct condition with mimeTypes and folderPath', () => {
+      const mimeTypes = [
+        SupportedImageMimetypes.jpeg,
+        SupportedVideoMimeTypes.mp4,
+      ];
+      const folderPath = 'path/to/folder';
+      const result = mediaDBQueryCreators.getMongoEmptyPreviewsCondition(
+        mimeTypes,
+        folderPath,
+      );
+      expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('getMongoEmptyFullSizesCondition', () => {
+    it('should return correct condition without mimeTypes and folderPath', () => {
+      const result = mediaDBQueryCreators.getMongoEmptyFullSizesCondition();
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should return null for not correct MimeTypes', () => {
+      const mimeTypes = [
+        SupportedImageMimetypes.jpeg,
+        SupportedImageMimetypes.dng,
+        SupportedImageMimetypes.png,
+      ];
+      const result =
+        mediaDBQueryCreators.getMongoEmptyFullSizesCondition(mimeTypes);
+      expect(result).toBeNull();
+    });
+
+    it('should return correct condition with mimeTypes', () => {
+      const mimeTypes = [
+        SupportedImageMimetypes.jpeg,
+        SupportedVideoMimeTypes.mp4,
+      ];
+      const result =
+        mediaDBQueryCreators.getMongoEmptyFullSizesCondition(mimeTypes);
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should return correct condition with folderPath', () => {
+      const folderPath = 'path/to/folder';
+      const result = mediaDBQueryCreators.getMongoEmptyFullSizesCondition(
+        undefined,
+        folderPath,
+      );
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should return correct condition with mimeTypes and folderPath', () => {
+      const mimeTypes = [
+        SupportedImageMimetypes.jpeg,
+        SupportedVideoMimeTypes.mp4,
+      ];
+      const folderPath = 'path/to/folder';
+      const result = mediaDBQueryCreators.getMongoEmptyFullSizesCondition(
+        mimeTypes,
+        folderPath,
+      );
+      expect(result).toMatchSnapshot();
     });
   });
 });

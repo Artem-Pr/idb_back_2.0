@@ -44,6 +44,6 @@ import { KeywordsModule } from 'src/keywords/keywords.module';
     MediaDBService,
     PathsService,
   ],
-  exports: [MediaDBService, DiscStorageService],
+  exports: [MediaDBService, DiscStorageService, FilesService],
 })
 export class FilesModule {}

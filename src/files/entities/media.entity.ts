@@ -32,6 +32,7 @@ export class Media {
   originalName: FileNameWithExt;
 
   @Column()
+  @Index()
   mimetype: SupportedMimetypes['allFiles'];
 
   @Column()

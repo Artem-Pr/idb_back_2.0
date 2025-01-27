@@ -88,7 +88,7 @@ describe('CustomLogger', () => {
       const result = customLogger.logEndpointStart(endpointData);
 
       expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('🚀 Endpoint GET (/test)'),
+        expect.stringContaining('⏬ Endpoint GET (/test)'),
       );
       expect(result).toHaveProperty('processId');
     });
@@ -103,7 +103,7 @@ describe('CustomLogger', () => {
       customLogger.logEndpointFinish(endpointDataWithId);
 
       expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining('✅ Endpoint GET (/test): 12345'),
+        expect.stringContaining('⏫ Endpoint GET (/test): 12345'),
       );
     });
 
@@ -123,7 +123,7 @@ describe('CustomLogger', () => {
       );
       expect(errorSpy).toHaveBeenNthCalledWith(
         2,
-        '❌ Endpoint GET (/test): 12345 ',
+        '⏫❌ Endpoint GET (/test): 12345 ',
         [{ error: 'An error occurred' }],
       );
     });
@@ -158,13 +158,19 @@ describe('CustomLogger', () => {
     const message = 'testMessage';
     const data = { key: 'value' };
     customLogger.errorWSIn(message, data);
-    expect(errorSpy).toHaveBeenCalledWith(`WS ERROR: ⏪ ${message}`, data);
+    expect(errorSpy).toHaveBeenCalledWith(`WS ERROR: ⏪❌ ${message}`, data);
     customLogger.errorWSIn(message);
-    expect(errorSpy).toHaveBeenCalledWith(`WS ERROR: ⏪ ${message}`, undefined);
+    expect(errorSpy).toHaveBeenCalledWith(
+      `WS ERROR: ⏪❌ ${message}`,
+      undefined,
+    );
     customLogger.errorWSOut(message, data);
-    expect(errorSpy).toHaveBeenCalledWith(`WS ERROR: ⏩ ${message}`, data);
+    expect(errorSpy).toHaveBeenCalledWith(`WS ERROR: ⏩❌ ${message}`, data);
     customLogger.errorWSOut(message);
-    expect(errorSpy).toHaveBeenCalledWith(`WS ERROR: ⏩ ${message}`, undefined);
+    expect(errorSpy).toHaveBeenCalledWith(
+      `WS ERROR: ⏩❌ ${message}`,
+      undefined,
+    );
   });
 
   it('should add data to the message', () => {

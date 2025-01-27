@@ -9,6 +9,7 @@ import { dirname, normalize, resolve } from 'path';
 import type { MoveOptions } from 'fs-extra';
 import { emptyDir, ensureDir, move, readdir, remove, stat } from 'fs-extra';
 import {
+  CustomErrorCodes,
   Envs,
   MainDir,
   MainDirPath,
@@ -16,7 +17,7 @@ import {
 } from 'src/common/constants';
 import { CustomLogger } from 'src/logger/logger.service';
 import type { UpdateMedia } from './mediaDB.service';
-import { resolveAllSettled } from 'src/common/utils';
+import { resolveAllSettled } from 'src/common/customPromise';
 import {
   getFullPathWithoutNameAndFirstSlash,
   getPreviewPathDependsOnMainDir,
@@ -177,7 +178,7 @@ export class DiscStorageService {
             filesInRootDirectory,
           );
         } else {
-          // TODO: Check if it needed to be filtered
+          // TODO: Check if it has to be filtered
           // !file.includes('thumbnail') &&
           //   !file.startsWith('._') &&
           filesInRootDirectory.filesList.push(dirPath + '/' + file);
@@ -292,8 +293,13 @@ export class DiscStorageService {
     }
 
     try {
-      await ensureDir(dirname(newPath));
-      await move(oldPath, newPath, moveOptions);
+      if (
+        this.isRemovingAllowed(`${newFileMainDir}${newFilePath}`) &&
+        this.isRemovingAllowed(`${oldFileMainDir}${oldFilePath}`)
+      ) {
+        await ensureDir(dirname(newPath));
+        await move(oldPath, newPath, moveOptions);
+      }
     } catch (error) {
       this.logger.logError({
         message: error.message,
@@ -302,11 +308,13 @@ export class DiscStorageService {
       });
       if (error.code === 'ENOENT') {
         throw new NotFoundException('File not found on disk.');
-      } else {
-        throw new InternalServerErrorException(
-          'Error occurred when changing file directory.',
-        );
       }
+      const cause = error.cause as CustomErrorCodes;
+      const errorMessage =
+        CustomErrorCodes[cause] === CustomErrorCodes.NOT_ALLOWED
+          ? error.message
+          : 'Error occurred when changing file directory.';
+      throw new InternalServerErrorException(errorMessage);
     }
   }
 
@@ -325,25 +333,34 @@ export class DiscStorageService {
     await move(oldPath, newPath);
   }
 
+  @LogMethod('removeFile')
   async removeFile(
     filePath: DBFilePath | DBPreviewPath | DBFullSizePath,
     mainDir: MainDir = MainDir.volumes,
   ): Promise<void> {
     const path = resolve(`${this.configService.rootPaths[mainDir]}${filePath}`);
     try {
-      await remove(path);
+      if (this.isRemovingAllowed(`${mainDir}${filePath}`)) {
+        this.logger.debug(`Removing file`, { path });
+        await remove(path);
+      }
     } catch (error) {
       this.logger.logError({
         message: error.message,
         method: 'removeFile',
         errorData: { path },
       });
-      throw new InternalServerErrorException(
-        'Error occurred when removing file.',
-      );
+
+      const cause = error.cause as CustomErrorCodes;
+      const errorMessage =
+        CustomErrorCodes[cause] === CustomErrorCodes.NOT_ALLOWED
+          ? error.message
+          : 'Error occurred when removing file.';
+      throw new InternalServerErrorException(errorMessage);
     }
   }
 
+  @LogMethod('removeDirectory')
   async removeDirectory(
     directoryPath: string,
     mainDir: MainDir = MainDir.volumes,
@@ -353,19 +370,27 @@ export class DiscStorageService {
       `${this.configService.rootPaths[mainDir]}/${sanitizedDirectory}`,
     );
     try {
-      await remove(path);
+      if (this.isRemovingAllowed(`${mainDir}${sanitizedDirectory}`)) {
+        this.logger.debug(`Removing directory`, { path });
+        await remove(path);
+      }
     } catch (error) {
       this.logger.logError({
         message: error.message,
         method: 'removeDirectory',
         errorData: { path },
       });
-      throw new InternalServerErrorException(
-        'Error occurred when removing directory.',
-      );
+
+      const cause = error.cause as CustomErrorCodes;
+      const errorMessage =
+        CustomErrorCodes[cause] === CustomErrorCodes.NOT_ALLOWED
+          ? error.message
+          : 'Error occurred when removing directory.';
+      throw new InternalServerErrorException(errorMessage);
     }
   }
 
+  @LogMethod('emptyDirectory')
   async emptyDirectory(
     mainDir: MainDir = MainDir.temp,
     directoryPath?: string,
@@ -377,16 +402,23 @@ export class DiscStorageService {
       `${this.configService.rootPaths[mainDir]}${sanitizedDirectory}`,
     );
     try {
-      await emptyDir(path);
+      if (this.isRemovingAllowed(`${mainDir}${sanitizedDirectory}`)) {
+        this.logger.debug(`Emptying directory`, { path });
+        await emptyDir(path);
+      }
     } catch (error) {
       this.logger.logError({
         message: error.message,
         method: 'emptyDirectory',
         errorData: { path },
       });
-      throw new InternalServerErrorException(
-        'Error occurred when emptying directory.',
-      );
+
+      const cause = error.cause as CustomErrorCodes;
+      const errorMessage =
+        CustomErrorCodes[cause] === CustomErrorCodes.NOT_ALLOWED
+          ? error.message
+          : 'Error occurred when emptying directory.';
+      throw new InternalServerErrorException(errorMessage);
     }
   }
 
@@ -481,6 +513,22 @@ export class DiscStorageService {
 
       throw new InternalServerErrorException(error.message || error);
     }
+  }
+
+  isRemovingAllowed(directoryPath: string): boolean {
+    if (
+      directoryPath === MainDir.previews ||
+      directoryPath === MainDir.volumes
+    ) {
+      this.logger.warn(
+        'Directory cleanup aborted: root directory cleanup not allowed.',
+      );
+      throw new InternalServerErrorException(
+        'Directory cleanup aborted: root directory cleanup not allowed.',
+        { cause: CustomErrorCodes.NOT_ALLOWED },
+      );
+    }
+    return true;
   }
 
   normalizedPathsArr<T extends string>(paths: T[]): T[] {

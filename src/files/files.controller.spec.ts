@@ -82,7 +82,6 @@ describe('FilesController', () => {
         },
         folders: { showSubfolders: true, isDynamicFolders: true },
         pagination: { page: 1, perPage: 50 },
-        settings: { dontSavePreview: true },
       };
 
       const response: GetFilesOutputDto = {
@@ -175,11 +174,13 @@ describe('FilesController', () => {
 
       const response = [new Media(), new Media()];
 
-      jest.spyOn(filesService, 'updateFiles').mockResolvedValue(response);
+      jest
+        .spyOn(filesService, 'updateFiles')
+        .mockResolvedValue({ response, errors: [] });
 
       const result = await filesController.updateFiles(filesToUpload);
       expect(filesService.updateFiles).toHaveBeenCalledWith(filesToUpload);
-      expect(result).toBe(response);
+      expect(result).toEqual({ response, errors: [] });
     });
   });
 

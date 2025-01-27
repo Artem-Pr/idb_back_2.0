@@ -196,7 +196,7 @@ export class SyncPreviewsWSService {
 
   private commitErrorStatus(message: string, error?: Error) {
     this.commitStatus({
-      status: WSApiStatus.PENDING_ERROR,
+      status: WSApiStatus.ERROR,
       message,
       error,
     });

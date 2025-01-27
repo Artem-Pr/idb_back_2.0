@@ -11,5 +11,5 @@ export interface GetFilesOutputDto {
   dynamicFolders: string[];
   files: MediaOutput[];
   filesSizeSum: number;
-  searchPagination: Pagination;
+  searchPagination?: Pagination;
 }

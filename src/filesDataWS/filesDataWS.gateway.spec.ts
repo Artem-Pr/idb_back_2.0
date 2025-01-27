@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from 'src/config/config.service';
+import { CreatePreviewsWSService } from './createPreviewsWS.service';
 import { SyncPreviewsWSService } from './syncPreviewsWS.service';
 import { CustomLogger } from 'src/logger/logger.service';
 import { FilesDataWSGateway } from './filesDataWS.gateway';
@@ -23,11 +24,16 @@ describe('FilesDataWSGateway', () => {
   let gateway: FilesDataWSGateway;
   let mockConfigService: ConfigService;
   let mockSyncPreviewsWSService: SyncPreviewsWSService;
+  let mockCreatePreviewsWSService: CreatePreviewsWSService;
   let mockLogger: CustomLogger;
 
   beforeEach(async () => {
     mockConfigService = { wsPort: 1234 } as any;
     mockSyncPreviewsWSService = { startProcess: jest.fn() } as any;
+    mockCreatePreviewsWSService = {
+      startProcess: jest.fn(),
+      stopProcess: jest.fn(),
+    } as any;
     mockLogger = {
       debug: jest.fn(),
       error: jest.fn(),
@@ -41,6 +47,10 @@ describe('FilesDataWSGateway', () => {
         FilesDataWSGateway,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: SyncPreviewsWSService, useValue: mockSyncPreviewsWSService },
+        {
+          provide: CreatePreviewsWSService,
+          useValue: mockCreatePreviewsWSService,
+        },
         { provide: CustomLogger, useValue: mockLogger },
       ],
     }).compile();

@@ -28,6 +28,12 @@ const EXIF_ORIGINAL_DATES_FIELD_NAMES = [
 // CreatorTool:Adobe Premiere Pro CC 2015 (Windows)
 // HandlerVendorID:Apple
 
+const EXIF_MEDIA_DURATION_FIELD_NAMES = [
+  'Duration',
+  'TrackDuration',
+  'MediaDuration',
+] as const;
+
 const PreferredDateFieldNameEnum = Object.freeze({
   Xiaomi_Yi_Action_Camera: Object.freeze({
     Make: 'XIAOYI',
@@ -129,4 +135,18 @@ export const getOriginalDateFromExif = (
   });
 
   return sortedDateTimeArr[0]?.dateTime;
+};
+
+export const getVideoDurationInMillisecondsFromExif = (
+  exif: Tags,
+): number | null => {
+  const durationField = EXIF_MEDIA_DURATION_FIELD_NAMES.find(
+    (fieldName) => exif[fieldName],
+  );
+
+  if (durationField) {
+    return Number(exif[durationField]) * 1000;
+  }
+
+  return null;
 };

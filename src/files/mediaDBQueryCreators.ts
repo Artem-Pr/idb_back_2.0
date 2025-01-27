@@ -8,9 +8,18 @@ import type { Media } from './entities/media.entity';
 import { ObjectId } from 'mongodb';
 import type { SortingObject } from './types';
 import { isEmpty } from 'ramda';
+import {
+  SUPPORTED_MIMETYPES,
+  SUPPORTED_VIDEO_MIMETYPES,
+  SupportedImageMimetypes,
+} from 'src/common/constants';
+import { SupportedMimetypes } from 'src/common/types';
 
 export type MongoFilterCondition = Partial<
-  Record<keyof Media | '$or' | '$expr', object>
+  Record<
+    keyof Media | '$or' | '$and' | '$expr',
+    object | Array<MongoFilterCondition>
+  >
 >;
 type MongoAggregationFacet = Partial<
   Record<'response' | 'total' | 'pagination', object[]>
@@ -137,6 +146,57 @@ export class MediaDBQueryCreators {
     }
 
     return {};
+  }
+
+  getMongoEmptyPreviewsCondition(
+    mimeTypes?: SupportedMimetypes['allFiles'][],
+    folderPath?: string,
+  ): MongoFilterCondition {
+    const emptyPreviewsConditions = [
+      { preview: { $exists: false } },
+      { preview: { $eq: null } },
+      { preview: { $eq: '' } },
+    ];
+
+    const mimeTypesList = mimeTypes?.length ? mimeTypes : SUPPORTED_MIMETYPES;
+
+    return {
+      $and: [
+        this.getMongoFoldersCondition({ folderPath, showSubfolders: true }),
+        { mimetype: { $in: mimeTypesList } },
+        { $or: emptyPreviewsConditions },
+      ],
+    };
+  }
+
+  getMongoEmptyFullSizesCondition(
+    mimeTypes?: SupportedMimetypes['allFiles'][],
+    folderPath?: string,
+  ): MongoFilterCondition | null {
+    const emptyFullSizesConditions = [
+      { fullSizeJpg: { $exists: false } },
+      { fullSizeJpg: { $eq: null } },
+      { fullSizeJpg: { $eq: '' } },
+    ];
+
+    const heicAndVideoMimetypes = [
+      ...SUPPORTED_VIDEO_MIMETYPES,
+      SupportedImageMimetypes.heic,
+    ];
+
+    const mimeTypesToCheckFullSizeOnly = mimeTypes?.length
+      ? mimeTypes.filter((mimeType) => heicAndVideoMimetypes.includes(mimeType))
+      : heicAndVideoMimetypes;
+
+    return mimeTypesToCheckFullSizeOnly.length
+      ? {
+          $and: [
+            this.getMongoFoldersCondition({ folderPath, showSubfolders: true }),
+            { mimetype: { $in: mimeTypesToCheckFullSizeOnly } },
+            { $or: emptyFullSizesConditions },
+          ],
+        }
+      : null;
   }
 
   getMongoDynamicFoldersFacet(): MongoAggregationFacet {

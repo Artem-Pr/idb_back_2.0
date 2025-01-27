@@ -9,6 +9,10 @@ export enum Protocols {
   WS = 'ws',
 }
 
+export enum CustomErrorCodes {
+  NOT_ALLOWED = 'NOT_ALLOWED',
+}
+
 export const DEFAULT_IMAGE_STORE_SERVICE_PORT = 3001;
 export const DEFAULT_IMAGE_STORE_SERVICE_HOST = 'http://localhost';
 export const IMAGE_STORE_SERVICE_ENDPOINT = 'sharp';

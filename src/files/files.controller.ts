@@ -33,6 +33,7 @@ import { LogController } from 'src/logger/logger.decorator';
 import { FileUploadDto } from './dto/upload-file-input.dto';
 import { DeleteFilesInputDto } from './dto/delete-files-input.dto';
 import { MediaDBService } from './mediaDB.service';
+import type { UpdateFilesOutputDto } from './dto/update-files-output.dto';
 
 @Controller() // TODO : Define a POST endpoint at /files/uploadItem : @Controller('file')
 export class FilesController {
@@ -57,7 +58,9 @@ export class FilesController {
 
   @Put(ControllerPrefix.updateFiles)
   @LogController(ControllerPrefix.updateFiles)
-  async updateFiles(@Body() filesToUpload: UpdatedFilesInputDto) {
+  async updateFiles(
+    @Body() filesToUpload: UpdatedFilesInputDto,
+  ): Promise<UpdateFilesOutputDto> {
     return this.filesService.updateFiles(filesToUpload);
   }
 

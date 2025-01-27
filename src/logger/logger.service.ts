@@ -73,7 +73,7 @@ export class CustomLogger extends Logger {
     const id = getRandomId(5);
     this.startTimer(id);
     super.log(
-      `🚀 Endpoint ${method} (${endpoint}): ${id}${data ? ` - ${this.formatData(data)}` : ''}`,
+      `⏬ Endpoint ${method} (${endpoint}): ${id}${data ? ` - ${this.formatData(data)}` : ''}`,
     );
     return { endpoint, method, data, processId: id };
   }
@@ -86,7 +86,7 @@ export class CustomLogger extends Logger {
   }: EndpointDataWithId): void {
     const duration = processId ? this.endTimer(processId) : '';
     super.log(
-      `✅ Endpoint ${method} (${endpoint}): ${processId}${data ? ` - ${this.formatData(data)}` : ''} ${duration}`,
+      `⏫ Endpoint ${method} (${endpoint}): ${processId}${data ? ` - ${this.formatData(data)}` : ''} ${duration}`,
     );
   }
 
@@ -98,7 +98,7 @@ export class CustomLogger extends Logger {
   }: EndpointDataWithId): void {
     const duration = processId ? this.endTimer(processId) : '';
     super.error(
-      `❌ Endpoint ${method} (${endpoint}): ${processId} ${duration}`,
+      `⏫❌ Endpoint ${method} (${endpoint}): ${processId} ${duration}`,
       errorData && [errorData],
     );
   }
@@ -120,11 +120,11 @@ export class CustomLogger extends Logger {
   }
 
   errorWSIn(message: string, data?: any): void {
-    super.error(`WS ERROR: ⏪ ${message}`, data);
+    super.error(`WS ERROR: ⏪❌ ${message}`, data);
   }
 
   errorWSOut(message: string, data?: any): void {
-    super.error(`WS ERROR: ⏩ ${message}`, data);
+    super.error(`WS ERROR: ⏩❌ ${message}`, data);
   }
 
   logError({

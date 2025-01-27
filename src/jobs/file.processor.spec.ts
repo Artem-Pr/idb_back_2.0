@@ -330,6 +330,7 @@ describe('FileProcessor', () => {
         resizeOptionsHeight: PreviewOptions.height,
         resizeOptionsFit: PreviewOptions.fit,
         jpegOptionsQuality: PreviewOptions.quality,
+        outputPreviewMainDirName: MainDir.temp,
         outputFullSizeFilePath:
           '/image-jpeg/fullSize/${string} - originalDate/${string}-fullSize.jpg',
         outputPreviewFilePath:

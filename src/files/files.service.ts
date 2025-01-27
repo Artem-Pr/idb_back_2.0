@@ -15,7 +15,8 @@ import type {
   DBPreviewPath,
   FileNameWithVideoExt,
 } from 'src/common/types';
-import { shallowCopyOfMedia, resolveAllSettled } from 'src/common/utils';
+import { shallowCopyOfMedia } from 'src/common/utils';
+import { resolveAllSettled } from 'src/common/customPromise';
 import {
   getFullPathWithoutNameAndFirstSlash,
   getPreviewPath,
@@ -29,7 +30,7 @@ import type { StaticPath } from 'src/config/config.service';
 import { ConfigService } from 'src/config/config.service';
 import type { MediaTemp } from './entities/media-temp.entity';
 import type { UploadFileOutputDto } from './dto/upload-file-output.dto';
-import type { Media } from './entities/media.entity';
+import { Media } from './entities/media.entity';
 import type { CheckDuplicatesOriginalNamesOutputDto } from './dto/check-duplicates-original-names-output.dto';
 import type {
   DuplicateFile,
@@ -49,6 +50,11 @@ import type { GetFilesInputDto } from './dto/get-files-input.dto';
 import { isEmpty, omit, pickBy } from 'ramda';
 import type { GetFilesOutputDto } from './dto/get-files-output.dto';
 import type { DeleteFilesInputDto } from './dto/delete-files-input.dto';
+import { LogMethod } from 'src/logger/logger.decorator';
+import { getVideoDurationInMillisecondsFromExif } from 'src/common/exifHelpers';
+import { parseTimeStampToMilliseconds } from 'src/common/datesHelper';
+import { CustomPromise } from 'src/common/customPromise';
+import type { UpdateFilesOutputDto } from './dto/update-files-output.dto';
 
 interface FilePaths {
   filePath: DBFilePath;
@@ -174,6 +180,7 @@ export class FilesService {
     }));
   }
 
+  @LogMethod('saveFiles')
   async saveFiles(filesToUpload: UpdatedFilesInputDto): Promise<Media[]> {
     let mediaDataForRestore: Media[] = [];
 
@@ -204,13 +211,21 @@ export class FilesService {
     }
   }
 
-  private async updateVideoPreviews(
+  @LogMethod('stopAllPreviewJobs')
+  async stopAllPreviewJobs(): Promise<void> {
+    // TODO: finish all jobs to make sure that previewJob.finished() is executed
+    return this.fileQueue.obliterate({ force: true });
+  }
+
+  async updatePreviews(
     mediaWithNewTimeStamp: Media,
     originalFilePath: DBFilePath, // in case filePath is updated
+    outputDirName?: MainDir, // not needed for Video, dirName will be used
   ): Promise<Media> {
     const { mimetype, timeStamp, originalDate } = mediaWithNewTimeStamp;
     const previewJob = await this.fileQueue.add({
       dirName: MainDir.volumes,
+      outputDirName,
       fileName: removeExtraSlashes(originalFilePath) as FileNameWithVideoExt,
       fileType: mimetype,
       date: originalDate,
@@ -236,32 +251,63 @@ export class FilesService {
     return newMediaWithUpdatedPreviews;
   }
 
+  @LogMethod('updateVideoPreviewsWithNewTimeStamp')
   private async updateVideoPreviewsWithNewTimeStamp(
     updatedMediaList: UpdateMedia[],
-  ): Promise<UpdateMedia[]> {
-    const previewJobsPromises: Promise<UpdateMedia>[] = updatedMediaList.map(
-      async ({ newMedia, oldMedia }) => {
-        const needToUpdatePreview = Boolean(
-          newMedia.timeStamp && newMedia.timeStamp !== oldMedia.timeStamp,
-        );
+  ): Promise<{
+    updatedMediaList: UpdateMedia[];
+    errors: UpdateFilesOutputDto['errors'];
+  }> {
+    const previewJobsPromises = updatedMediaList.map(
+      ({ newMedia, oldMedia }) => {
+        return new CustomPromise<UpdateMedia>(async (resolve, reject) => {
+          const needToUpdatePreview = (
+            newMedia: Media,
+          ): newMedia is Media & { timeStamp: string } =>
+            Boolean(
+              newMedia.timeStamp && newMedia.timeStamp !== oldMedia.timeStamp,
+            );
 
-        return {
-          newMedia: needToUpdatePreview
-            ? await this.updateVideoPreviews(newMedia, oldMedia.filePath)
-            : newMedia,
-          oldMedia,
-        };
+          if (!needToUpdatePreview(newMedia)) {
+            resolve({ newMedia, oldMedia });
+            return;
+          }
+
+          const isVideoShorterThenTimeStamp =
+            parseTimeStampToMilliseconds(newMedia.timeStamp) >
+            (getVideoDurationInMillisecondsFromExif(newMedia.exif) || Infinity);
+
+          if (isVideoShorterThenTimeStamp) {
+            oldMedia.timeStamp && (newMedia.timeStamp = oldMedia.timeStamp);
+            reject({
+              originalValue: { newMedia, oldMedia },
+              errorMessage: `TimeStamp is not updated, video is shorter then timeStamp: ${newMedia.filePath}`,
+            });
+            return;
+          }
+
+          resolve({
+            newMedia: await this.updatePreviews(newMedia, oldMedia.filePath),
+            oldMedia,
+          });
+        });
       },
     );
 
-    return resolveAllSettled(previewJobsPromises);
+    const results = await CustomPromise.allSettled(previewJobsPromises, {
+      dontRejectIfError: true,
+    });
+
+    return CustomPromise.separateResolvedAndRejectedEntities(results);
   }
 
   private async removeAbandonedPreviews(updatedMediaList: UpdateMedia[]) {
     const mediasWithAbandonedPreviews = updatedMediaList
       .filter(
         ({ oldMedia, newMedia }) =>
-          newMedia.timeStamp && newMedia.timeStamp !== oldMedia.timeStamp,
+          oldMedia.preview &&
+          newMedia.timeStamp &&
+          newMedia.timeStamp !== oldMedia.timeStamp,
       )
       .map(({ oldMedia }) => oldMedia);
 
@@ -272,7 +318,10 @@ export class FilesService {
     );
   }
 
-  async updateFiles(filesToUpdate: UpdatedFilesInputDto): Promise<Media[]> {
+  @LogMethod('updateFiles')
+  async updateFiles(
+    filesToUpdate: UpdatedFilesInputDto,
+  ): Promise<UpdateFilesOutputDto> {
     let mediaDataForRestore: Media[] = [];
 
     await this.validateDuplicates(filesToUpdate);
@@ -285,7 +334,7 @@ export class FilesService {
         ({ oldMedia }) => oldMedia,
       );
 
-      const updatedMediaList: UpdateMedia[] =
+      const { updatedMediaList, errors } =
         await this.updateVideoPreviewsWithNewTimeStamp(
           updatedMediaListWithoutUpdatingPreviews,
         );
@@ -302,7 +351,7 @@ export class FilesService {
       );
       await this.removeAbandonedPreviews(updatedMediaList);
 
-      return updatedMediaDBList;
+      return { response: updatedMediaDBList, errors };
     } catch (error) {
       this.logger.logError({ message: error.message, method: 'updateFiles' });
       mediaDataForRestore.length &&

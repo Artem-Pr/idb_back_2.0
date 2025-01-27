@@ -11,6 +11,7 @@ import {
   getDescriptionFromExif,
   getKeywordsFromExif,
   getOriginalDateFromExif,
+  getVideoDurationInMillisecondsFromExif,
 } from './exifHelpers';
 import type { Tags } from 'exiftool-vendored';
 
@@ -130,6 +131,45 @@ describe('exifHelpers', () => {
       expect(getOriginalDateFromExif(exif as any)).toEqual(
         new Date('2019-01-12T12:00:00.000Z'),
       );
+    });
+  });
+
+  describe('getVideoDurationInMillisecondsFromExif', () => {
+    it('should return the duration in milliseconds when Duration field is present', () => {
+      const exif = iPhone_SE_1st_gen_video_from_life_photo_exif;
+      const result = getVideoDurationInMillisecondsFromExif(exif as any);
+      expect(result).toBe(2468.3333333333303);
+    });
+
+    it('should return null when no duration field is present', () => {
+      const exif: Tags = {};
+      const result = getVideoDurationInMillisecondsFromExif(exif);
+      expect(result).toBeNull();
+    });
+
+    it('should return the duration in milliseconds when TrackDuration field is present, if Duration field is not present', () => {
+      const exif: Tags = {
+        TrackDuration: 10,
+        MediaDuration: 7.25,
+      };
+      const result = getVideoDurationInMillisecondsFromExif(exif);
+      expect(result).toBe(10000);
+    });
+
+    it('should return the duration in milliseconds when MediaDuration field is present', () => {
+      const exif: Tags = {
+        MediaDuration: 7.25,
+      };
+      const result = getVideoDurationInMillisecondsFromExif(exif);
+      expect(result).toBe(7250);
+    });
+
+    it('Should return correct duration if Duration is a string', () => {
+      const exif = {
+        Duration: '10',
+      };
+      const result = getVideoDurationInMillisecondsFromExif(exif as any);
+      expect(result).toBe(10000);
     });
   });
 });

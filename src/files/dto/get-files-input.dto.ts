@@ -60,7 +60,7 @@ export class GetFilesFiltersInputDto {
 export class GetFilesSortInputDto {
   @IsDefined({ message: 'sorting must be defined' })
   @IsValidSorting()
-  sort: SortingObject;
+  sort?: SortingObject;
 
   @IsOptional()
   @IsBoolean()
@@ -91,23 +91,6 @@ export class GetFilesPaginationInputDto {
   perPage: number;
 }
 
-export class GetFilesSettingsInputDto {
-  @IsOptional()
-  @IsString()
-  comparisonFolder?: string;
-
-  @IsOptional()
-  dontSavePreview?: boolean; // TODO remove that field and related logic
-
-  @IsOptional()
-  @IsBoolean()
-  isFullSizePreview?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  isNameComparison?: boolean;
-}
-
 export class GetFilesInputDto {
   @IsDefined()
   @ValidateNested()
@@ -128,9 +111,4 @@ export class GetFilesInputDto {
   @ValidateNested()
   @Type(() => GetFilesPaginationInputDto)
   pagination: GetFilesPaginationInputDto;
-
-  @IsDefined()
-  @ValidateNested()
-  @Type(() => GetFilesSettingsInputDto)
-  settings: GetFilesSettingsInputDto;
 }

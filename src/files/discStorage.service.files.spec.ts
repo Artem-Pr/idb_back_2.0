@@ -14,10 +14,7 @@ import { UpdateMedia } from './mediaDB.service';
 import { Media } from './entities/media.entity';
 import { InternalServerErrorException } from '@nestjs/common';
 import { dirname, normalize } from 'path';
-import {
-  replaceHashWithPlaceholder,
-  resolveAllSettled,
-} from 'src/common/utils';
+import { replaceHashWithPlaceholder } from 'src/common/utils';
 import type {
   DBFullSizePath,
   DBPreviewPath,
@@ -27,6 +24,7 @@ import type {
 } from 'src/common/types';
 import { PathsService } from 'src/paths/paths.service';
 import { ObjectId } from 'mongodb';
+import { resolveAllSettled } from 'src/common/customPromise';
 
 const {
   copySync,
@@ -517,6 +515,21 @@ describe('DiscStorageService', () => {
         ),
       ).toBeTruthy();
     });
+
+    it('should throw an error if you move the mainDir', async () => {
+      await expect(
+        service.changeFileDirectory({
+          oldFilePath: '' as any,
+          oldFileMainDir: MainDir.volumes,
+          newFilePath: '' as any,
+          newFileMainDir: MainDir.temp,
+        }),
+      ).rejects.toThrow(
+        new Error(
+          'Directory cleanup aborted: root directory cleanup not allowed.',
+        ),
+      );
+    });
   });
 
   describe('renameFile', () => {
@@ -590,6 +603,14 @@ describe('DiscStorageService', () => {
         new InternalServerErrorException('Error occurred when removing file.'),
       );
     });
+
+    it('should throw InternalServerErrorException if remove mainDir directory', async () => {
+      await expect(service.removeFile('' as any)).rejects.toThrow(
+        new InternalServerErrorException(
+          'Directory cleanup aborted: root directory cleanup not allowed.',
+        ),
+      );
+    });
   });
 
   describe('removeDirectory', () => {
@@ -651,7 +672,9 @@ describe('DiscStorageService', () => {
     });
 
     it('should handle an empty directory path gracefully', async () => {
-      await expect(service.removeDirectory('')).resolves.not.toThrow();
+      await expect(
+        service.removeDirectory('', MainDir.temp),
+      ).resolves.not.toThrow();
     });
 
     it('should throw InternalServerErrorException if an error occurs', async () => {
@@ -662,6 +685,14 @@ describe('DiscStorageService', () => {
       await expect(service.removeDirectory('directory')).rejects.toThrow(
         new InternalServerErrorException(
           'Error occurred when removing directory.',
+        ),
+      );
+    });
+
+    it('should throw InternalServerErrorException if remove mainDir directory', async () => {
+      await expect(service.removeDirectory('' as any)).rejects.toThrow(
+        new InternalServerErrorException(
+          'Directory cleanup aborted: root directory cleanup not allowed.',
         ),
       );
     });
@@ -701,6 +732,14 @@ describe('DiscStorageService', () => {
       ).rejects.toThrow(
         new InternalServerErrorException(
           'Error occurred when emptying directory.',
+        ),
+      );
+    });
+
+    it('should throw InternalServerErrorException if empty mainDir directory', async () => {
+      await expect(service.emptyDirectory(MainDir.volumes)).rejects.toThrow(
+        new InternalServerErrorException(
+          'Directory cleanup aborted: root directory cleanup not allowed.',
         ),
       );
     });
@@ -923,6 +962,29 @@ describe('DiscStorageService', () => {
 
       await expect(service.removeFilesAndPreviews(mediaList)).rejects.toThrow(
         new InternalServerErrorException('Test error'),
+      );
+    });
+  });
+
+  describe('isRemovingAllowed', () => {
+    it('should return true for allowed directories', () => {
+      const result = service.isRemovingAllowed('some/allowed/path');
+      expect(result).toBe(true);
+    });
+
+    it('should throw an error for MainDir.previews', () => {
+      expect(() => service.isRemovingAllowed(MainDir.previews)).toThrow(
+        new InternalServerErrorException(
+          'Directory cleanup aborted: root directory cleanup not allowed.',
+        ),
+      );
+    });
+
+    it('should throw an error for MainDir.volumes', () => {
+      expect(() => service.isRemovingAllowed(MainDir.volumes)).toThrow(
+        new InternalServerErrorException(
+          'Directory cleanup aborted: root directory cleanup not allowed.',
+        ),
       );
     });
   });

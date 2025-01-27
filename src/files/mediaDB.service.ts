@@ -38,6 +38,7 @@ import type { GetFilesInputDto } from './dto/get-files-input.dto';
 import type { GetFilesOutputDto, Pagination } from './dto/get-files-output.dto';
 import { LogMethod } from 'src/logger/logger.decorator';
 import { decodeString } from 'src/common/utils';
+import { resolveAllSettled } from 'src/common/customPromise';
 
 export enum DBType {
   DBTemp = 'temp',
@@ -158,6 +159,52 @@ export class MediaDBService extends MediaDBQueryCreators {
     }) as Promise<PreviewListEntity[]>;
   }
 
+  @LogMethod('mediaRepository.find.findEmptyPreviewsInDB')
+  async findEmptyPreviewsInDB({
+    mimeTypes,
+    folderPath,
+  }: {
+    mimeTypes?: Media['mimetype'][];
+    folderPath?: string;
+  }) {
+    const requestToCheckPreviewsOnly = {
+      where: this.getMongoEmptyPreviewsCondition(mimeTypes, folderPath),
+    };
+
+    const requestForHeicAndVideos = {
+      where: this.getMongoEmptyFullSizesCondition(mimeTypes, folderPath),
+    };
+
+    if (requestForHeicAndVideos.where !== null) {
+      const notHeicImagesPromise = this.mediaRepository.find(
+        requestToCheckPreviewsOnly,
+      );
+
+      const heicAndVideosPromise = this.mediaRepository.find(
+        requestForHeicAndVideos,
+      );
+
+      const mediaFilesWithEmptyPreviews = (
+        await resolveAllSettled([notHeicImagesPromise, heicAndVideosPromise])
+      ).flat();
+
+      const mediaFilesWithoutDuplicates: Media[] = [];
+      mediaFilesWithEmptyPreviews.forEach((mediaFile) => {
+        if (
+          !mediaFilesWithoutDuplicates.some(
+            ({ _id }) => _id.toHexString() === mediaFile._id.toHexString(),
+          )
+        ) {
+          mediaFilesWithoutDuplicates.push(mediaFile);
+        }
+      });
+
+      return mediaFilesWithoutDuplicates;
+    }
+
+    return await this.mediaRepository.find(requestToCheckPreviewsOnly);
+  }
+
   async getSameFilesIfExist(where: GetSameFilesIfExist) {
     return this.mediaRepository.find({ where });
   }
@@ -181,7 +228,7 @@ export class MediaDBService extends MediaDBQueryCreators {
       ? toMillisecondsUTC(updatedFields.changeDate)
       : mediaToUpdate.changeDate;
     updatedMedia.description =
-      updatedFields.description || mediaToUpdate.description;
+      updatedFields.description ?? mediaToUpdate.description;
     updatedMedia.exif = mediaToUpdate.exif;
     updatedMedia.filePath = updatedFields.filePath || mediaToUpdate.filePath;
     updatedMedia.fullSizeJpg = mediaToUpdate.fullSizeJpg;
@@ -195,7 +242,7 @@ export class MediaDBService extends MediaDBQueryCreators {
     updatedMedia.originalName =
       updatedFields.originalName || mediaToUpdate.originalName;
     updatedMedia.preview = mediaToUpdate.preview;
-    updatedMedia.rating = updatedFields.rating || mediaToUpdate.rating;
+    updatedMedia.rating = updatedFields.rating ?? mediaToUpdate.rating;
     updatedMedia.timeStamp = updatedFields.timeStamp || mediaToUpdate.timeStamp;
     updatedMedia.size = mediaToUpdate.size;
 

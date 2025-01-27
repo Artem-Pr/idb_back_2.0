@@ -350,90 +350,93 @@ exports[`FilesService saveFiles should save files 1`] = `
 `;
 
 exports[`FilesService updateFiles should update files 1`] = `
-[
-  Media {
-    "_id": "00000001f80f825d51300844",
-    "changeDate": 1688319393000,
-    "description": "test description",
-    "exif": {
-      "DateTimeOriginal": {
-        "_ctor": "ExifDateTime",
-        "day": 19,
-        "hour": 12,
-        "inferredZone": undefined,
-        "millisecond": 0,
-        "minute": 0,
-        "month": 9,
-        "rawValue": "2019:09:19 12:00:00",
-        "second": 0,
-        "tzoffsetMinutes": undefined,
-        "year": 2019,
-        "zoneName": undefined,
+{
+  "errors": [],
+  "response": [
+    Media {
+      "_id": "00000001f80f825d51300844",
+      "changeDate": 1688319393000,
+      "description": "test description",
+      "exif": {
+        "DateTimeOriginal": {
+          "_ctor": "ExifDateTime",
+          "day": 19,
+          "hour": 12,
+          "inferredZone": undefined,
+          "millisecond": 0,
+          "minute": 0,
+          "month": 9,
+          "rawValue": "2019:09:19 12:00:00",
+          "second": 0,
+          "tzoffsetMinutes": undefined,
+          "year": 2019,
+          "zoneName": undefined,
+        },
+        "Description": "test description",
+        "GPSPosition": "42.5, 42.5",
+        "ImageSize": "1920x1080",
+        "Megapixels": 12,
+        "Rating": 5,
       },
-      "Description": "test description",
-      "GPSPosition": "42.5, 42.5",
-      "ImageSize": "1920x1080",
-      "Megapixels": 12,
-      "Rating": 5,
+      "filePath": "/path/to/test1-updated.jpg",
+      "fullSizeJpg": "/path/to/test1-updated-fullSize.jpg",
+      "imageSize": "1920x1080",
+      "keywords": [
+        "keyword1",
+        "keyword2",
+      ],
+      "megapixels": 12,
+      "mimetype": "image/jpg",
+      "originalDate": 2019-09-19T10:00:00.000Z,
+      "originalName": "test1-updated.jpg",
+      "preview": "/path/to/test1-updated-preview.jpg",
+      "rating": 5,
+      "size": 1024,
+      "timeStamp": "00:00:00.100",
     },
-    "filePath": "/path/to/test1-updated.jpg",
-    "fullSizeJpg": "/path/to/test1-updated-fullSize.jpg",
-    "imageSize": "1920x1080",
-    "keywords": [
-      "keyword1",
-      "keyword2",
-    ],
-    "megapixels": 12,
-    "mimetype": "image/jpg",
-    "originalDate": 2019-09-19T10:00:00.000Z,
-    "originalName": "test1-updated.jpg",
-    "preview": "/path/to/test1-updated-preview.jpg",
-    "rating": 5,
-    "size": 1024,
-    "timeStamp": "00:00:00.100",
-  },
-  Media {
-    "_id": "00000001f80f825d51300845",
-    "changeDate": 1688319393000,
-    "description": "test description",
-    "exif": {
-      "DateTimeOriginal": {
-        "_ctor": "ExifDateTime",
-        "day": 19,
-        "hour": 12,
-        "inferredZone": undefined,
-        "millisecond": 0,
-        "minute": 0,
-        "month": 9,
-        "rawValue": "2019:09:19 12:00:00",
-        "second": 0,
-        "tzoffsetMinutes": undefined,
-        "year": 2019,
-        "zoneName": undefined,
+    Media {
+      "_id": "00000001f80f825d51300845",
+      "changeDate": 1688319393000,
+      "description": "test description",
+      "exif": {
+        "DateTimeOriginal": {
+          "_ctor": "ExifDateTime",
+          "day": 19,
+          "hour": 12,
+          "inferredZone": undefined,
+          "millisecond": 0,
+          "minute": 0,
+          "month": 9,
+          "rawValue": "2019:09:19 12:00:00",
+          "second": 0,
+          "tzoffsetMinutes": undefined,
+          "year": 2019,
+          "zoneName": undefined,
+        },
+        "Description": "test description",
+        "GPSPosition": "42.5, 42.5",
+        "ImageSize": "1920x1080",
+        "Megapixels": 12,
+        "Rating": 5,
       },
-      "Description": "test description",
-      "GPSPosition": "42.5, 42.5",
-      "ImageSize": "1920x1080",
-      "Megapixels": 12,
-      "Rating": 5,
+      "filePath": "/path/to/test2-updated.jpg",
+      "fullSizeJpg": "/path/to/test2-updated-fullSize.jpg",
+      "imageSize": "1920x1080",
+      "keywords": [],
+      "megapixels": 12,
+      "mimetype": "image/jpg",
+      "originalDate": 2024-09-20T17:00:00.000Z,
+      "originalName": "test2-updated.jpg",
+      "preview": "/path/to/test2-updated-preview.jpg",
+      "rating": 5,
+      "size": 1024,
+      "timeStamp": "00:00:00.100",
     },
-    "filePath": "/path/to/test2-updated.jpg",
-    "fullSizeJpg": "/path/to/test2-updated-fullSize.jpg",
-    "imageSize": "1920x1080",
-    "keywords": [],
-    "megapixels": 12,
-    "mimetype": "image/jpg",
-    "originalDate": 2024-09-20T17:00:00.000Z,
-    "originalName": "test2-updated.jpg",
-    "preview": "/path/to/test2-updated-preview.jpg",
-    "rating": 5,
-    "size": 1024,
-    "timeStamp": "00:00:00.100",
-  },
-]
+  ],
+}
 `;
 
-exports[`FilesService updateVideoPreviews should update video previews 1`] = `
+exports[`FilesService updatePreviews should update video previews 1`] = `
 Media {
   "_id": undefined,
   "fullSizeJpg": "/path/to-fullSize.jpg",
@@ -444,25 +447,59 @@ Media {
 }
 `;
 
+exports[`FilesService updateVideoPreviewsWithNewTimeStamp should return errors if timestamp is larger than video duration 1`] = `
+{
+  "errors": [
+    "TimeStamp is not updated, video is shorter then timeStamp: undefined",
+  ],
+  "updatedMediaList": [
+    {
+      "newMedia": Media {
+        "exif": {
+          "Duration": 20,
+        },
+        "mimetype": "video/quicktime",
+        "originalDate": 2010-10-10T08:10:10.000Z,
+        "originalName": "updatedFilePath.mov",
+        "timeStamp": "00:00:00.000",
+      },
+      "oldMedia": Media {
+        "filePath": "/path/to/updatedFilePath.mov",
+        "mimetype": "video/quicktime",
+        "originalDate": 2010-10-10T08:10:10.000Z,
+        "originalName": "updatedFilePath.mov",
+        "timeStamp": "00:00:00.000",
+      },
+    },
+  ],
+}
+`;
+
 exports[`FilesService updateVideoPreviewsWithNewTimeStamp should update video previews with new timestamp 1`] = `
-[
-  {
-    "newMedia": Media {
-      "_id": undefined,
-      "fullSizeJpg": "/path/to-fullSize.jpg",
-      "mimetype": "video/quicktime",
-      "originalDate": 2010-10-10T08:10:10.000Z,
-      "originalName": "updatedFilePath.mov",
-      "preview": "/path/to-preview.jpg",
-      "timeStamp": "00:01:02.000",
+{
+  "errors": [],
+  "updatedMediaList": [
+    {
+      "newMedia": Media {
+        "_id": undefined,
+        "exif": {
+          "Duration": 200,
+        },
+        "fullSizeJpg": "/path/to-fullSize.jpg",
+        "mimetype": "video/quicktime",
+        "originalDate": 2010-10-10T08:10:10.000Z,
+        "originalName": "updatedFilePath.mov",
+        "preview": "/path/to-preview.jpg",
+        "timeStamp": "00:01:02.000",
+      },
+      "oldMedia": Media {
+        "filePath": "/path/to/updatedFilePath.mov",
+        "mimetype": "video/quicktime",
+        "originalDate": 2010-10-10T08:10:10.000Z,
+        "originalName": "updatedFilePath.mov",
+        "timeStamp": "00:00:00.000",
+      },
     },
-    "oldMedia": Media {
-      "filePath": "/path/to/updatedFilePath.mov",
-      "mimetype": "video/quicktime",
-      "originalDate": 2010-10-10T08:10:10.000Z,
-      "originalName": "updatedFilePath.mov",
-      "timeStamp": "00:00:00.000",
-    },
-  },
-]
+  ],
+}
 `;

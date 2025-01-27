@@ -15,7 +15,7 @@ import type { ExifData, GetExifJob } from 'src/jobs/exif.processor';
 import { ConfigService } from 'src/config/config.service';
 import { MediaTemp } from './entities/media-temp.entity';
 import type { ImageStoreServiceOutputDto } from 'src/jobs/dto/image-store-service-output.dto';
-import * as utils from 'src/common/utils';
+import * as customPromise from 'src/common/customPromise';
 import {
   createMediaMock,
   createMediaTempMock,
@@ -100,7 +100,7 @@ const resetMockUpload = () => {
 describe('FilesService', () => {
   let addFileToDBTemp: jest.Mock<MediaTemp>;
   let exifQueue: Queue<GetExifJob>;
-  let fileQueue: Queue<CreatePreviewJob>;
+  let fileQueue: Queue<CreatePreviewJob> & { obliterate: jest.Mock };
   let getSameFilesIfExist: jest.Mock<GetSameFilesIfExist>;
   let mediaDBService: MediaDBService;
   let service: FilesService;
@@ -177,7 +177,7 @@ describe('FilesService', () => {
     keywordsService = module.get<KeywordsService>(KeywordsService);
     pathsService = module.get<PathsService>(PathsService);
     diskStorageService = module.get<DiscStorageService>(DiscStorageService);
-    fileQueue = module.get<Queue<CreatePreviewJob>>(
+    fileQueue = module.get<Queue<CreatePreviewJob> & { obliterate: jest.Mock }>(
       getQueueToken(Processors.fileProcessor),
     );
     exifQueue = module.get<Queue<GetExifJob>>(
@@ -194,6 +194,7 @@ describe('FilesService', () => {
     jest
       .spyOn(mediaDBService, 'getSameFilesIfExist')
       .mockReturnValue(new Promise((resolve) => resolve(mockDuplicates)));
+    fileQueue.obliterate = jest.fn();
 
     resetMockUpload();
   });
@@ -320,7 +321,6 @@ describe('FilesService', () => {
       sorting: { sort: { originalDate: -1, filePath: 1 } },
       folders: { showSubfolders: true },
       pagination: { page: 1, perPage: 10 },
-      settings: { dontSavePreview: true },
     };
 
     it('should return correct response', async () => {
@@ -605,7 +605,14 @@ describe('FilesService', () => {
     });
   });
 
-  describe('updateVideoPreviews', () => {
+  describe('stopAllPreviewJobs', () => {
+    it('should stop all preview jobs', async () => {
+      await service.stopAllPreviewJobs();
+      expect(fileQueue.obliterate).toHaveBeenCalledWith({ force: true });
+    });
+  });
+
+  describe('updatePreviews', () => {
     it('should update video previews', async () => {
       const mediaToUpdate: Media = new Media();
       mediaToUpdate.mimetype = SupportedVideoMimeTypes.mov;
@@ -613,7 +620,7 @@ describe('FilesService', () => {
       mediaToUpdate.timeStamp = '00:01:02.000';
       const originalFilePath = '/path/to/file.mov';
 
-      const result = await service['updateVideoPreviews'](
+      const result = await service['updatePreviews'](
         mediaToUpdate,
         originalFilePath,
       );
@@ -636,6 +643,7 @@ describe('FilesService', () => {
       newMedia.originalDate = new Date('2010-10-10 10:10:10');
       newMedia.originalName = 'updatedFilePath.mov';
       newMedia.timeStamp = '00:01:02.000';
+      newMedia.exif = { Duration: 200 };
 
       const updatedMediaList: UpdateMedia[] = [
         {
@@ -675,7 +683,35 @@ describe('FilesService', () => {
       const result =
         await service['updateVideoPreviewsWithNewTimeStamp'](updatedMediaList);
 
-      expect(result).toEqual(updatedMediaList);
+      expect(result).toEqual({ updatedMediaList, errors: [] });
+    });
+
+    it('should return errors if timestamp is larger than video duration', async () => {
+      const oldMedia = new Media();
+      oldMedia.mimetype = SupportedVideoMimeTypes.mov;
+      oldMedia.originalDate = new Date('2010-10-10 10:10:10');
+      oldMedia.filePath = '/path/to/updatedFilePath.mov';
+      oldMedia.originalName = 'updatedFilePath.mov';
+      oldMedia.timeStamp = '00:00:00.000';
+
+      const newMedia = new Media();
+      newMedia.mimetype = SupportedVideoMimeTypes.mov;
+      newMedia.originalDate = new Date('2010-10-10 10:10:10');
+      newMedia.originalName = 'updatedFilePath.mov';
+      newMedia.timeStamp = '00:01:02.000';
+      newMedia.exif = { Duration: 20 };
+
+      const updatedMediaList: UpdateMedia[] = [
+        {
+          oldMedia,
+          newMedia,
+        },
+      ];
+
+      const result =
+        await service['updateVideoPreviewsWithNewTimeStamp'](updatedMediaList);
+
+      expect(result).toMatchSnapshot();
     });
   });
 
@@ -686,6 +722,7 @@ describe('FilesService', () => {
       oldMedia.originalDate = new Date('2010-10-10 10:10:10');
       oldMedia.filePath = '/path/to/updatedFilePath.mov';
       oldMedia.originalName = 'updatedFilePath.mov';
+      oldMedia.preview = '/path/to/updatedFilePath-preview.jpg';
       oldMedia.timeStamp = '00:00:00.000';
 
       const newMedia = new Media();
@@ -842,7 +879,7 @@ describe('FilesService', () => {
       startAllQueues = jest.spyOn(service, 'startAllProcessFileQueues');
       finishAllQueues = jest.spyOn(service, 'finishAllProcessFileQueues');
       pushFileToMediaDBTemp = jest.spyOn(service, 'pushFileToMediaDBTemp');
-      resolveAllSettledSpy = jest.spyOn(utils, 'resolveAllSettled');
+      resolveAllSettledSpy = jest.spyOn(customPromise, 'resolveAllSettled');
     });
 
     it('should process a file correctly and return the result', async () => {
