@@ -148,6 +148,25 @@ export class MediaDBQueryCreators {
     return {};
   }
 
+  getMongoFilesCondition({
+    mimeTypes,
+    folderPath,
+  }: {
+    mimeTypes?: SupportedMimetypes['allFiles'][];
+    folderPath?: string;
+  }) {
+    return {
+      $and: [
+        this.getMongoFoldersCondition({ folderPath, showSubfolders: true }),
+        {
+          mimetype: {
+            $in: mimeTypes?.length ? mimeTypes : SUPPORTED_MIMETYPES,
+          },
+        },
+      ],
+    };
+  }
+
   getMongoEmptyPreviewsCondition(
     mimeTypes?: SupportedMimetypes['allFiles'][],
     folderPath?: string,

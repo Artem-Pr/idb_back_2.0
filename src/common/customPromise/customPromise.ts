@@ -153,7 +153,7 @@ export class CustomPromise<T> {
       Boolean((result as RejectedAllSettledError<T>).errorMessage);
 
     return {
-      updatedMediaList: resolvedAndRejectedEntities
+      resolvedList: resolvedAndRejectedEntities
         .map((result) => {
           if (isRejected(result)) {
             return result.originalValue;

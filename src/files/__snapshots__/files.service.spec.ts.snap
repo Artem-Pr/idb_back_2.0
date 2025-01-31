@@ -452,7 +452,7 @@ exports[`FilesService updateVideoPreviewsWithNewTimeStamp should return errors i
   "errors": [
     "TimeStamp is not updated, video is shorter then timeStamp: undefined",
   ],
-  "updatedMediaList": [
+  "resolvedList": [
     {
       "newMedia": Media {
         "exif": {
@@ -478,7 +478,7 @@ exports[`FilesService updateVideoPreviewsWithNewTimeStamp should return errors i
 exports[`FilesService updateVideoPreviewsWithNewTimeStamp should update video previews with new timestamp 1`] = `
 {
   "errors": [],
-  "updatedMediaList": [
+  "resolvedList": [
     {
       "newMedia": Media {
         "_id": undefined,

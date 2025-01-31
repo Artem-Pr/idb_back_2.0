@@ -255,7 +255,7 @@ export class FilesService {
   private async updateVideoPreviewsWithNewTimeStamp(
     updatedMediaList: UpdateMedia[],
   ): Promise<{
-    updatedMediaList: UpdateMedia[];
+    resolvedList: UpdateMedia[];
     errors: UpdateFilesOutputDto['errors'];
   }> {
     const previewJobsPromises = updatedMediaList.map(
@@ -334,7 +334,7 @@ export class FilesService {
         ({ oldMedia }) => oldMedia,
       );
 
-      const { updatedMediaList, errors } =
+      const { resolvedList: updatedMediaList, errors } =
         await this.updateVideoPreviewsWithNewTimeStamp(
           updatedMediaListWithoutUpdatingPreviews,
         );

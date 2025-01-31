@@ -1114,4 +1114,52 @@ describe('MediaDB', () => {
       expect(mediaRepository.find).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('findFilePathsForMediaInFolder', () => {
+    it('should return file paths for media in the specified folder', async () => {
+      const expectedDBQuery = {
+        select: ['_id', 'filePath'],
+        where: {
+          $and: [
+            {
+              $expr: {
+                $eq: [
+                  {
+                    $indexOfCP: ['$filePath', '//path/to/'],
+                  },
+                  0,
+                ],
+              },
+            },
+            {
+              mimetype: {
+                $in: ['image/jpeg'],
+              },
+            },
+          ],
+        },
+      };
+      const mockMediaFiles: Pick<Media, '_id' | 'filePath'>[] = [
+        {
+          _id: new ObjectId('507f1f77bcf86cd799439011'),
+          filePath: '/path/to/file1.jpg',
+        },
+        {
+          _id: new ObjectId('507f1f77bcf86cd799439012'),
+          filePath: '/path/to/file2.jpg',
+        },
+      ];
+      jest
+        .spyOn(mediaRepository, 'find')
+        .mockResolvedValue(mockMediaFiles as Media[]);
+
+      const result = await service.findFilePathsForMediaInFolder({
+        mimeTypes: [SupportedImageMimetypes.jpeg],
+        folderPath: '/path/to',
+      });
+
+      expect(result).toEqual(mockMediaFiles);
+      expect(mediaRepository.find).toHaveBeenCalledWith(expectedDBQuery);
+    });
+  });
 });

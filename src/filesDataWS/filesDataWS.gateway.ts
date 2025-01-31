@@ -16,6 +16,7 @@ import { WSApiStatus, WebSocketActions } from './constants';
 import { plainToInstance } from 'class-transformer';
 import { validateOrReject } from 'class-validator';
 import { CreatePreviewsWSService } from './createPreviewsWS.service';
+import { UpdateExifWSService } from './updateExifWS.service';
 
 @Injectable()
 export class FilesDataWSGateway
@@ -31,6 +32,8 @@ export class FilesDataWSGateway
     private readonly syncPreviewsWSService: SyncPreviewsWSService,
     @Inject(forwardRef(() => CreatePreviewsWSService))
     private readonly createPreviewsWS: CreatePreviewsWSService,
+    @Inject(forwardRef(() => UpdateExifWSService))
+    private readonly updateExifWS: UpdateExifWSService,
   ) {}
 
   send(request: FilesDataWSActionOutputDto) {
@@ -62,6 +65,17 @@ export class FilesDataWSGateway
         break;
       case WebSocketActions.CREATE_PREVIEWS_STOP:
         this.createPreviewsWS.stopProcess();
+        break;
+      case WebSocketActions.UPDATE_EXIF:
+        this.updateExifWS.startProcess(
+          filesDataAction.data || {
+            folderPath: '',
+            mimeTypes: [],
+          },
+        );
+        break;
+      case WebSocketActions.UPDATE_EXIF_STOP:
+        this.updateExifWS.stopProcess();
         break;
       default:
         this.send(

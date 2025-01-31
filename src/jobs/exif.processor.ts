@@ -62,9 +62,9 @@ export class ExifProcessor {
 
     try {
       for (const filePath of filePaths) {
-        const previewPath: NormalizedMediaPath = `${this.configService.mainDirPath}/${mainDir}/${filePath}`;
+        const normalizedPath: NormalizedMediaPath = `${this.configService.mainDirPath}/${mainDir}/${filePath}`;
 
-        const exif = await this.exiftool.read(previewPath);
+        const exif = await this.exiftool.read(normalizedPath);
         exifData[filePath] = exif;
       }
     } catch (error) {

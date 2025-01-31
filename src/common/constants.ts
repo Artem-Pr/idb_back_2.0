@@ -163,7 +163,7 @@ export enum Processors {
 }
 
 export const Concurrency = Object.freeze({
-  [Processors.fileProcessor]: 5,
+  [Processors.fileProcessor]: 3,
   [Processors.exifProcessor]: 5,
 });
 

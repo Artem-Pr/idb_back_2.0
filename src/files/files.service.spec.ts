@@ -100,7 +100,7 @@ const resetMockUpload = () => {
 describe('FilesService', () => {
   let addFileToDBTemp: jest.Mock<MediaTemp>;
   let exifQueue: Queue<GetExifJob>;
-  let fileQueue: Queue<CreatePreviewJob> & { obliterate: jest.Mock };
+  let fileQueue: Queue<CreatePreviewJob>;
   let getSameFilesIfExist: jest.Mock<GetSameFilesIfExist>;
   let mediaDBService: MediaDBService;
   let service: FilesService;
@@ -119,7 +119,10 @@ describe('FilesService', () => {
         FilesService,
         {
           provide: getQueueToken(Processors.fileProcessor),
-          useValue: { add: jest.fn(() => mockPreviewJob) },
+          useValue: {
+            add: jest.fn(() => mockPreviewJob),
+            obliterate: jest.fn(),
+          },
         },
         {
           provide: getQueueToken(Processors.exifProcessor),
@@ -177,7 +180,7 @@ describe('FilesService', () => {
     keywordsService = module.get<KeywordsService>(KeywordsService);
     pathsService = module.get<PathsService>(PathsService);
     diskStorageService = module.get<DiscStorageService>(DiscStorageService);
-    fileQueue = module.get<Queue<CreatePreviewJob> & { obliterate: jest.Mock }>(
+    fileQueue = module.get<Queue<CreatePreviewJob>>(
       getQueueToken(Processors.fileProcessor),
     );
     exifQueue = module.get<Queue<GetExifJob>>(
@@ -673,7 +676,7 @@ describe('FilesService', () => {
       newMedia.originalName = 'updatedFilePath.mov';
       oldMedia.timeStamp = '00:00:00.000';
 
-      const updatedMediaList: UpdateMedia[] = [
+      const resolvedList: UpdateMedia[] = [
         {
           oldMedia,
           newMedia,
@@ -681,9 +684,9 @@ describe('FilesService', () => {
       ];
 
       const result =
-        await service['updateVideoPreviewsWithNewTimeStamp'](updatedMediaList);
+        await service['updateVideoPreviewsWithNewTimeStamp'](resolvedList);
 
-      expect(result).toEqual({ updatedMediaList, errors: [] });
+      expect(result).toEqual({ resolvedList, errors: [] });
     });
 
     it('should return errors if timestamp is larger than video duration', async () => {

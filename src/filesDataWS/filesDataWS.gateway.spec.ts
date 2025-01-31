@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from 'src/config/config.service';
 import { CreatePreviewsWSService } from './createPreviewsWS.service';
 import { SyncPreviewsWSService } from './syncPreviewsWS.service';
+import { UpdateExifWSService } from './updateExifWS.service';
 import { CustomLogger } from 'src/logger/logger.service';
 import { FilesDataWSGateway } from './filesDataWS.gateway';
 import * as WebSocket from 'ws';
@@ -25,6 +26,7 @@ describe('FilesDataWSGateway', () => {
   let mockConfigService: ConfigService;
   let mockSyncPreviewsWSService: SyncPreviewsWSService;
   let mockCreatePreviewsWSService: CreatePreviewsWSService;
+  let mockUpdateExifWSService: UpdateExifWSService;
   let mockLogger: CustomLogger;
 
   beforeEach(async () => {
@@ -51,6 +53,7 @@ describe('FilesDataWSGateway', () => {
           provide: CreatePreviewsWSService,
           useValue: mockCreatePreviewsWSService,
         },
+        { provide: UpdateExifWSService, useValue: mockUpdateExifWSService },
         { provide: CustomLogger, useValue: mockLogger },
       ],
     }).compile();

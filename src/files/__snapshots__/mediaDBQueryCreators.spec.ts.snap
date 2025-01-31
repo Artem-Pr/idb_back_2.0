@@ -367,3 +367,117 @@ exports[`MediaDBQueryCreators getMongoEmptyPreviewsCondition should return corre
   ],
 }
 `;
+
+exports[`MediaDBQueryCreators getMongoFilesCondition should return correct condition with folderPath 1`] = `
+{
+  "$and": [
+    {
+      "$expr": {
+        "$eq": [
+          {
+            "$indexOfCP": [
+              "$filePath",
+              "/path/to/folder/",
+            ],
+          },
+          0,
+        ],
+      },
+    },
+    {
+      "mimetype": {
+        "$in": [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/heic",
+          "image/gif",
+          "image/x-adobe-dng",
+          "video/x-msvideo",
+          "video/x-flv",
+          "video/x-matroska",
+          "video/quicktime",
+          "video/mp4",
+          "video/mpeg",
+          "video/ogg",
+          "video/webm",
+          "video/x-ms-wmv",
+        ],
+      },
+    },
+  ],
+}
+`;
+
+exports[`MediaDBQueryCreators getMongoFilesCondition should return correct condition with mimeTypes 1`] = `
+{
+  "$and": [
+    {},
+    {
+      "mimetype": {
+        "$in": [
+          "image/jpeg",
+          "video/mp4",
+        ],
+      },
+    },
+  ],
+}
+`;
+
+exports[`MediaDBQueryCreators getMongoFilesCondition should return correct condition with mimeTypes and folderPath 1`] = `
+{
+  "$and": [
+    {
+      "$expr": {
+        "$eq": [
+          {
+            "$indexOfCP": [
+              "$filePath",
+              "/path/to/folder/",
+            ],
+          },
+          0,
+        ],
+      },
+    },
+    {
+      "mimetype": {
+        "$in": [
+          "image/jpeg",
+          "video/mp4",
+        ],
+      },
+    },
+  ],
+}
+`;
+
+exports[`MediaDBQueryCreators getMongoFilesCondition should return correct condition without mimeTypes and folderPath 1`] = `
+{
+  "$and": [
+    {},
+    {
+      "mimetype": {
+        "$in": [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/heic",
+          "image/gif",
+          "image/x-adobe-dng",
+          "video/x-msvideo",
+          "video/x-flv",
+          "video/x-matroska",
+          "video/quicktime",
+          "video/mp4",
+          "video/mpeg",
+          "video/ogg",
+          "video/webm",
+          "video/x-ms-wmv",
+        ],
+      },
+    },
+  ],
+}
+`;

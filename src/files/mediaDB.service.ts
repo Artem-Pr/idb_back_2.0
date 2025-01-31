@@ -159,6 +159,23 @@ export class MediaDBService extends MediaDBQueryCreators {
     }) as Promise<PreviewListEntity[]>;
   }
 
+  @LogMethod('mediaRepository.find.findFilePathsForMediaInFolder')
+  async findFilePathsForMediaInFolder({
+    mimeTypes,
+    folderPath,
+  }: {
+    mimeTypes?: Media['mimetype'][];
+    folderPath?: string;
+  }): Promise<Pick<Media, '_id' | 'filePath'>[]> {
+    return this.mediaRepository.find({
+      where: this.getMongoFilesCondition({
+        folderPath,
+        mimeTypes,
+      }),
+      select: ['_id', 'filePath'],
+    }) as Promise<Pick<Media, '_id' | 'filePath'>[]>;
+  }
+
   @LogMethod('mediaRepository.find.findEmptyPreviewsInDB')
   async findEmptyPreviewsInDB({
     mimeTypes,
@@ -166,7 +183,7 @@ export class MediaDBService extends MediaDBQueryCreators {
   }: {
     mimeTypes?: Media['mimetype'][];
     folderPath?: string;
-  }) {
+  }): Promise<Media[]> {
     const requestToCheckPreviewsOnly = {
       where: this.getMongoEmptyPreviewsCondition(mimeTypes, folderPath),
     };

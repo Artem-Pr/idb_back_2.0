@@ -6,27 +6,30 @@ import {
   FilesDataWSActionOutputDto,
   FilesDataWSOutputDto,
 } from './dto/files-data-ws-output.dto';
-import { MainDir } from 'src/common/constants';
+import { MainDir, Processors } from 'src/common/constants';
 import { CustomLogger } from 'src/logger/logger.service';
 import { deepCopy } from 'src/common/utils';
 import type { FilesDataWSInputDto } from './dto/files-data-ws-input.dto';
 import { Media } from 'src/files/entities/media.entity';
-import { FilesService } from 'src/files/files.service';
 import { nanosecondsToFormattedString } from 'src/common/datesHelper';
 import { CustomPromise } from 'src/common/customPromise';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import type { ExifData, GetExifJob } from 'src/jobs/exif.processor';
 
 @Injectable()
-export class CreatePreviewsWSService {
-  private readonly logger = new CustomLogger(CreatePreviewsWSService.name);
+export class UpdateExifWSService {
+  private readonly logger = new CustomLogger(UpdateExifWSService.name);
   private _progress = 0;
   private _timerStartTime: bigint = 0n;
   _status = WSApiStatus.READY;
 
   constructor(
     private mediaDBService: MediaDBService,
-    private filesService: FilesService,
     @Inject(forwardRef(() => FilesDataWSGateway))
     private readonly filesDataWSGateway: FilesDataWSGateway,
+    @InjectQueue(Processors.exifProcessor)
+    private exifQueue: Queue<GetExifJob>,
   ) {}
 
   get progress(): number {
@@ -43,7 +46,8 @@ export class CreatePreviewsWSService {
 
   async stopProcess(): Promise<void> {
     this.commitStopStatus();
-    await this.filesService.stopAllPreviewJobs();
+    // TODO: finish all jobs to make sure that previewJob.finished() is executed
+    await this.exifQueue.obliterate({ force: true });
   }
 
   async startProcess(data: FilesDataWSInputDto): Promise<void> {
@@ -54,8 +58,8 @@ export class CreatePreviewsWSService {
 
     this.commitProcessInitStatus();
 
-    const mediaFilesToUpdate = await this.getMediaFilesToUpdate(data, 5);
-    const mediaFilesWithUpdatedPreviews = await this.createPreviews(
+    const mediaFilesToUpdate = await this.getFilePathListToUpdate(data, 5);
+    const mediaFilesWithUpdatedPreviews = await this.getExifList(
       mediaFilesToUpdate,
       90,
     );
@@ -64,104 +68,101 @@ export class CreatePreviewsWSService {
     this.commitDoneStatus();
   }
 
-  private async getMediaFilesToUpdate(
+  private async getFilePathListToUpdate(
     { folderPath, mimeTypes }: FilesDataWSInputDto,
     progress: number = 0,
-  ): Promise<Media[]> {
-    this.commitPendingStatus(
-      'Loading total elements without preview in DB ...',
-    );
+  ): Promise<Pick<Media, '_id' | 'filePath'>[]> {
+    this.commitPendingStatus('Loading total elements to update ...');
 
     return this.mediaDBService
-      .findEmptyPreviewsInDB({
+      .findFilePathsForMediaInFolder({
         mimeTypes,
         folderPath,
       })
       .then((emptyPreviews) => {
         this.commitSuccessStatus(
-          `Total elements without preview in DB: ${emptyPreviews.length}`,
+          `Total elements to update: ${emptyPreviews.length}`,
           progress,
         );
         return emptyPreviews;
       })
       .catch((error) => {
-        this.commitErrorStatus(
-          'Error loading total elements with preview in DB',
-          error,
-        );
-        return [] as Media[];
+        this.commitErrorStatus('Error loading total elements to update', error);
+        return [] as Pick<Media, '_id' | 'filePath'>[];
       });
   }
 
-  private async createPreviews(
-    mediaFiles: Media[],
+  private async getExifList(
+    mediaFiles: Pick<Media, '_id' | 'filePath'>[],
     progress: number = 0,
-  ): Promise<Media[]> {
+  ): Promise<Pick<Media, '_id' | 'exif'>[]> {
     if (!mediaFiles.length) {
       this.commitSuccessStatus('No media files to update', progress);
       return [];
     }
-    this.commitPendingStatus('Start creating previews process ...');
+    this.commitPendingStatus('Start getting EXIF process ...');
     let previewIndex = 0;
     const currentProgress = this.progress;
     const progressForOneFile = ((progress / mediaFiles.length) * 100) / 100;
 
-    const mediaWithUpdatedPreviewsPromises = mediaFiles.map((media) => {
-      return new CustomPromise<Media>(async (resolve, reject) => {
-        await this.filesService
-          .updatePreviews(media, media.filePath, MainDir.previews)
-          .then((updatedMedia) => {
-            this.progress =
-              currentProgress + progressForOneFile * ++previewIndex;
-            this.commitStatus({
-              status: WSApiStatus.PENDING,
-              message: `${previewIndex}/${mediaFiles.length}: Created preview for ${media.filePath}, preview: ${updatedMedia.preview}, fullSize: ${updatedMedia.fullSizeJpg}`,
-            });
-
-            resolve(updatedMedia);
-          })
-          .catch((error) => {
-            const errorMessage = `Error creating preview for ${media.filePath}`;
-            this.commitStatus({
-              status: WSApiStatus.PENDING_ERROR,
-              message: errorMessage,
-              progressInc: progressForOneFile,
-              error,
-            });
-
-            reject({ errorMessage });
+    const gettingExifPromises = mediaFiles.map((media) => {
+      return new CustomPromise<Pick<Media, '_id' | 'exif'>>(
+        async (resolve, reject) => {
+          const exifJob = await this.exifQueue.add({
+            filePaths: [media.filePath],
+            mainDir: MainDir.volumes,
           });
-      });
+
+          return exifJob
+            .finished()
+            .then((exifData: ExifData) => {
+              this.progress =
+                currentProgress + progressForOneFile * ++previewIndex;
+              this.commitStatus({
+                status: WSApiStatus.PENDING,
+                message: `${previewIndex}/${mediaFiles.length}: Fetched EXIF data for ${media.filePath}`,
+              });
+
+              resolve({ _id: media._id, exif: exifData[media.filePath] });
+            })
+            .catch((error) => {
+              const errorMessage = `Error getting EXIF data for ${media.filePath}`;
+              this.commitStatus({
+                status: WSApiStatus.PENDING_ERROR,
+                message: errorMessage,
+                progressInc: progressForOneFile,
+                error,
+              });
+
+              reject({ errorMessage });
+            });
+        },
+      );
     });
 
-    const updatingProcessResults = await CustomPromise.allSettled(
-      mediaWithUpdatedPreviewsPromises,
-      { dontRejectIfError: true },
-    );
+    const exifPromises = await CustomPromise.allSettled(gettingExifPromises, {
+      dontRejectIfError: true,
+    });
 
-    const {
-      resolvedList: mediaUpdatedSuccessfully,
-      errors: mediaUpdatingErrors,
-    } = CustomPromise.separateResolvedAndRejectedEntities(
-      updatingProcessResults,
-    );
+    const { resolvedList: exifList, errors: exifErrors } =
+      CustomPromise.separateResolvedAndRejectedEntities(exifPromises);
 
-    if (mediaUpdatingErrors.length) {
+    if (exifErrors.length) {
       this.commitStatus({
         status: WSApiStatus.PENDING_ERROR,
-        message: `Error creating previews for ${mediaUpdatingErrors.length} files`,
+        message: `Error getting EXIF for ${exifErrors.length} files`,
       });
     }
 
     this.commitSuccessStatus(
-      `Created previews for ${mediaUpdatedSuccessfully.length} files`,
+      `Finished getting EXIF for ${exifList.length} files`,
     );
 
-    return mediaUpdatedSuccessfully;
+    return exifList;
   }
 
   private async updateMediaFilesInDB(
-    mediaFiles: Media[],
+    mediaFiles: Pick<Media, '_id' | 'exif'>[],
     progress: number = 0,
   ): Promise<void> {
     if (!mediaFiles.length) {
@@ -171,7 +172,7 @@ export class CreatePreviewsWSService {
     this.commitPendingStatus('Start updating media files in DB ...');
 
     await this.mediaDBService
-      .replaceMediaInDB(mediaFiles)
+      .updateMediaInDB(mediaFiles)
       .then((result) => {
         this.logger.debug('modified data', deepCopy(result));
 
