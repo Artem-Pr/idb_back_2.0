@@ -1,0 +1,31 @@
+services:
+  mongo-test:
+    image : mongo:4.4
+    container_name: IDB_2.0_mongodb_test_volume
+    user: nobody
+    volumes:
+      - /Volumes/Volume/IDBVolume/mongodb:/data/db
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2
+    container_name: IDB_test_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - /Volumes/Volume/IDBVolume/redis:/data
+    restart: unless-stopped
+
+  image_store_service:
+    build: ../image_store_service
+    container_name: image_store_service
+    ports:
+      - "3005:3005"
+    volumes:
+      # sudo chmod -R 777 /Volumes/Volume/IDBVolume/volumes
+      - /Volumes/Volume/IDBVolume/volumes:/app/volumes
+      - /Volumes/Volume/IDBVolume/previews:/app/previews
+      - /Volumes/Volume/IDBVolume/temp:/app/temp
+    restart: unless-stopped

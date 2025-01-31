@@ -28,9 +28,10 @@ export const DEFAULT_TIME_STAMP = '00:00:00.000';
 
 export enum Envs {
   DEV = 'development',
-  TEST = 'test',
-  PROD = 'production',
   DOCKER = 'docker',
+  PROD = 'production',
+  TEST = 'test',
+  TEST_VOLUME = 'test-volume',
 }
 
 export enum EnvConfigKeys {
@@ -125,13 +126,15 @@ export enum MainDirPath {
   prod = '/Users/artempriadkin/Development/test-data',
   docker = '/app',
   test = 'test-data',
+  test_volume = '/Volumes/Volume/IDBVolume',
 }
 
 export const MainDirPaths = Object.freeze({
   [Envs.DEV]: MainDirPath.dev,
-  [Envs.TEST]: MainDirPath.test,
-  [Envs.PROD]: MainDirPath.prod,
   [Envs.DOCKER]: MainDirPath.docker,
+  [Envs.PROD]: MainDirPath.prod,
+  [Envs.TEST]: MainDirPath.test,
+  [Envs.TEST_VOLUME]: MainDirPath.test_volume,
 });
 
 export const Folders = Object.freeze({
@@ -144,6 +147,11 @@ export const Folders = Object.freeze({
     [MainDir.temp]: `${MainDirPath.test}/${MainDir.temp}`,
     [MainDir.volumes]: `${MainDirPath.test}/${MainDir.volumes}`,
     [MainDir.previews]: `${MainDirPath.test}/${MainDir.previews}`,
+  },
+  [Envs.TEST_VOLUME]: {
+    [MainDir.temp]: `${MainDirPath.test_volume}/${MainDir.temp}`,
+    [MainDir.volumes]: `${MainDirPath.test_volume}/${MainDir.volumes}`,
+    [MainDir.previews]: `${MainDirPath.test_volume}/${MainDir.previews}`,
   },
   [Envs.PROD]: {
     [MainDir.temp]: `${MainDirPath.prod}/${MainDir.temp}`,

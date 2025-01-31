@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Make sure to give it execute permission by running "chmod +x stop-all-dockers.sh" before executing the script.
+# Make sure to give it execute permission by running "chmod +x mongo-volume.sh" before executing the script.
 
 # Define color variables
 RED="\033[0;31m"
@@ -14,7 +14,7 @@ NC="\033[0m" # No Color
 SUCCESS=$GREEN
 ERROR=$RED
 INFO=$PURPLE
-MAIN=$CYAN
+MAIN=$CYA
 
 # Function to apply color to a message
 log() {
@@ -23,8 +23,6 @@ log() {
     echo -e "${color}IDB_run_script : ${message}${NC}"
 }
 
-log $INFO "Stopping all dockers..."
+log $INFO "Starting the mongo-test-volume..."
 
-docker compose -f docker-compose-dev.yaml down
-docker compose -f docker-compose-test.yaml down
-docker compose -f docker-compose-test-volume.yaml down
+docker compose -f docker-compose-test-volume.yaml up
