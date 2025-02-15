@@ -39,7 +39,10 @@ export class PathsService {
 
   @LogMethod('getAllPathsFromDB - pathsRepository.find')
   async getAllPathsFromDB(): Promise<string[]> {
-    const pathsEntities = await this.pathsRepository.find();
+    const pathsEntities = await this.pathsRepository.find({
+      where: {},
+      order: { path: 'asc' },
+    });
     return pathsEntities.map((pathEntity) => pathEntity.path);
   }
 

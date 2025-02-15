@@ -4,21 +4,28 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import type { SortingObject } from 'src/files/types';
-import { Sort, SortingFields } from 'src/files/types';
+import { sortingFieldList } from 'src/files/mediaDB.service';
+import {
+  Sort,
+  SortingFieldListInputDto,
+  SortingObjectInputDto,
+} from 'src/files/types';
+
+export const sortingFieldListInputDto: SortingFieldListInputDto[] =
+  sortingFieldList.map((item) => (item === '_id' ? 'id' : item));
 
 @ValidatorConstraint({ async: false })
 export class IsValidSortingConstraint implements ValidatorConstraintInterface {
   fieldNameWithError: string | undefined = undefined;
   errorType: 'field' | 'format' | undefined = undefined;
 
-  validate(sorting?: SortingObject): boolean {
+  validate(sorting?: SortingObjectInputDto): boolean {
     if (!sorting) {
       return true;
     }
 
     const isCorrectSort = Object.keys(sorting).every((key) => {
-      const isCorrectField = Object.values(SortingFields).includes(key);
+      const isCorrectField = sortingFieldListInputDto.includes(key);
       if (!isCorrectField) {
         this.fieldNameWithError = key;
         return false;

@@ -38,7 +38,10 @@ export class KeywordsService {
   }
 
   async getAllKeywords(): Promise<string[]> {
-    const keywordsEntities = await this.keywordsRepository.find();
+    const keywordsEntities = await this.keywordsRepository.find({
+      where: {},
+      order: { keyword: 'asc' },
+    });
     return keywordsEntities.map((keywordEntity) => keywordEntity.keyword);
   }
 

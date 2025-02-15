@@ -828,7 +828,7 @@ describe('MediaDB', () => {
       sorting: {
         sort: {
           mimetype: -1,
-          _id: 1,
+          id: 1,
           originalDate: -1,
           filePath: -1,
         },

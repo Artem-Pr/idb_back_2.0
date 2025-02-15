@@ -8,6 +8,7 @@ import type { StaticPath } from 'src/config/config.service';
 import { Media } from './entities/media.entity';
 import type { CreatePreviewJob } from 'src/jobs/files.processor';
 import type { UpdatedFieldsInputDto } from './dto/update-files-input.dto';
+import { SortingFieldList } from './mediaDB.service';
 
 export interface ProcessFile extends Express.Multer.File {
   filename: CreatePreviewJob['fileName'];
@@ -54,16 +55,10 @@ export enum Sort {
   DESC = -1,
 }
 
-export enum SortingFields {
-  id = '_id',
-  originalName = 'originalName',
-  mimetype = 'mimetype',
-  size = 'size',
-  megapixels = 'megapixels',
-  originalDate = 'originalDate',
-  filePath = 'filePath',
-  rating = 'rating',
-  description = 'description',
-}
+export type SortingObject = Partial<Record<SortingFieldList, Sort>>;
 
-export type SortingObject = Partial<Record<SortingFields, Sort>>;
+// TODO: I need to keep it here to avoid circular dependency
+export type SortingFieldListInputDto = Exclude<SortingFieldList, '_id'> | 'id';
+export type SortingObjectInputDto = Partial<
+  Record<SortingFieldListInputDto, Sort>
+>;

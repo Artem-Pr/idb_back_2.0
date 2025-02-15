@@ -98,6 +98,7 @@ export enum ControllerPrefix {
   checkDuplicatesByFilePaths = 'check-duplicates-by-file-paths',
   saveFiles = 'save-files',
   getFiles = 'filtered-photos',
+  getFilesWithEmptyExif = 'files/empty-exif',
   uploadFile = 'upload-file',
   updateFiles = 'update-files',
   deleteFiles = 'delete-files',
@@ -201,6 +202,7 @@ export enum SupportedImageMimetypes {
 
 export enum SupportedVideoMimeTypes {
   avi = 'video/x-msvideo',
+  avi_old = 'video/avi',
   flv = 'video/x-flv',
   mkv = 'video/x-matroska',
   mov = 'video/quicktime',

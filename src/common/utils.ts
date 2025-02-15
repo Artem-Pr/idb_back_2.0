@@ -34,7 +34,11 @@ export const getEscapedString = (string: string) => {
 };
 
 export const decodeString = <T extends string>(encodedString: T): T => {
-  return Buffer.from(encodedString, 'binary').toString('utf-8') as T;
+  if (!/[^\u0000-\u00ff]/.test(encodedString)) {
+    return Buffer.from(encodedString, 'binary').toString('utf8') as T;
+  }
+
+  return encodedString;
 };
 
 export const replaceHashWithPlaceholder = (

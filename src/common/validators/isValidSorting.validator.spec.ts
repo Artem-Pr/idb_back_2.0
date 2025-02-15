@@ -3,8 +3,8 @@ import {
   IsValidSorting,
   IsValidSortingConstraint,
 } from './isValidSorting.validator';
-import type { SortingObject } from 'src/files/types';
-import { Sort, SortingFields } from 'src/files/types';
+import type { SortingObjectInputDto } from 'src/files/types';
+import { Sort } from 'src/files/types';
 
 jest.mock('class-validator', () => {
   const originalModule = jest.requireActual('class-validator');
@@ -24,9 +24,9 @@ describe('IsValidSortingValidator', () => {
 
     describe('validate', () => {
       it('should return true for a valid sorting object', () => {
-        const validSorting: SortingObject = {
-          [SortingFields.id]: Sort.ASC,
-          [SortingFields.originalName]: Sort.DESC,
+        const validSorting: SortingObjectInputDto = {
+          id: Sort.ASC,
+          originalName: Sort.DESC,
         };
         const result = validator.validate(validSorting);
         expect(result).toBe(true);
@@ -38,7 +38,7 @@ describe('IsValidSortingValidator', () => {
       });
 
       it('should return false for a sorting object with an invalid field', () => {
-        const invalidSorting: SortingObject = {
+        const invalidSorting: SortingObjectInputDto = {
           invalidField: Sort.ASC,
         } as any;
         const result = validator.validate(invalidSorting);
@@ -48,13 +48,13 @@ describe('IsValidSortingValidator', () => {
       });
 
       it('should return false for a sorting object with an invalid sort order', () => {
-        const invalidSorting: SortingObject = {
-          [SortingFields.id]: 'INVALID' as any,
+        const invalidSorting: SortingObjectInputDto = {
+          id: 'INVALID' as any,
         };
         const result = validator.validate(invalidSorting);
         expect(result).toBe(false);
         expect(validator.errorType).toBe('format');
-        expect(validator.fieldNameWithError).toBe('_id');
+        expect(validator.fieldNameWithError).toBe('id');
       });
     });
 

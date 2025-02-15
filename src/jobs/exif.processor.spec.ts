@@ -55,7 +55,10 @@ describe('ExifProcessor', () => {
     const result = await exifProcessor.processGetExifJob(mockJob);
 
     expect(result).toEqual(expectedExifData);
-    expect(read).toHaveBeenCalledWith(previewPath);
+    expect(read).toHaveBeenCalledWith(previewPath, [
+      '-api',
+      'largefilesupport=1',
+    ]);
   });
 
   it('should throw error if exif job fails', async () => {

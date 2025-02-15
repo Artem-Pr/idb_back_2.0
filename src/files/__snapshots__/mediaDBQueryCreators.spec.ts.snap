@@ -20,6 +20,7 @@ exports[`MediaDBQueryCreators getMongoEmptyFullSizesCondition should return corr
       "mimetype": {
         "$in": [
           "video/x-msvideo",
+          "video/avi",
           "video/x-flv",
           "video/x-matroska",
           "video/quicktime",
@@ -143,6 +144,7 @@ exports[`MediaDBQueryCreators getMongoEmptyFullSizesCondition should return corr
       "mimetype": {
         "$in": [
           "video/x-msvideo",
+          "video/avi",
           "video/x-flv",
           "video/x-matroska",
           "video/quicktime",
@@ -204,6 +206,7 @@ exports[`MediaDBQueryCreators getMongoEmptyPreviewsCondition should return corre
           "image/gif",
           "image/x-adobe-dng",
           "video/x-msvideo",
+          "video/avi",
           "video/x-flv",
           "video/x-matroska",
           "video/quicktime",
@@ -334,6 +337,7 @@ exports[`MediaDBQueryCreators getMongoEmptyPreviewsCondition should return corre
           "image/gif",
           "image/x-adobe-dng",
           "video/x-msvideo",
+          "video/avi",
           "video/x-flv",
           "video/x-matroska",
           "video/quicktime",
@@ -394,6 +398,7 @@ exports[`MediaDBQueryCreators getMongoFilesCondition should return correct condi
           "image/gif",
           "image/x-adobe-dng",
           "video/x-msvideo",
+          "video/avi",
           "video/x-flv",
           "video/x-matroska",
           "video/quicktime",
@@ -467,6 +472,7 @@ exports[`MediaDBQueryCreators getMongoFilesCondition should return correct condi
           "image/gif",
           "image/x-adobe-dng",
           "video/x-msvideo",
+          "video/avi",
           "video/x-flv",
           "video/x-matroska",
           "video/quicktime",

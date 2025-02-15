@@ -6,7 +6,10 @@ import { exifData as iPhone_SE_1st_gen_video_from_life_photo_exif } from '../../
 import { exifData as iPhone_12_Pro_exif } from '../../test-data/exifDataMock/iPhone_12_Pro';
 import { exifData as iPhone_SE_1st_gen_photo_exif } from '../../test-data/exifDataMock/iPhone_SE_1st_gen_photo';
 import { exifData as iPhone_13_photo_exif } from '../../test-data/exifDataMock/iPhone_13_photo';
+import { exifData as iPhone_16_photo_exif } from '../../test-data/exifDataMock/iPhone_16_photo';
+import { exifData as iPhone_16_video_exif } from '../../test-data/exifDataMock/iPhone_16_video';
 import { exifData as Xiaomi_Yi_Action_Camera_exif } from '../../test-data/exifDataMock/Xiaomi_Yi_Action_Camera';
+import { exifData as Recorder_video_exif } from '../../test-data/exifDataMock/Recorder_video';
 import {
   getDescriptionFromExif,
   getKeywordsFromExif,
@@ -105,7 +108,7 @@ describe('exifHelpers', () => {
       const exif = iPhone_SE_1st_gen_video_from_life_photo_exif;
 
       expect(getOriginalDateFromExif(exif as any)).toEqual(
-        new Date('2019-05-18T12:10:18.000Z'),
+        new Date('2019-05-18T15:10:17.000Z'),
       );
     });
 
@@ -125,11 +128,44 @@ describe('exifHelpers', () => {
       );
     });
 
+    it('should return SubSecCreateDate for iPhone 16 photo', () => {
+      const exif = iPhone_16_photo_exif;
+
+      expect(getOriginalDateFromExif(exif as any)).toEqual(
+        new Date('2024-12-25T16:46:21.241Z'),
+      );
+    });
+
+    it('should return CreationDate for iPhone 16 video', () => {
+      const exif = iPhone_16_video_exif;
+
+      expect(getOriginalDateFromExif(exif as any)).toEqual(
+        new Date('2024-12-25T16:34:59.000Z'),
+      );
+    });
+
     it('should return DateTimeOriginal for Xiaomi_Yi_Action_Camera photo', () => {
       const exif = Xiaomi_Yi_Action_Camera_exif;
 
       expect(getOriginalDateFromExif(exif as any)).toEqual(
         new Date('2019-01-12T12:00:00.000Z'),
+      );
+    });
+
+    it('should return CreateDate for iPhone 16 video if CreationDate is not valid', () => {
+      const exif = { ...iPhone_16_video_exif };
+      exif.CreationDate = {} as typeof iPhone_16_video_exif.CreationDate;
+
+      expect(getOriginalDateFromExif(exif as any)).toEqual(
+        new Date('2024-12-25T15:34:59.000Z'),
+      );
+    });
+
+    it('should prefer time with UTC', () => {
+      const exif = Recorder_video_exif;
+
+      expect(getOriginalDateFromExif(exif as any)).toEqual(
+        new Date('2024-09-06T11:40:00.000Z'),
       );
     });
   });

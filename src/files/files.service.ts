@@ -55,6 +55,7 @@ import { getVideoDurationInMillisecondsFromExif } from 'src/common/exifHelpers';
 import { parseTimeStampToMilliseconds } from 'src/common/datesHelper';
 import { CustomPromise } from 'src/common/customPromise';
 import type { UpdateFilesOutputDto } from './dto/update-files-output.dto';
+import type { GetFilesWithEmptyExifOutputDto } from './dto/get-files-with-empty-exif-output.dto';
 
 interface FilePaths {
   filePath: DBFilePath;
@@ -124,6 +125,15 @@ export class FilesService {
     return {
       ...mediaDBResponse,
       files: mediaOutputList,
+    };
+  }
+
+  async getFilesWithEmptyExif(): Promise<GetFilesWithEmptyExifOutputDto> {
+    const mediaList = await this.mediaDB.findMediaWithEmptyExifInDB();
+
+    return {
+      filePaths: mediaList.map(({ filePath }) => filePath),
+      count: mediaList.length,
     };
   }
 

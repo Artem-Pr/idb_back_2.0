@@ -34,6 +34,8 @@ import { FileUploadDto } from './dto/upload-file-input.dto';
 import { DeleteFilesInputDto } from './dto/delete-files-input.dto';
 import { MediaDBService } from './mediaDB.service';
 import type { UpdateFilesOutputDto } from './dto/update-files-output.dto';
+import type { GetFilesWithEmptyExifOutputDto } from './dto/get-files-with-empty-exif-output.dto';
+import { MulterFilenamePipe } from 'src/common/validators';
 
 @Controller() // TODO : Define a POST endpoint at /files/uploadItem : @Controller('file')
 export class FilesController {
@@ -70,6 +72,7 @@ export class FilesController {
   @HttpCode(HttpStatus.CREATED)
   async uploadFile(
     @UploadedFile(
+      new MulterFilenamePipe(),
       new ParseFilePipeBuilder()
         .addFileTypeValidator({ fileType: SUPPORTED_MIMETYPE_REGEX })
         .build({
@@ -80,14 +83,12 @@ export class FilesController {
     )
     file: Express.Multer.File & FileUploadDto,
   ): Promise<UploadFileOutputDto> {
-    return this.filesService
-      .processFile({
-        ...file,
-        filename: file.filename,
-        mimetype: file.mimetype,
-        originalname: file.originalname,
-      })
-      .then((response) => response);
+    return this.filesService.processFile({
+      ...file,
+      filename: file.filename,
+      mimetype: file.mimetype,
+      originalname: file.originalname,
+    });
   }
 
   @Get(ControllerPrefix.checkDuplicates)
@@ -110,6 +111,12 @@ export class FilesController {
     return await this.filesService.getDuplicatesFromMediaDBByFilePaths(
       query.filePaths,
     );
+  }
+
+  @Get(ControllerPrefix.getFilesWithEmptyExif)
+  @LogController(ControllerPrefix.getFilesWithEmptyExif)
+  async getFilesWithEmptyExif(): Promise<GetFilesWithEmptyExifOutputDto> {
+    return this.filesService.getFilesWithEmptyExif();
   }
 
   @Post(ControllerPrefix.deleteFiles)

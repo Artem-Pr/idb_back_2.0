@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { BulkWriteResult, DeleteResult, MongoRepository } from 'typeorm';
-import { uniq } from 'ramda';
+import { omit, uniq } from 'ramda';
 import { MediaTemp } from './entities/media-temp.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Tags } from 'exiftool-vendored';
@@ -16,7 +16,12 @@ import {
   getOriginalDateFromExif,
 } from 'src/common/exifHelpers';
 import { DEFAULT_TIME_STAMP } from 'src/common/constants';
-import type { FilePaths, GetSameFilesIfExist, ProcessFile } from './types';
+import type {
+  FilePaths,
+  GetSameFilesIfExist,
+  ProcessFile,
+  SortingObject,
+} from './types';
 import type {
   UpdatedFieldsInputDto,
   UpdatedFilesInputDto,
@@ -34,7 +39,10 @@ import {
 } from 'src/common/fileNameHelpers';
 import type { DBFilePath } from 'src/common/types';
 import { CustomLogger } from 'src/logger/logger.service';
-import type { GetFilesInputDto } from './dto/get-files-input.dto';
+import type {
+  GetFilesInputDto,
+  GetFilesSortInputDto,
+} from './dto/get-files-input.dto';
 import type { GetFilesOutputDto, Pagination } from './dto/get-files-output.dto';
 import { LogMethod } from 'src/logger/logger.decorator';
 import { decodeString } from 'src/common/utils';
@@ -44,6 +52,23 @@ export enum DBType {
   DBTemp = 'temp',
   DBMedia = 'media',
 }
+
+export const sortingFieldList = [
+  '_id',
+  'originalName',
+  'mimetype',
+  'size',
+  'megapixels',
+  'originalDate',
+  'filePath',
+  'rating',
+  'description',
+] as const;
+
+export type SortingFieldList = keyof Pick<
+  Media,
+  (typeof sortingFieldList)[number]
+>;
 
 export type UpdatedFilesInputObject = Record<
   string,
@@ -143,6 +168,15 @@ export class MediaDBService extends MediaDBQueryCreators {
     return this.mediaRepository.find({
       filePath: new RegExp(`^/${sanitizedDirectory}/`),
     });
+  }
+
+  async findMediaWithEmptyExifInDB(): Promise<Pick<Media, 'filePath'>[]> {
+    return this.mediaRepository.find({
+      where: {
+        $or: [{ exif: { $exists: false } }, { exif: { $eq: {} } }],
+      },
+      select: ['filePath'],
+    }) as Promise<Pick<Media, 'filePath'>[]>;
   }
 
   @LogMethod('mediaRepository.find.findNotEmptyPreviewsInDB')
@@ -413,6 +447,14 @@ export class MediaDBService extends MediaDBQueryCreators {
     };
   }
 
+  private getSortingObjectFromSortInputDto(
+    sort: GetFilesSortInputDto['sort'],
+  ): SortingObject | undefined {
+    if (!sort?.id) return sort;
+
+    return { ...omit(['id'], sort), _id: sort.id };
+  }
+
   async getFiles({
     filters,
     folders,
@@ -433,7 +475,7 @@ export class MediaDBService extends MediaDBQueryCreators {
 
       const aggregation = this.createMongoAggregationPipeline({
         conditions: conditionsArr,
-        sorting: sort,
+        sorting: this.getSortingObjectFromSortInputDto(sort),
         sample: randomSort ? { size: pagination.perPage } : undefined,
         facet: this.getMongoFilesFacet(pagination),
       });

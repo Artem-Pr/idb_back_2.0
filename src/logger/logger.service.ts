@@ -127,6 +127,10 @@ export class CustomLogger extends Logger {
     super.error(`WS ERROR: ⏩❌ ${message}`, data);
   }
 
+  consoleLog(...args: any[]): void {
+    console.log(...args);
+  }
+
   logError({
     message,
     method,

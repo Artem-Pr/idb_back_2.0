@@ -201,6 +201,13 @@ describe('Utils', () => {
       const result = decodeString(encodedString);
       expect(result).toBe('Héllø');
     });
+
+    it('should handle latin string correctly', () => {
+      const encodedString =
+        '2024.09.06 11h40m Ð\x95Ð´ÐµÐ¼ Ð¾Ñ\x82 Ð\x90Ð½Ñ\x82Ð¾Ð½Ð° Ð¥Ñ\x83Ð´Ñ\x8BÑ\x88ÐµÐ²Ð°.mp4'; // 'Héllø' in binary
+      const result = decodeString(encodedString);
+      expect(result).toBe('2024.09.06 11h40m Едем от Антона Худышева.mp4');
+    });
   });
   describe('generatePid', () => {
     it('should return a string of length 6', () => {

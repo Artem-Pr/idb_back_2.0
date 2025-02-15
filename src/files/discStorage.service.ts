@@ -181,7 +181,8 @@ export class DiscStorageService {
           // TODO: Check if it has to be filtered
           // !file.includes('thumbnail') &&
           //   !file.startsWith('._') &&
-          filesInRootDirectory.filesList.push(dirPath + '/' + file);
+          !('.DS_Store' === file) &&
+            filesInRootDirectory.filesList.push(dirPath + '/' + file);
         }
       });
 

@@ -10,6 +10,7 @@ export const logEndpointStart = jest.fn();
 export const logError = jest.fn();
 export const logMessage = jest.fn();
 export const startProcess = jest.fn();
+export const consoleLog = jest.fn();
 jest.mock('src/logger/logger.service', () => ({
   CustomLogger: jest.fn().mockImplementation(() => ({
     debug,
@@ -22,6 +23,7 @@ jest.mock('src/logger/logger.service', () => ({
     logError,
     logMessage,
     startProcess,
+    consoleLog,
   })),
 }));
 

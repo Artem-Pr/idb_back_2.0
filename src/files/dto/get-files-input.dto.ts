@@ -12,8 +12,8 @@ import {
 import type { SupportedMimetypes } from 'src/common/types';
 import { IsValidMimeType } from 'src/common/validators/isValidMimeType.validator';
 import { IsValidSorting } from 'src/common/validators/isValidSorting.validator';
-import type { SortingObject } from '../types';
 import { Type } from 'class-transformer';
+import type { Sort, SortingFieldListInputDto } from '../types';
 
 export class GetFilesFiltersInputDto {
   @IsOptional()
@@ -60,7 +60,7 @@ export class GetFilesFiltersInputDto {
 export class GetFilesSortInputDto {
   @IsDefined({ message: 'sorting must be defined' })
   @IsValidSorting()
-  sort?: SortingObject;
+  sort?: Partial<Record<SortingFieldListInputDto, Sort>>;
 
   @IsOptional()
   @IsBoolean()
