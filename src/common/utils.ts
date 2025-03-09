@@ -29,10 +29,6 @@ export const getRandomId = (numbers: number): string =>
     .toString()
     .padStart(numbers, '0');
 
-export const getEscapedString = (string: string) => {
-  return string.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-};
-
 export const decodeString = <T extends string>(encodedString: T): T => {
   if (!/[^\u0000-\u00ff]/.test(encodedString)) {
     return Buffer.from(encodedString, 'binary').toString('utf8') as T;

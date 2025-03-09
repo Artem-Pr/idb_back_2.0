@@ -318,7 +318,7 @@ describe('Utils', () => {
     });
 
     it('should not change a filename with an unsupported extension', () => {
-      const filename = 'filename.bmp' as FileNameWithExt;
+      const filename = 'filename.unsupported' as FileNameWithExt;
 
       expect(removeExtension(filename)).toBe(filename);
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -368,7 +368,7 @@ describe('Utils', () => {
     );
 
     it('should return false for unsupported image extension', () => {
-      const fileName = 'image.bmp';
+      const fileName = 'image.unsupported';
       expect(isSupportedImageExtension(fileName)).toBe(false);
     });
 
@@ -443,7 +443,7 @@ describe('Utils', () => {
       const fileName = 'video.flv';
       expect(isSupportedExtension(fileName)).toBe(false);
 
-      const fileName2 = 'image.bmp';
+      const fileName2 = 'image.unsupported';
       expect(isSupportedExtension(fileName2)).toBe(false);
     });
   });
@@ -457,7 +457,7 @@ describe('Utils', () => {
     );
 
     it('should return false for unsupported image MIME type', () => {
-      const unsupportedMimeType = 'image/bmp';
+      const unsupportedMimeType = 'image/unsupported-type';
       expect(isSupportedImageMimeType(unsupportedMimeType)).toBe(false);
     });
 

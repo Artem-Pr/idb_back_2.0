@@ -1,7 +1,6 @@
 import {
   decodeString,
   deepCopy,
-  getEscapedString,
   shallowCopyOfMedia,
   generatePid,
   generatePidNumber,
@@ -132,43 +131,6 @@ describe('Utils', () => {
       const result1 = getRandomId(length);
       const result2 = getRandomId(length);
       expect(result1).not.toBe(result2);
-    });
-  });
-  describe('getEscapedString', () => {
-    it('should escape special characters', () => {
-      const input = 'Hello(world)';
-      const expectedOutput = 'Hello\\(world\\)';
-      expect(getEscapedString(input)).toBe(expectedOutput);
-    });
-
-    it('should escape multiple special characters', () => {
-      const input = 'Hello[world]{example}';
-      const expectedOutput = 'Hello\\[world\\]\\{example\\}';
-      expect(getEscapedString(input)).toBe(expectedOutput);
-    });
-
-    it('should escape characters used in regex', () => {
-      const input = 'a+b*c?d.e^f$g|h#i\\j';
-      const expectedOutput = 'a\\+b\\*c\\?d\\.e\\^f\\$g\\|h\\#i\\\\j';
-      expect(getEscapedString(input)).toBe(expectedOutput);
-    });
-
-    it('should escape whitespace characters', () => {
-      const input = 'hello world';
-      const expectedOutput = 'hello\\ world';
-      expect(getEscapedString(input)).toBe(expectedOutput);
-    });
-
-    it('should return the same string if no special characters', () => {
-      const input = 'helloworld';
-      const expectedOutput = 'helloworld';
-      expect(getEscapedString(input)).toBe(expectedOutput);
-    });
-
-    it('should handle empty string', () => {
-      const input = '';
-      const expectedOutput = '';
-      expect(getEscapedString(input)).toBe(expectedOutput);
     });
   });
   describe('decodeString', () => {

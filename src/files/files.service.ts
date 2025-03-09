@@ -554,7 +554,18 @@ export class FilesService {
 
     if (!isEmpty(duplicates)) {
       throw new ConflictException('Files already exist', {
-        cause: duplicates,
+        cause: Object.keys(
+          duplicates,
+        ).reduce<CheckDuplicatesFilePathsOutputDto>(
+          (accum, key) => ({
+            ...accum,
+            [key]: duplicates[key].map((value) => ({
+              ...value,
+              exif: 'Field omitted...',
+            })),
+          }),
+          {},
+        ),
       });
     }
   }

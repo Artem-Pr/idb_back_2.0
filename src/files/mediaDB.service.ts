@@ -32,6 +32,7 @@ import type {
 } from './mediaDBQueryCreators';
 import { MediaDBQueryCreators } from './mediaDBQueryCreators';
 import {
+  escapeFilePathForRegex,
   getFullPathWithoutNameAndFirstSlash,
   getUniqPathsRecursively,
   isSupportedVideoMimeType,
@@ -164,9 +165,10 @@ export class MediaDBService extends MediaDBQueryCreators {
 
   async findMediaByDirectoryInDB(directory: string): Promise<Media[]> {
     const sanitizedDirectory = removeExtraSlashes(directory);
+    const escapedDirectory = escapeFilePathForRegex(sanitizedDirectory);
 
     return this.mediaRepository.find({
-      filePath: new RegExp(`^/${sanitizedDirectory}/`),
+      filePath: new RegExp(`^/${escapedDirectory}/`),
     });
   }
 
@@ -380,9 +382,9 @@ export class MediaDBService extends MediaDBQueryCreators {
 
   async countFilesInDirectory(directory: string): Promise<number> {
     const sanitizedDirectory = removeExtraSlashes(directory);
-
+    const escapedDirectory = escapeFilePathForRegex(sanitizedDirectory);
     return this.mediaRepository.count({
-      filePath: new RegExp(`^/${sanitizedDirectory}/`),
+      filePath: new RegExp(`^/${escapedDirectory}/`),
     });
   }
 

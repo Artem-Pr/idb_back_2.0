@@ -182,10 +182,17 @@ export enum SupportedImageExtensions {
   png = 'png',
   heic = 'heic',
   gif = 'gif',
+  webp = 'webp',
+  dng = 'dng',
+  tiff = 'tiff',
+  bmp = 'bmp',
+  svg = 'svg',
+  ico = 'ico',
 }
 
 export enum SupportedVideoExtensions {
   mp4 = 'mp4',
+  m4v = 'm4v',
   mov = 'mov',
   avi = 'avi',
   wmv = 'wmv',
@@ -198,6 +205,11 @@ export enum SupportedImageMimetypes {
   heic = 'image/heic',
   gif = 'image/gif',
   dng = 'image/x-adobe-dng',
+  webp = 'image/webp',
+  tiff = 'image/tiff',
+  bmp = 'image/bmp',
+  svg = 'image/svg+xml',
+  ico = 'image/x-icon',
 }
 
 export enum SupportedVideoMimeTypes {
@@ -232,7 +244,7 @@ export type SupportedExtensions =
   | SupportedVideoExtensions;
 
 export const SUPPORTED_MIMETYPE_REGEX = new RegExp(
-  `^(${SUPPORTED_MIMETYPES.join('|')})$`,
+  `^(${SUPPORTED_MIMETYPES.map((mime) => mime.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`,
   'i', // 'i' for case-insensitive
 );
 

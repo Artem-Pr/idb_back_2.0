@@ -124,6 +124,9 @@ export const removeExtraLastSlash = (value: string): string =>
 export const removeExtraSlashes = <T extends string>(value: T): T =>
   value.replace(/^\/+|\/+$/g, '') as T;
 
+export const escapeFilePathForRegex = (filePath: string): string =>
+  filePath.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+
 export const removeExtension = <T extends FileNameWithExt>(
   filename: T,
 ): RemoveExtension<T> => {

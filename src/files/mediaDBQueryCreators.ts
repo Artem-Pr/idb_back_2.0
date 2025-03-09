@@ -1,4 +1,3 @@
-import { getEscapedString } from 'src/common/utils';
 import type {
   GetFilesFiltersInputDto,
   GetFilesFoldersDto,
@@ -14,6 +13,7 @@ import {
   SupportedImageMimetypes,
 } from 'src/common/constants';
 import { SupportedMimetypes } from 'src/common/types';
+import { escapeFilePathForRegex } from 'src/common/fileNameHelpers';
 
 export type MongoFilterCondition = Partial<
   Record<
@@ -117,18 +117,16 @@ export class MediaDBQueryCreators {
       .map((key) => allFilters[key]);
   };
 
-  private getFolderPathExcludeSubFolderRegExp(
-    folderPathEscaped: string,
-  ): RegExp {
+  private getFolderPathExcludeSubFolderRegExp(folderPath: string): RegExp {
+    const folderPathEscaped = escapeFilePathForRegex(folderPath);
     return new RegExp(`^/${folderPathEscaped}/[^/]+\\.*$`);
   }
 
   private getMongoFilesExcludeFilesInSubfoldersCondition(
     folderPath: string,
   ): MongoFilterCondition {
-    const folderPathEscaped = getEscapedString(folderPath);
     const folderPathExcludeSubFolderRegExp =
-      this.getFolderPathExcludeSubFolderRegExp(folderPathEscaped);
+      this.getFolderPathExcludeSubFolderRegExp(folderPath);
     return { filePath: { $regex: folderPathExcludeSubFolderRegExp } };
   }
 
