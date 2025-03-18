@@ -96,7 +96,7 @@ export class MediaDBQueryCreators {
       description: {
         description: { $regex: filesFilter.description, $options: 'i' },
       },
-      anyDescription: { description: { $exists: true, $ne: '' } },
+      anyDescription: { description: { $exists: true, $ne: null } },
       searchTags: {
         keywords: {
           [filesFilter.includeAllSearchTags ? '$all' : '$in']:
