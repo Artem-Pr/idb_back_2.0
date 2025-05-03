@@ -14,6 +14,9 @@ import {
   ParseFilePipeBuilder,
   HttpCode,
   Put,
+  Req,
+  All,
+  Res,
 } from '@nestjs/common';
 import {
   ControllerPrefix,
@@ -21,6 +24,7 @@ import {
 } from 'src/common/constants';
 import { FilesService } from './files.service';
 import { FileMediaInterceptor } from './file.interceptor';
+import { TusService } from './tus.service';
 import { CheckDuplicatesOriginalNamesInputDto } from './dto/check-duplicates-original-names-input.dto';
 import { CheckDuplicatesFilePathsInputDto } from './dto/check-duplicates-file-paths-input.dto';
 import { UploadFileOutputDto } from './dto/upload-file-output.dto';
@@ -42,6 +46,7 @@ export class FilesController {
   constructor(
     private filesService: FilesService,
     private mediaDBService: MediaDBService,
+    private tusService: TusService,
   ) {}
 
   @Post(ControllerPrefix.getFiles)
@@ -88,6 +93,29 @@ export class FilesController {
       filename: file.filename,
       mimetype: file.mimetype,
       originalname: file.originalname,
+    });
+  }
+
+  @All(`${ControllerPrefix.tus}/*`)
+  @LogController(`${ControllerPrefix.tus}/*`)
+  async handleNestedTusRequest(@Req() req: Request, @Res() res: Response) {
+    const tusResponse = await this.tusService.handle(req, res);
+
+    const fileServiceResponse = await this.filesService.processFile({
+      filename: tusResponse.metadata.filename,
+      mimetype: tusResponse.metadata.filetype,
+      originalname: tusResponse.metadata.originalFilename,
+      size: tusResponse.metadata.size,
+    });
+
+    tusResponse.res({
+      status_code: HttpStatus.CREATED,
+      body: JSON.stringify(
+        FilesService.applyUTCChangeDateToFileOutput(
+          fileServiceResponse,
+          tusResponse.metadata.changeDate,
+        ),
+      ),
     });
   }
 

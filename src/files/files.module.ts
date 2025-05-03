@@ -17,6 +17,7 @@ import { PathsService } from 'src/paths/paths.service';
 import { PathsModule } from 'src/paths/paths.module';
 import { KeywordsService } from 'src/keywords/keywords.service';
 import { KeywordsModule } from 'src/keywords/keywords.module';
+import { TusService } from './tus.service';
 
 @Module({
   imports: [
@@ -43,7 +44,8 @@ import { KeywordsModule } from 'src/keywords/keywords.module';
     KeywordsService,
     MediaDBService,
     PathsService,
+    TusService,
   ],
-  exports: [MediaDBService, DiscStorageService, FilesService],
+  exports: [MediaDBService, DiscStorageService, FilesService, TusService],
 })
 export class FilesModule {}

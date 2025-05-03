@@ -5,8 +5,8 @@ services:
     user: nobody
     volumes:
       # - /Users/artempriadkin/Documents/IDBVolume/mongodb:/data/db
-      # - /Users/artempriadkin/Development/test-data/mongo:/data/db
-      - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/mongodb:/data/db
+      - /Users/artempriadkin/Development/test-data/mongo:/data/db
+      # - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/mongodb:/data/db
     ports:
       - "27017:27017"
     restart: unless-stopped
@@ -17,7 +17,8 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/redis:/data
+      - /Users/artempriadkin/Development/test-data/redis:/data
+      # - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/redis:/data
     restart: unless-stopped
 
   image_store_service:
@@ -27,10 +28,10 @@ services:
       - "3005:3005"
     volumes:
       # sudo chmod -R 777 /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/temp
-      # - /Users/artempriadkin/Development/test-data/temp:/app/temp
-      # - /Users/artempriadkin/Development/test-data/volumes:/app/volumes
-      # - /Users/artempriadkin/Development/test-data/previews:/app/previews
-      - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/temp:/app/temp
-      - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/volumes:/app/volumes
-      - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/previews:/app/previews
+      - /Users/artempriadkin/Development/test-data/temp:/app/temp
+      - /Users/artempriadkin/Development/test-data/volumes:/app/volumes
+      - /Users/artempriadkin/Development/test-data/previews:/app/previews
+      # - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/temp:/app/temp
+      # - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/volumes:/app/volumes
+      # - /Volumes/Lexar_SL500/MEGA_sync/IDBase-test/previews:/app/previews
     restart: unless-stopped

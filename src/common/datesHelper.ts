@@ -58,6 +58,9 @@ export const getDateUTCFromExifDateTime = (value: ExifDateTime): Date => {
     .toDate();
 };
 
+export const getISOStringWithUTC = (date: ConfigType): string =>
+  dayjs(date).utc(true).toISOString();
+
 export const toDateUTC = (date: ConfigType | ExifDateTime): Date => {
   if (isValidExifDateTime(date)) {
     return dayjs

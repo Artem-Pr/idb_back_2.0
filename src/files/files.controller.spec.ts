@@ -17,11 +17,15 @@ import { SupportedImageMimetypes } from 'src/common/constants';
 import { DiscStorageService } from './discStorage.service';
 import { FileUploadDto } from './dto/upload-file-input.dto';
 import { MediaDBService } from './mediaDB.service';
+import { TusService } from './tus.service';
+import type { FileNameWithExt, SupportedMimetypes } from 'src/common/types';
+import { HttpStatus } from '@nestjs/common';
 
 describe('FilesController', () => {
   let filesController: FilesController;
   let filesService: FilesService;
   let configService: ConfigService;
+  let tusService: TusService;
 
   beforeEach(async () => {
     configService = {
@@ -37,6 +41,10 @@ describe('FilesController', () => {
       processFile: jest.fn(),
       saveFiles: jest.fn(),
       updateFiles: jest.fn(),
+    };
+
+    const mockTusService = {
+      handle: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -56,11 +64,16 @@ describe('FilesController', () => {
           provide: DiscStorageService,
           useValue: { emptyDirectory: jest.fn() },
         },
+        {
+          provide: TusService,
+          useValue: mockTusService,
+        },
       ],
     }).compile();
 
     filesController = module.get<FilesController>(FilesController);
     filesService = module.get<FilesService>(FilesService);
+    tusService = module.get<TusService>(TusService);
   });
 
   it('should be defined', () => {
@@ -266,6 +279,117 @@ describe('FilesController', () => {
       await filesController.cleanTemp();
       expect(filesService.cleanTemp).toHaveBeenCalled();
       expect(filesService.cleanTemp).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('handleNestedTusRequest', () => {
+    it('should handle TUS request and return processed file response', async () => {
+      const mockReq = {
+        url: '/tus/123',
+      } as unknown as Request;
+      const mockRes = {} as unknown as Response;
+
+      const mockTusResponse = {
+        metadata: {
+          filename: 'test.jpg' as FileNameWithExt,
+          filetype: 'image/jpeg' as SupportedMimetypes['allFiles'],
+          originalFilename: 'original.jpg' as FileNameWithExt,
+          size: 1024,
+          changeDate: 1234567890,
+        },
+        res: jest.fn(),
+      };
+
+      const mockFileServiceResponse = {
+        properties: {
+          id: '123',
+          filename: 'test.jpg',
+          mimetype: 'image/jpeg',
+          originalname: 'original.jpg',
+          size: 1024,
+          duplicates: [],
+          filePath: null,
+          originalName: 'original.jpg',
+          megapixels: 0,
+          originalDate: new Date(),
+          imageSize: '0x0',
+          keywords: [],
+          rating: null,
+          description: null,
+          exif: {},
+          staticPath: null,
+          staticPreview: null,
+          staticVideoFullSize: null,
+          timeStamp: '00:00:00.000',
+          changeDate: 1234567890,
+        },
+      } as unknown as UploadFileOutputDto;
+
+      jest.spyOn(tusService, 'handle').mockResolvedValue(mockTusResponse);
+      jest
+        .spyOn(filesService, 'processFile')
+        .mockResolvedValue(mockFileServiceResponse);
+
+      await filesController.handleNestedTusRequest(mockReq, mockRes);
+
+      expect(tusService.handle).toHaveBeenCalledWith(mockReq, mockRes);
+      expect(filesService.processFile).toHaveBeenCalledWith({
+        filename: mockTusResponse.metadata.filename,
+        mimetype: mockTusResponse.metadata.filetype,
+        originalname: mockTusResponse.metadata.originalFilename,
+        size: mockTusResponse.metadata.size,
+      });
+      expect(mockTusResponse.res).toHaveBeenCalledWith({
+        status_code: HttpStatus.CREATED,
+        body: JSON.stringify(
+          FilesService.applyUTCChangeDateToFileOutput(
+            mockFileServiceResponse,
+            mockTusResponse.metadata.changeDate,
+          ),
+        ),
+      });
+    });
+
+    it('should handle errors from TUS service', async () => {
+      const mockReq = {
+        url: '/tus/123',
+      } as unknown as Request;
+      const mockRes = {} as unknown as Response;
+
+      jest
+        .spyOn(tusService, 'handle')
+        .mockRejectedValue(new Error('TUS error'));
+
+      await expect(
+        filesController.handleNestedTusRequest(mockReq, mockRes),
+      ).rejects.toThrow('TUS error');
+    });
+
+    it('should handle errors from file processing', async () => {
+      const mockReq = {
+        url: '/tus/123',
+      } as unknown as Request;
+      const mockRes = {} as unknown as Response;
+
+      const mockTusResponse = {
+        metadata: {
+          filename: 'test.jpg' as FileNameWithExt,
+          filetype: 'image/jpeg' as SupportedMimetypes['allFiles'],
+          originalFilename: 'original.jpg' as FileNameWithExt,
+          size: 1024,
+          changeDate: 1234567890,
+        },
+        res: jest.fn(),
+      };
+
+      jest.spyOn(tusService, 'handle').mockResolvedValue(mockTusResponse);
+      jest
+        .spyOn(filesService, 'processFile')
+        .mockRejectedValue(new Error('File processing error'));
+
+      await expect(
+        filesController.handleNestedTusRequest(mockReq, mockRes),
+      ).rejects.toThrow('File processing error');
     });
   });
 });

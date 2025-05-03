@@ -32,6 +32,7 @@ export enum Envs {
   PROD = 'production',
   TEST = 'test',
   TEST_VOLUME = 'test-volume',
+  UNIT_TEST = 'unit-test',
 }
 
 export enum EnvConfigKeys {
@@ -100,6 +101,8 @@ export enum ControllerPrefix {
   getFiles = 'filtered-photos',
   getFilesWithEmptyExif = 'files/empty-exif',
   uploadFile = 'upload-file',
+  tusUpload = 'tus/upload',
+  tus = 'tus',
   updateFiles = 'update-files',
   deleteFiles = 'delete-files',
   moveKeywordsToNewCollection = 'move-keywords-to-new-collection',
@@ -122,12 +125,12 @@ export enum MainDir {
 }
 
 export enum MainDirPath {
-  // dev = '/Volumes/Lexar_SL500/MEGA_sync/IDBase-test',
   dev = '/Volumes/Lexar_SL500/MEGA_sync/IDBase',
-  prod = '/Users/artempriadkin/Development/test-data',
+  prod = '/Users/artempriadkin/Development/prod',
   docker = '/app',
-  test = 'test-data',
+  test = '/Users/artempriadkin/Development/test-data',
   test_volume = '/Volumes/Volume/IDBVolume',
+  unit_test = 'test-data',
 }
 
 export const MainDirPaths = Object.freeze({
@@ -136,6 +139,7 @@ export const MainDirPaths = Object.freeze({
   [Envs.PROD]: MainDirPath.prod,
   [Envs.TEST]: MainDirPath.test,
   [Envs.TEST_VOLUME]: MainDirPath.test_volume,
+  [Envs.UNIT_TEST]: MainDirPath.unit_test,
 });
 
 export const Folders = Object.freeze({
@@ -163,6 +167,11 @@ export const Folders = Object.freeze({
     [MainDir.temp]: `${MainDirPath.docker}/${MainDir.temp}`,
     [MainDir.volumes]: `${MainDirPath.docker}/${MainDir.volumes}`,
     [MainDir.previews]: `${MainDirPath.docker}/${MainDir.previews}`,
+  },
+  [Envs.UNIT_TEST]: {
+    [MainDir.temp]: `${MainDirPath.unit_test}/${MainDir.temp}`,
+    [MainDir.volumes]: `${MainDirPath.unit_test}/${MainDir.volumes}`,
+    [MainDir.previews]: `${MainDirPath.unit_test}/${MainDir.previews}`,
   },
 } as const);
 

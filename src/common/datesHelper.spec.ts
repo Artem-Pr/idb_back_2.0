@@ -5,6 +5,7 @@ import {
   toDateUTC,
   toMillisecondsUTC,
   nanosecondsToFormattedString,
+  getISOStringWithUTC,
 } from './datesHelper';
 import { ExifDateTime } from 'exiftool-vendored';
 
@@ -179,6 +180,32 @@ describe('dataHelpers', () => {
       expect(() => parseTimeStampToMilliseconds(timeString)).toThrow(
         'Invalid time stamp: invalid-time',
       );
+    });
+  });
+
+  describe('getISOStringWithUTC', () => {
+    it('should convert a Date object to ISO string with local UTC timezone', () => {
+      const date = new Date('2023-01-01T12:00:00.000Z');
+      const result = getISOStringWithUTC(date);
+      expect(result).toBe('2023-01-01T13:00:00.000Z');
+    });
+
+    it('should convert a string date to ISO string with local UTC timezone', () => {
+      const dateString = '2023-01-01';
+      const result = getISOStringWithUTC(dateString);
+      expect(result).toBe('2023-01-01T00:00:00.000Z');
+    });
+
+    it('should convert a timestamp to ISO string with local UTC timezone', () => {
+      const timestamp = 1672531200000; // 2023-01-01T00:00:00.000Z
+      const result = getISOStringWithUTC(timestamp);
+      expect(result).toBe('2023-01-01T01:00:00.000Z');
+    });
+
+    it('should handle date strings with timezone information', () => {
+      const dateWithTimezone = '2023-01-01T12:00:00+02:00';
+      const result = getISOStringWithUTC(dateWithTimezone);
+      expect(result).toBe('2023-01-01T11:00:00.000Z'); // 12:00 +01:00 is 11:00 UTC
     });
   });
 });

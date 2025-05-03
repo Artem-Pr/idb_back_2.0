@@ -337,11 +337,13 @@ describe('ConfigService', () => {
 
     it('should return test paths when the environment is test', () => {
       configService.nodeEnv = Envs.TEST;
-      expect(configService.rootPaths).toEqual({
-        temp: 'test-data/temp',
-        volumes: 'test-data/volumes',
-        previews: 'test-data/previews',
-      });
+      expect(configService.rootPaths).toMatchInlineSnapshot(`
+        {
+          "previews": "/Users/artempriadkin/Development/test-data/previews",
+          "temp": "/Users/artempriadkin/Development/test-data/temp",
+          "volumes": "/Users/artempriadkin/Development/test-data/volumes",
+        }
+      `);
     });
 
     it('should return production paths when the environment is production', () => {
@@ -349,9 +351,9 @@ describe('ConfigService', () => {
       expect(configService.rootPaths).toEqual(Folders[Envs.PROD]);
       expect(configService.rootPaths).toMatchInlineSnapshot(`
         {
-          "previews": "/Users/artempriadkin/Development/test-data/previews",
-          "temp": "/Users/artempriadkin/Development/test-data/temp",
-          "volumes": "/Users/artempriadkin/Development/test-data/volumes",
+          "previews": "/Users/artempriadkin/Development/prod/previews",
+          "temp": "/Users/artempriadkin/Development/prod/temp",
+          "volumes": "/Users/artempriadkin/Development/prod/volumes",
         }
       `);
     });

@@ -1,4 +1,3 @@
-import { Readable } from 'stream';
 import { Media } from '../entities/media.entity';
 import { ObjectId } from 'mongodb';
 import { MediaTemp } from '../entities/media-temp.entity';
@@ -152,15 +151,7 @@ export function createMockProcessFile(): ProcessFile {
     filename: 'mockFile.jpg',
     mimetype: SupportedImageMimetypes.jpg,
     originalname: 'original_mock_file.jpg',
-    fieldname: 'file',
-    encoding: '7bit',
-    buffer: Buffer.from(''),
     size: 1024,
-    destination: '/tmp',
-    path: '/tmp/mockFile.jpg',
-    stream: new Readable({
-      read() {},
-    }),
   };
 
   return mock;

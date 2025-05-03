@@ -4,6 +4,7 @@ import { INestApplication } from '@nestjs/common';
 
 jest.spyOn(console, 'log').mockImplementation(() => {});
 jest.spyOn(console, 'warn').mockImplementation(() => {});
+jest.mock('src/files/tus.service'); // TODO: Remove Tus mock after adding tests for tus
 
 describe('AppModule', () => {
   let appModule: AppModule;
@@ -27,3 +28,5 @@ describe('AppModule', () => {
     expect(appModule).toBeDefined();
   });
 });
+
+// If test can't run because of timeout error, check if DB is running and connection is working

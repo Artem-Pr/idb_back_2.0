@@ -9,7 +9,7 @@ import type { FileNameWithExt } from '../types';
 
 @ValidatorConstraint({ async: false })
 export class IsValidFileNameConstraint implements ValidatorConstraintInterface {
-  validate(fileName: FileNameWithExt) {
+  validate(fileName: string): fileName is FileNameWithExt {
     return isSupportedExtension(fileName) && !fileName.startsWith('/');
   }
 

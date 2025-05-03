@@ -13,5 +13,7 @@ module.exports = {
   testEnvironment: 'node',
   moduleNameMapper: {
     '^src/(.*)$': '<rootDir>/$1',
+    '^@tus/server$': '<rootDir>/../__mocks__/tusServer.ts',
+    '^@tus/file-store$': '<rootDir>/../__mocks__/tusFileStore.ts',
   },
 };

@@ -34,6 +34,7 @@ import { Media } from './entities/media.entity';
 import type { CheckDuplicatesOriginalNamesOutputDto } from './dto/check-duplicates-original-names-output.dto';
 import type {
   DuplicateFile,
+  FileProperties,
   GetSameFilesIfExist,
   MediaOutput,
   ProcessFile,
@@ -52,7 +53,10 @@ import type { GetFilesOutputDto } from './dto/get-files-output.dto';
 import type { DeleteFilesInputDto } from './dto/delete-files-input.dto';
 import { LogMethod } from 'src/logger/logger.decorator';
 import { getVideoDurationInMillisecondsFromExif } from 'src/common/exifHelpers';
-import { parseTimeStampToMilliseconds } from 'src/common/datesHelper';
+import {
+  getISOStringWithUTC,
+  parseTimeStampToMilliseconds,
+} from 'src/common/datesHelper';
 import { CustomPromise } from 'src/common/customPromise';
 import type { UpdateFilesOutputDto } from './dto/update-files-output.dto';
 import type { GetFilesWithEmptyExifOutputDto } from './dto/get-files-with-empty-exif-output.dto';
@@ -77,6 +81,24 @@ export class FilesService {
     private pathsService: PathsService,
     private keywordsService: KeywordsService,
   ) {}
+
+  static applyUTCChangeDateToFileOutput(
+    file: UploadFileOutputDto,
+    newChangeDate?: number,
+  ): {
+    properties: Omit<FileProperties, 'changeDate'> & {
+      changeDate: string;
+    };
+  } {
+    const { changeDate, ...properties } = file.properties;
+
+    return {
+      properties: {
+        ...properties,
+        changeDate: getISOStringWithUTC(changeDate || newChangeDate),
+      },
+    };
+  }
 
   private makeMediaOutputFromMedia({
     media,

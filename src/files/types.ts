@@ -10,7 +10,7 @@ import type { CreatePreviewJob } from 'src/jobs/files.processor';
 import type { UpdatedFieldsInputDto } from './dto/update-files-input.dto';
 import { SortingFieldList } from './mediaDB.service';
 
-export interface ProcessFile extends Express.Multer.File {
+export interface ProcessFile extends Pick<Express.Multer.File, 'size'> {
   filename: CreatePreviewJob['fileName'];
   mimetype: CreatePreviewJob['fileType'];
   originalname: FileNameWithExt;

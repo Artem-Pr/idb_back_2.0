@@ -51,3 +51,5 @@ type RequiredFields<T, K extends keyof T = keyof T> = Required<Pick<T, K>> &
 type NonNullableFields<T extends object, P extends keyof T = keyof T> = {
   [K in keyof T]: K extends P ? NonNullable<T[K]> : T[K];
 };
+
+type Defined<T> = T extends undefined ? never : T;

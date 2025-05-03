@@ -30,6 +30,6 @@ export async function bootstrap() {
   const port = configService.port;
 
   await app.listen(port);
-  logger.debug(`Application is running on: ${await app.getUrl()}`);
+  logger.verbose(`Application started on: ${await app.getUrl()}`);
 }
 bootstrap();

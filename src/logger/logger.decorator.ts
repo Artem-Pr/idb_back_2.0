@@ -44,7 +44,7 @@ export function LogController(endpoint: string) {
         timestamp: true,
       });
       const process = logger.logEndpointStart({
-        endpoint,
+        endpoint: args[0]?.url || endpoint,
         method: propertyKey,
       });
 

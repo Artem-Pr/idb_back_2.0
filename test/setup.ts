@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 
 export const debug = jest.fn();
+export const verbose = jest.fn();
 export const warn = jest.fn();
 export const errorProcess = jest.fn();
 export const finishProcess = jest.fn();
@@ -14,6 +15,7 @@ export const consoleLog = jest.fn();
 jest.mock('src/logger/logger.service', () => ({
   CustomLogger: jest.fn().mockImplementation(() => ({
     debug,
+    verbose,
     warn,
     errorProcess,
     finishProcess,

@@ -147,20 +147,20 @@ export class FilesDataWSGateway
       });
     });
 
-    this.logger.debug(
+    this.logger.verbose(
       `WebSocket server started on ws://localhost:${this.wss.options.port}`,
     );
   }
 
   onModuleDestroy() {
     this.wss.close(() => {
-      this.logger.debug('WebSocket server closed');
+      this.logger.verbose('WebSocket server closed');
     });
   }
 
   onApplicationShutdown() {
     this.wss.close(() => {
-      this.logger.debug('Shutting down WebSocket server...');
+      this.logger.verbose('Shutting down WebSocket server...');
     });
   }
 }

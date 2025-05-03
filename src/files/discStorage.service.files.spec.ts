@@ -50,10 +50,10 @@ const DEFAULT_IMAGE_FILENAME_WITH_DIR = `/${SUBDIRECTORY}/${DEFAULT_IMAGE_FILENA
 const DEFAULT_IMAGE_FILENAME_WITH_DIR_2 = `/${SUBDIRECTORY_2}/${DEFAULT_IMAGE_FILENAME}`;
 const NEW_IMAGE_FILENAME = 'IMG_6107-renamed.JPG';
 const NEW_IMAGE_FILENAME_WITH_DIR = `/${SUBDIRECTORY}/${NEW_IMAGE_FILENAME}`;
-const MOCK_DIRECTORY = `${MainDirPath.test}/mock`;
-const TEST_DIRECTORY_VOLUMES = `${MainDirPath.test}/${MainDir.volumes}`;
-const TEST_DIRECTORY_PREVIEWS = `${MainDirPath.test}/${MainDir.previews}`;
-const TEST_DIRECTORY_TEMP = `${MainDirPath.test}/${MainDir.temp}`;
+const MOCK_DIRECTORY = `${MainDirPath.unit_test}/mock`;
+const TEST_DIRECTORY_VOLUMES = `${MainDirPath.unit_test}/${MainDir.volumes}`;
+const TEST_DIRECTORY_PREVIEWS = `${MainDirPath.unit_test}/${MainDir.previews}`;
+const TEST_DIRECTORY_TEMP = `${MainDirPath.unit_test}/${MainDir.temp}`;
 
 jest.mock('fs-extra', () => jest.requireActual('fs-extra'));
 
@@ -80,8 +80,8 @@ describe('DiscStorageService', () => {
         {
           provide: ConfigService,
           useValue: {
-            rootPaths: Folders[Envs.TEST],
-            mainDirPath: MainDirPath.test,
+            rootPaths: Folders[Envs.UNIT_TEST],
+            mainDirPath: MainDirPath.unit_test,
           },
         },
         {
