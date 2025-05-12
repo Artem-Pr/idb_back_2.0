@@ -297,7 +297,10 @@ describe('FilesController', () => {
           size: 1024,
           changeDate: 1234567890,
         },
-        res: jest.fn(),
+        resolve: jest.fn(),
+        reject: jest.fn().mockImplementation((error) => {
+          throw error;
+        }),
       };
 
       const mockFileServiceResponse = {
@@ -339,7 +342,7 @@ describe('FilesController', () => {
         originalname: mockTusResponse.metadata.originalFilename,
         size: mockTusResponse.metadata.size,
       });
-      expect(mockTusResponse.res).toHaveBeenCalledWith({
+      expect(mockTusResponse.resolve).toHaveBeenCalledWith({
         status_code: HttpStatus.CREATED,
         body: JSON.stringify(
           FilesService.applyUTCChangeDateToFileOutput(
@@ -379,7 +382,10 @@ describe('FilesController', () => {
           size: 1024,
           changeDate: 1234567890,
         },
-        res: jest.fn(),
+        resolve: jest.fn(),
+        reject: jest.fn().mockImplementation((error) => {
+          throw error;
+        }),
       };
 
       jest.spyOn(tusService, 'handle').mockResolvedValue(mockTusResponse);

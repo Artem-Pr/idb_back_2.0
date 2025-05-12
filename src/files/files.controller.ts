@@ -101,22 +101,26 @@ export class FilesController {
   async handleNestedTusRequest(@Req() req: Request, @Res() res: Response) {
     const tusResponse = await this.tusService.handle(req, res);
 
-    const fileServiceResponse = await this.filesService.processFile({
-      filename: tusResponse.metadata.filename,
-      mimetype: tusResponse.metadata.filetype,
-      originalname: tusResponse.metadata.originalFilename,
-      size: tusResponse.metadata.size,
-    });
+    try {
+      const fileServiceResponse = await this.filesService.processFile({
+        filename: tusResponse.metadata.filename,
+        mimetype: tusResponse.metadata.filetype,
+        originalname: tusResponse.metadata.originalFilename,
+        size: tusResponse.metadata.size,
+      });
 
-    tusResponse.res({
-      status_code: HttpStatus.CREATED,
-      body: JSON.stringify(
-        FilesService.applyUTCChangeDateToFileOutput(
-          fileServiceResponse,
-          tusResponse.metadata.changeDate,
+      tusResponse.resolve({
+        status_code: HttpStatus.CREATED,
+        body: JSON.stringify(
+          FilesService.applyUTCChangeDateToFileOutput(
+            fileServiceResponse,
+            tusResponse.metadata.changeDate,
+          ),
         ),
-      ),
-    });
+      });
+    } catch (error) {
+      tusResponse.reject(error);
+    }
   }
 
   @Get(ControllerPrefix.checkDuplicates)

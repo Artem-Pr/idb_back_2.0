@@ -5,11 +5,17 @@ import { ConfigService } from './config/config.service';
 import { HttpExceptionFilter } from './logger/http-exception.filter';
 import { setGlobalConfigService } from './config/global-config-accessor';
 import { CustomLogger } from './logger/logger.service';
+import { json, urlencoded } from 'express';
 
 const logger = new CustomLogger('INIT');
 
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Configure body parser limits
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ limit: '50mb', extended: true }));
+
   app.enableCors();
   // app.enableCors({
   //   origin: ['http://example.com'], // Specify allowed origins
