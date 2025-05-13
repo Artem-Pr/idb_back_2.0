@@ -100,6 +100,7 @@ export enum ControllerPrefix {
   saveFiles = 'save-files',
   getFiles = 'filtered-photos',
   getFilesWithEmptyExif = 'files/empty-exif',
+  getFilesDescriptions = 'files/description',
   uploadFile = 'upload-file',
   tusUpload = 'tus/upload',
   tus = 'tus',

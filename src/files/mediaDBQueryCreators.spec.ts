@@ -400,4 +400,150 @@ describe('MediaDBQueryCreators', () => {
       expect(result).toMatchSnapshot();
     });
   });
+
+  describe('getMongoFilesDescriptionsAggregation', () => {
+    it('should return correct aggregation pipeline with default parameters', () => {
+      const result =
+        mediaDBQueryCreators.getMongoFilesDescriptionsAggregation();
+
+      expect(result).toEqual([
+        {
+          $match: {
+            description: {
+              $exists: true,
+              $nin: [null, '', ' '],
+            },
+          },
+        },
+        {
+          $group: {
+            _id: '$description',
+            description: { $first: '$description' },
+          },
+        },
+        {
+          $facet: {
+            descriptions: [
+              { $skip: 0 },
+              { $limit: 10 },
+              { $project: { description: 1, _id: 0 } },
+            ],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+      ]);
+    });
+
+    it('should return correct aggregation pipeline with description filter', () => {
+      const descriptionPart = 'test';
+      const result =
+        mediaDBQueryCreators.getMongoFilesDescriptionsAggregation(
+          descriptionPart,
+        );
+
+      expect(result).toEqual([
+        {
+          $match: {
+            description: {
+              $regex: 'test',
+              $options: 'i',
+              $nin: [null, '', ' '],
+            },
+          },
+        },
+        {
+          $group: {
+            _id: '$description',
+            description: { $first: '$description' },
+          },
+        },
+        {
+          $facet: {
+            descriptions: [
+              { $skip: 0 },
+              { $limit: 10 },
+              { $project: { description: 1, _id: 0 } },
+            ],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+      ]);
+    });
+
+    it('should return correct aggregation pipeline with custom pagination', () => {
+      const page = 2;
+      const perPage = 5;
+      const result = mediaDBQueryCreators.getMongoFilesDescriptionsAggregation(
+        undefined,
+        page,
+        perPage,
+      );
+
+      expect(result).toEqual([
+        {
+          $match: {
+            description: {
+              $exists: true,
+              $nin: [null, '', ' '],
+            },
+          },
+        },
+        {
+          $group: {
+            _id: '$description',
+            description: { $first: '$description' },
+          },
+        },
+        {
+          $facet: {
+            descriptions: [
+              { $skip: 5 },
+              { $limit: 5 },
+              { $project: { description: 1, _id: 0 } },
+            ],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+      ]);
+    });
+
+    it('should return correct aggregation pipeline with all parameters', () => {
+      const descriptionPart = 'test';
+      const page = 3;
+      const perPage = 20;
+      const result = mediaDBQueryCreators.getMongoFilesDescriptionsAggregation(
+        descriptionPart,
+        page,
+        perPage,
+      );
+
+      expect(result).toEqual([
+        {
+          $match: {
+            description: {
+              $regex: 'test',
+              $options: 'i',
+              $nin: [null, '', ' '],
+            },
+          },
+        },
+        {
+          $group: {
+            _id: '$description',
+            description: { $first: '$description' },
+          },
+        },
+        {
+          $facet: {
+            descriptions: [
+              { $skip: 40 },
+              { $limit: 20 },
+              { $project: { description: 1, _id: 0 } },
+            ],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+      ]);
+    });
+  });
 });

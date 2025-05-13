@@ -40,6 +40,8 @@ import { MediaDBService } from './mediaDB.service';
 import type { UpdateFilesOutputDto } from './dto/update-files-output.dto';
 import type { GetFilesWithEmptyExifOutputDto } from './dto/get-files-with-empty-exif-output.dto';
 import { MulterFilenamePipe } from 'src/common/validators';
+import { GetFilesDescriptionsInputDto } from './dto/get-files-descriptions-input.dto';
+import { GetFilesDescriptionsOutputDto } from './dto/get-files-descriptions-output.dto';
 
 @Controller() // TODO : Define a POST endpoint at /files/uploadItem : @Controller('file')
 export class FilesController {
@@ -121,6 +123,15 @@ export class FilesController {
     } catch (error) {
       tusResponse.reject(error);
     }
+  }
+
+  @Get(ControllerPrefix.getFilesDescriptions)
+  @LogController(ControllerPrefix.getFilesDescriptions)
+  @UsePipes(new ValidationPipe())
+  async getFilesDescriptions(
+    @Query() query: GetFilesDescriptionsInputDto,
+  ): Promise<GetFilesDescriptionsOutputDto> {
+    return this.filesService.getFilesDescriptions(query);
   }
 
   @Get(ControllerPrefix.checkDuplicates)

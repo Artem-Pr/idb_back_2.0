@@ -1162,4 +1162,79 @@ describe('MediaDB', () => {
       expect(mediaRepository.find).toHaveBeenCalledWith(expectedDBQuery);
     });
   });
+
+  describe('getFilesDescriptions', () => {
+    it('should return empty results when no descriptions match', async () => {
+      const mockResult = undefined;
+      jest.spyOn(service, 'makeAggregationQuery').mockResolvedValue(mockResult);
+
+      const result = await service.getFilesDescriptions({
+        descriptionPart: 'nonexistent',
+        page: 1,
+        perPage: 10,
+      });
+
+      expect(result).toEqual({
+        descriptions: [],
+        totalCount: 0,
+      });
+    });
+
+    it('should return matching descriptions and total count', async () => {
+      const mockResult = {
+        descriptions: [
+          { description: 'Test description 1' },
+          { description: 'Test description 2' },
+        ],
+        totalCount: [{ count: 2 }],
+      };
+      jest.spyOn(service, 'makeAggregationQuery').mockResolvedValue(mockResult);
+
+      const result = await service.getFilesDescriptions({
+        descriptionPart: 'test',
+        page: 1,
+        perPage: 10,
+      });
+
+      expect(result).toEqual({
+        descriptions: ['Test description 1', 'Test description 2'],
+        totalCount: 2,
+      });
+    });
+
+    it('should handle pagination correctly', async () => {
+      const mockResult = {
+        descriptions: [
+          { description: 'Test description 1' },
+          { description: 'Test description 2' },
+        ],
+        totalCount: [{ count: 5 }],
+      };
+      jest.spyOn(service, 'makeAggregationQuery').mockResolvedValue(mockResult);
+
+      const result = await service.getFilesDescriptions({
+        descriptionPart: 'test',
+        page: 1,
+        perPage: 2,
+      });
+
+      expect(result).toEqual({
+        descriptions: ['Test description 1', 'Test description 2'],
+        totalCount: 5,
+      });
+    });
+
+    it('should throw InternalServerErrorException when aggregation fails', async () => {
+      const error = new Error('Aggregation failed');
+      jest.spyOn(service, 'makeAggregationQuery').mockRejectedValue(error);
+
+      await expect(
+        service.getFilesDescriptions({
+          descriptionPart: 'test',
+          page: 1,
+          perPage: 10,
+        }),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+  });
 });

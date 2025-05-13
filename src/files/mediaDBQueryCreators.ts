@@ -289,6 +289,51 @@ export class MediaDBQueryCreators {
     ];
   }
 
+  getMongoFilesDescriptionsAggregation(
+    descriptionPart?: string,
+    page = 1,
+    perPage = 10,
+  ): MongoAggregationPipeline {
+    const skip = (page - 1) * perPage;
+
+    const matchStage = descriptionPart
+      ? {
+          description: {
+            $regex: descriptionPart,
+            $options: 'i',
+            $nin: [null, '', ' '],
+          },
+        }
+      : {
+          description: {
+            $exists: true,
+            $nin: [null, '', ' '],
+          },
+        };
+
+    return [
+      {
+        $match: matchStage,
+      },
+      {
+        $group: {
+          _id: '$description',
+          description: { $first: '$description' },
+        },
+      },
+      {
+        $facet: {
+          descriptions: [
+            { $skip: skip },
+            { $limit: perPage },
+            { $project: { description: 1, _id: 0 } },
+          ],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
+    ];
+  }
+
   // getMongoPreviewsAggregation(): MongoAggregationPipeline {
   //   return [
   //     {

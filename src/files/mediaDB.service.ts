@@ -48,6 +48,7 @@ import type { GetFilesOutputDto, Pagination } from './dto/get-files-output.dto';
 import { LogMethod } from 'src/logger/logger.decorator';
 import { decodeString } from 'src/common/utils';
 import { resolveAllSettled } from 'src/common/customPromise';
+import { GetFilesDescriptionsInputDto } from './dto/get-files-descriptions-input.dto';
 
 export enum DBType {
   DBTemp = 'temp',
@@ -558,5 +559,48 @@ export class MediaDBService extends MediaDBQueryCreators {
     });
 
     return this.replaceMediaInDB(updatedMediaList);
+  }
+
+  @LogMethod()
+  async getFilesDescriptions({
+    descriptionPart,
+    page = 1,
+    perPage = 10,
+  }: GetFilesDescriptionsInputDto): Promise<{
+    descriptions: string[];
+    totalCount: number;
+  }> {
+    try {
+      const aggregation = this.getMongoFilesDescriptionsAggregation(
+        descriptionPart,
+        page,
+        perPage,
+      );
+
+      const result = await this.makeAggregationQuery<{
+        descriptions: { description: string }[];
+        totalCount: { count: number }[];
+      }>(aggregation);
+
+      if (!result) {
+        this.logger.debug('No results found');
+        return {
+          descriptions: [],
+          totalCount: 0,
+        };
+      }
+
+      return {
+        descriptions: result.descriptions.map((d) => d.description),
+        totalCount: result.totalCount[0]?.count || 0,
+      };
+    } catch (error) {
+      this.logger.logError({
+        method: 'MediaDBService.getFilesDescriptions',
+        message: error?.message,
+        errorData: error,
+      });
+      throw new InternalServerErrorException(error?.message);
+    }
   }
 }

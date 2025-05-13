@@ -20,6 +20,8 @@ import { MediaDBService } from './mediaDB.service';
 import { TusService } from './tus.service';
 import type { FileNameWithExt, SupportedMimetypes } from 'src/common/types';
 import { HttpStatus } from '@nestjs/common';
+import type { GetFilesDescriptionsInputDto } from './dto/get-files-descriptions-input.dto';
+import type { GetFilesDescriptionsOutputDto } from './dto/get-files-descriptions-output.dto';
 
 describe('FilesController', () => {
   let filesController: FilesController;
@@ -41,6 +43,7 @@ describe('FilesController', () => {
       processFile: jest.fn(),
       saveFiles: jest.fn(),
       updateFiles: jest.fn(),
+      getFilesDescriptions: jest.fn(),
     };
 
     const mockTusService = {
@@ -396,6 +399,78 @@ describe('FilesController', () => {
       await expect(
         filesController.handleNestedTusRequest(mockReq, mockRes),
       ).rejects.toThrow('File processing error');
+    });
+  });
+
+  describe('getFilesDescriptions', () => {
+    it('should call filesService.getFilesDescriptions and return its result', async () => {
+      const query: GetFilesDescriptionsInputDto = {
+        descriptionPart: 'test description',
+        page: 1,
+        perPage: 10,
+      };
+
+      const response: GetFilesDescriptionsOutputDto = {
+        descriptions: ['test description 1', 'test description 2'],
+        page: 1,
+        perPage: 10,
+        resultsCount: 2,
+        totalPages: 1,
+      };
+
+      jest
+        .spyOn(filesService, 'getFilesDescriptions')
+        .mockResolvedValue(response);
+
+      const result = await filesController.getFilesDescriptions(query);
+      expect(filesService.getFilesDescriptions).toHaveBeenCalledWith(query);
+      expect(result).toBe(response);
+    });
+
+    it('should use default values when optional parameters are not provided', async () => {
+      const query: GetFilesDescriptionsInputDto = {
+        descriptionPart: 'test',
+      };
+
+      const response: GetFilesDescriptionsOutputDto = {
+        descriptions: ['test description'],
+        page: 1,
+        perPage: 10,
+        resultsCount: 1,
+        totalPages: 1,
+      };
+
+      jest
+        .spyOn(filesService, 'getFilesDescriptions')
+        .mockResolvedValue(response);
+
+      const result = await filesController.getFilesDescriptions(query);
+      expect(filesService.getFilesDescriptions).toHaveBeenCalledWith(query);
+      expect(result).toBe(response);
+    });
+
+    it('should handle empty results', async () => {
+      const query: GetFilesDescriptionsInputDto = {
+        descriptionPart: 'nonexistent',
+        page: 1,
+        perPage: 10,
+      };
+
+      const response: GetFilesDescriptionsOutputDto = {
+        descriptions: [],
+        page: 1,
+        perPage: 10,
+        resultsCount: 0,
+        totalPages: 0,
+      };
+
+      jest
+        .spyOn(filesService, 'getFilesDescriptions')
+        .mockResolvedValue(response);
+
+      const result = await filesController.getFilesDescriptions(query);
+      expect(filesService.getFilesDescriptions).toHaveBeenCalledWith(query);
+      expect(result).toBe(response);
     });
   });
 });

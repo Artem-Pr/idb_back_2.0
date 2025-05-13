@@ -137,6 +137,7 @@ describe('FilesService', () => {
             deleteMediaFromTempDB: jest.fn(),
             emptyTempDB: jest.fn(),
             getFiles: jest.fn(),
+            getFilesDescriptions: jest.fn(),
             getSameFilesIfExist,
             getUpdatedMediaList,
             replaceMediaInDB: jest.fn(),
@@ -1243,6 +1244,95 @@ describe('FilesService', () => {
       const result = service.getStaticPath(filePath, mainDir);
 
       expect(result).toBe(expectedStaticPath);
+    });
+  });
+
+  describe('getFilesDescriptions', () => {
+    let getFilesDescriptions: jest.Mock;
+
+    beforeEach(() => {
+      getFilesDescriptions = jest.fn().mockResolvedValue({
+        descriptions: ['test description 1', 'test description 2'],
+        totalCount: 2,
+      });
+      jest
+        .spyOn(mediaDBService, 'getFilesDescriptions')
+        .mockImplementation(getFilesDescriptions);
+    });
+
+    it('should return descriptions with default pagination', async () => {
+      const result = await service.getFilesDescriptions({});
+
+      expect(result).toEqual({
+        descriptions: ['test description 1', 'test description 2'],
+        page: 1,
+        perPage: 10,
+        resultsCount: 2,
+        totalPages: 1,
+      });
+      expect(getFilesDescriptions).toHaveBeenCalledWith({
+        descriptionPart: undefined,
+        page: 1,
+        perPage: 10,
+      });
+    });
+
+    it('should return descriptions with custom pagination', async () => {
+      const result = await service.getFilesDescriptions({
+        page: 2,
+        perPage: 5,
+      });
+
+      expect(result).toEqual({
+        descriptions: ['test description 1', 'test description 2'],
+        page: 2,
+        perPage: 5,
+        resultsCount: 2,
+        totalPages: 1,
+      });
+      expect(getFilesDescriptions).toHaveBeenCalledWith({
+        descriptionPart: undefined,
+        page: 2,
+        perPage: 5,
+      });
+    });
+
+    it('should return descriptions with search term', async () => {
+      const result = await service.getFilesDescriptions({
+        descriptionPart: 'test',
+      });
+
+      expect(result).toEqual({
+        descriptions: ['test description 1', 'test description 2'],
+        page: 1,
+        perPage: 10,
+        resultsCount: 2,
+        totalPages: 1,
+      });
+      expect(getFilesDescriptions).toHaveBeenCalledWith({
+        descriptionPart: 'test',
+        page: 1,
+        perPage: 10,
+      });
+    });
+
+    it('should calculate total pages correctly', async () => {
+      getFilesDescriptions.mockResolvedValueOnce({
+        descriptions: ['test description 1', 'test description 2'],
+        totalCount: 15,
+      });
+
+      const result = await service.getFilesDescriptions({
+        perPage: 5,
+      });
+
+      expect(result).toEqual({
+        descriptions: ['test description 1', 'test description 2'],
+        page: 1,
+        perPage: 5,
+        resultsCount: 15,
+        totalPages: 3,
+      });
     });
   });
 });

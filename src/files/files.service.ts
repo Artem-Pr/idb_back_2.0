@@ -60,6 +60,8 @@ import {
 import { CustomPromise } from 'src/common/customPromise';
 import type { UpdateFilesOutputDto } from './dto/update-files-output.dto';
 import type { GetFilesWithEmptyExifOutputDto } from './dto/get-files-with-empty-exif-output.dto';
+import { GetFilesDescriptionsInputDto } from './dto/get-files-descriptions-input.dto';
+import { GetFilesDescriptionsOutputDto } from './dto/get-files-descriptions-output.dto';
 
 interface FilePaths {
   filePath: DBFilePath;
@@ -659,6 +661,27 @@ export class FilesService {
         isVideo && media.fullSizeJpg
           ? this.getStaticPath(media.fullSizeJpg, mainDirPreview)
           : null,
+    };
+  }
+
+  @LogMethod()
+  async getFilesDescriptions(
+    query: GetFilesDescriptionsInputDto,
+  ): Promise<GetFilesDescriptionsOutputDto> {
+    const { descriptionPart, page = 1, perPage = 10 } = query;
+
+    const result = await this.mediaDB.getFilesDescriptions({
+      descriptionPart,
+      page,
+      perPage,
+    });
+
+    return {
+      descriptions: result.descriptions,
+      page,
+      perPage,
+      resultsCount: result.totalCount,
+      totalPages: Math.ceil(result.totalCount / perPage),
     };
   }
 }
