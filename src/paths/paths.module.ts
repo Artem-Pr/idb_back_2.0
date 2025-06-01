@@ -6,11 +6,13 @@ import { Paths } from './entities/paths.entity';
 import { PathsOLD } from './entities/pathsOLD.entity';
 import { Media } from 'src/files/entities/media.entity';
 import { FilesModule } from 'src/files/files.module';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Paths, PathsOLD, Media]),
     forwardRef(() => FilesModule),
+    AuthModule,
   ],
   controllers: [PathsController],
   providers: [PathsService],

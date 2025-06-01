@@ -1,50 +1,52 @@
-import { Controller, Delete, Get, Param } from '@nestjs/common';
+import { Controller, Delete, Get, Param, UseGuards } from '@nestjs/common';
 import { KeywordsService } from './keywords.service';
-import { ControllerPrefix } from 'src/common/constants';
+import { ControllerMethodsPrefix } from 'src/common/constants';
 import { LogController } from 'src/logger/logger.decorator';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller()
+@UseGuards(JwtAuthGuard)
 export class KeywordsController {
   constructor(private readonly keywordsService: KeywordsService) {}
 
-  @Get(ControllerPrefix.oldKeywords)
-  @LogController(ControllerPrefix.oldKeywords)
+  @Get(ControllerMethodsPrefix.oldKeywords)
+  @LogController(ControllerMethodsPrefix.oldKeywords)
   async getOldKeywordsList() {
     return await this.keywordsService.getKeywordsListFromOldCollection();
   }
 
-  @Get(ControllerPrefix.keywords)
-  @LogController(ControllerPrefix.keywords)
+  @Get(ControllerMethodsPrefix.keywords)
+  @LogController(ControllerMethodsPrefix.keywords)
   async getKeywordsList() {
     return await this.keywordsService.getAllKeywords();
   }
 
-  @Get(ControllerPrefix.unusedKeywordsOld)
-  @LogController(ControllerPrefix.unusedKeywordsOld)
+  @Get(ControllerMethodsPrefix.unusedKeywordsOld)
+  @LogController(ControllerMethodsPrefix.unusedKeywordsOld)
   async getUnusedKeywordsOld() {
     return await this.keywordsService.getUnusedKeywordsOld();
   }
 
-  @Get(ControllerPrefix.unusedKeywords)
-  @LogController(ControllerPrefix.unusedKeywords)
+  @Get(ControllerMethodsPrefix.unusedKeywords)
+  @LogController(ControllerMethodsPrefix.unusedKeywords)
   async getUnusedKeywords() {
     return await this.keywordsService.getUnusedKeywords();
   }
 
-  @Delete(ControllerPrefix.unusedKeywords)
-  @LogController(ControllerPrefix.unusedKeywords)
+  @Delete(ControllerMethodsPrefix.unusedKeywords)
+  @LogController(ControllerMethodsPrefix.unusedKeywords)
   async removeUnusedKeywords() {
     return await this.keywordsService.removeUnusedKeywords();
   }
 
-  @Get(ControllerPrefix.moveKeywordsToNewCollection)
-  @LogController(ControllerPrefix.moveKeywordsToNewCollection)
+  @Get(ControllerMethodsPrefix.moveKeywordsToNewCollection)
+  @LogController(ControllerMethodsPrefix.moveKeywordsToNewCollection)
   async moveKeywordsToNewCollection() {
     return await this.keywordsService.moveKeywordsToNewCollection();
   }
 
-  @Delete(ControllerPrefix.keywordsItem)
-  @LogController(ControllerPrefix.keywordsItem)
+  @Delete(ControllerMethodsPrefix.keywordsItem)
+  @LogController(ControllerMethodsPrefix.keywordsItem)
   async removeUnusedKeyword(@Param('keyword') keyword: string) {
     return await this.keywordsService.removeUnusedKeyword(keyword);
   }

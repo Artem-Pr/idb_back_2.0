@@ -1,6 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { SystemTestsService } from './systemTests.service';
-import { ControllerPrefix } from 'src/common/constants';
+import { ControllerMethodsPrefix } from 'src/common/constants';
 import { LogController } from 'src/logger/logger.decorator';
 import { MatchNumbersOfFilesTestInputDto } from './dto/match-numbers-of-files-test-input.dto';
 import type { MatchNumbersOfFilesTestOutputDto } from './dto/match-numbers-of-files-test-output.dto';
@@ -9,8 +9,8 @@ import type { MatchNumbersOfFilesTestOutputDto } from './dto/match-numbers-of-fi
 export class SystemTestsController {
   constructor(private systemTestsService: SystemTestsService) {}
 
-  @Get(ControllerPrefix.testSystemMatchFiles)
-  @LogController(ControllerPrefix.testSystemMatchFiles)
+  @Get(ControllerMethodsPrefix.testSystemMatchFiles)
+  @LogController(ControllerMethodsPrefix.testSystemMatchFiles)
   async matchingNumberOfFilesTest(
     @Query() query: MatchNumbersOfFilesTestInputDto,
   ): Promise<MatchNumbersOfFilesTestOutputDto> {

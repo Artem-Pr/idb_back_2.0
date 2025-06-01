@@ -37,6 +37,18 @@ export const ConfigModuleMetadata: ModuleMetadata = {
         configService.imageStoreServiceHost = nestConfigService.get(
           EnvConfigKeys.IMAGE_STORE_SERVICE_HOST,
         );
+        configService.jwtSecret = nestConfigService.get(
+          EnvConfigKeys.JWT_SECRET,
+        );
+        configService.jwtExpiresIn = nestConfigService.get(
+          EnvConfigKeys.JWT_EXPIRES_IN,
+        );
+        configService.jwtRefreshSecret = nestConfigService.get(
+          EnvConfigKeys.JWT_REFRESH_SECRET,
+        );
+        configService.jwtRefreshExpiresIn = nestConfigService.get(
+          EnvConfigKeys.JWT_REFRESH_EXPIRES_IN,
+        );
         return configService;
       },
       inject: [NestConfigService],

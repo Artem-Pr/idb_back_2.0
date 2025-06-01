@@ -18,6 +18,7 @@ import { PathsModule } from 'src/paths/paths.module';
 import { KeywordsService } from 'src/keywords/keywords.service';
 import { KeywordsModule } from 'src/keywords/keywords.module';
 import { TusService } from './tus.service';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { TusService } from './tus.service';
     TypeOrmModule.forFeature([MediaTemp, Media]),
     forwardRef(() => PathsModule),
     forwardRef(() => KeywordsModule),
+    AuthModule,
   ],
   controllers: [FilesController],
   providers: [

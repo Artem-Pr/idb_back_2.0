@@ -17,9 +17,10 @@ import {
   Req,
   All,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import {
-  ControllerPrefix,
+  ControllerMethodsPrefix,
   SUPPORTED_MIMETYPE_REGEX,
 } from 'src/common/constants';
 import { FilesService } from './files.service';
@@ -42,8 +43,10 @@ import type { GetFilesWithEmptyExifOutputDto } from './dto/get-files-with-empty-
 import { MulterFilenamePipe } from 'src/common/validators';
 import { GetFilesDescriptionsInputDto } from './dto/get-files-descriptions-input.dto';
 import { GetFilesDescriptionsOutputDto } from './dto/get-files-descriptions-output.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller() // TODO : Define a POST endpoint at /files/uploadItem : @Controller('file')
+@UseGuards(JwtAuthGuard)
 export class FilesController {
   constructor(
     private filesService: FilesService,
@@ -51,31 +54,31 @@ export class FilesController {
     private tusService: TusService,
   ) {}
 
-  @Post(ControllerPrefix.getFiles)
-  @LogController(ControllerPrefix.getFiles)
+  @Post(ControllerMethodsPrefix.getFiles)
+  @LogController(ControllerMethodsPrefix.getFiles)
   async getFiles(
     @Body() filesQuery: GetFilesInputDto,
   ): Promise<GetFilesOutputDto> {
     return this.filesService.getFiles(filesQuery);
   }
 
-  @Post(ControllerPrefix.saveFiles)
-  @LogController(ControllerPrefix.saveFiles)
+  @Post(ControllerMethodsPrefix.saveFiles)
+  @LogController(ControllerMethodsPrefix.saveFiles)
   async saveFiles(@Body() filesToUpload: UpdatedFilesInputDto) {
     return this.filesService.saveFiles(filesToUpload);
   }
 
-  @Put(ControllerPrefix.updateFiles)
-  @LogController(ControllerPrefix.updateFiles)
+  @Put(ControllerMethodsPrefix.updateFiles)
+  @LogController(ControllerMethodsPrefix.updateFiles)
   async updateFiles(
     @Body() filesToUpload: UpdatedFilesInputDto,
   ): Promise<UpdateFilesOutputDto> {
     return this.filesService.updateFiles(filesToUpload);
   }
 
-  @Post(ControllerPrefix.uploadFile)
+  @Post(ControllerMethodsPrefix.uploadFile)
   @UseInterceptors(FileMediaInterceptor)
-  @LogController(ControllerPrefix.uploadFile)
+  @LogController(ControllerMethodsPrefix.uploadFile)
   @HttpCode(HttpStatus.CREATED)
   async uploadFile(
     @UploadedFile(
@@ -98,8 +101,8 @@ export class FilesController {
     });
   }
 
-  @All(`${ControllerPrefix.tus}/*`)
-  @LogController(`${ControllerPrefix.tus}/*`)
+  @All(`${ControllerMethodsPrefix.tus}/*`)
+  @LogController(`${ControllerMethodsPrefix.tus}/*`)
   async handleNestedTusRequest(@Req() req: Request, @Res() res: Response) {
     const tusResponse = await this.tusService.handle(req, res);
 
@@ -125,8 +128,8 @@ export class FilesController {
     }
   }
 
-  @Get(ControllerPrefix.getFilesDescriptions)
-  @LogController(ControllerPrefix.getFilesDescriptions)
+  @Get(ControllerMethodsPrefix.getFilesDescriptions)
+  @LogController(ControllerMethodsPrefix.getFilesDescriptions)
   @UsePipes(new ValidationPipe())
   async getFilesDescriptions(
     @Query() query: GetFilesDescriptionsInputDto,
@@ -134,9 +137,9 @@ export class FilesController {
     return this.filesService.getFilesDescriptions(query);
   }
 
-  @Get(ControllerPrefix.checkDuplicates)
+  @Get(ControllerMethodsPrefix.checkDuplicates)
   @UsePipes(new ValidationPipe())
-  @LogController(ControllerPrefix.checkDuplicates)
+  @LogController(ControllerMethodsPrefix.checkDuplicates)
   async checkDuplicatesByOriginalNames(
     @Query() query: CheckDuplicatesOriginalNamesInputDto,
   ): Promise<CheckDuplicatesOriginalNamesOutputDto> {
@@ -145,9 +148,9 @@ export class FilesController {
     );
   }
 
-  @Get(ControllerPrefix.checkDuplicatesByFilePaths)
+  @Get(ControllerMethodsPrefix.checkDuplicatesByFilePaths)
   @UsePipes(new ValidationPipe())
-  @LogController(ControllerPrefix.checkDuplicatesByFilePaths)
+  @LogController(ControllerMethodsPrefix.checkDuplicatesByFilePaths)
   async checkDuplicatesByFilePaths(
     @Query() query: CheckDuplicatesFilePathsInputDto,
   ): Promise<CheckDuplicatesFilePathsOutputDto> {
@@ -156,29 +159,29 @@ export class FilesController {
     );
   }
 
-  @Get(ControllerPrefix.getFilesWithEmptyExif)
-  @LogController(ControllerPrefix.getFilesWithEmptyExif)
+  @Get(ControllerMethodsPrefix.getFilesWithEmptyExif)
+  @LogController(ControllerMethodsPrefix.getFilesWithEmptyExif)
   async getFilesWithEmptyExif(): Promise<GetFilesWithEmptyExifOutputDto> {
     return this.filesService.getFilesWithEmptyExif();
   }
 
-  @Post(ControllerPrefix.deleteFiles)
+  @Post(ControllerMethodsPrefix.deleteFiles)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @LogController(ControllerPrefix.deleteFiles)
+  @LogController(ControllerMethodsPrefix.deleteFiles)
   async deleteFiles(@Body() idsQuery: DeleteFilesInputDto): Promise<void> {
     await this.filesService.deleteFilesByIds(idsQuery.ids);
   }
 
-  @Delete(ControllerPrefix.cleanTemp)
+  @Delete(ControllerMethodsPrefix.cleanTemp)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @LogController(ControllerPrefix.cleanTemp)
+  @LogController(ControllerMethodsPrefix.cleanTemp)
   async cleanTemp() {
     return this.filesService.cleanTemp();
   }
 
-  @Put(ControllerPrefix.updateMediaEntities)
+  @Put(ControllerMethodsPrefix.updateMediaEntities)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @LogController(ControllerPrefix.updateMediaEntities)
+  @LogController(ControllerMethodsPrefix.updateMediaEntities)
   async updateMediaEntities() {
     await this.mediaDBService.updateMediaInOldDBToMakeItValid();
   }

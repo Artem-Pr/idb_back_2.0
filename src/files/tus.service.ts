@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { EVENTS, ServerOptions, Server } from '@tus/server';
 import { FileStore } from '@tus/file-store';
 import { v4 as uuidV4 } from 'uuid';
-import { ControllerPrefix, MainDir } from 'src/common/constants';
+import { ControllerMethodsPrefix, MainDir } from 'src/common/constants';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { CustomLogger } from 'src/logger/logger.service';
 import { ConfigService } from 'src/config/config.service';
@@ -19,7 +19,7 @@ interface TusResponsePromise {
   ) => void;
 }
 
-const TUS_UPLOAD_PATH = `/${ControllerPrefix.tusUpload}`;
+const TUS_UPLOAD_PATH = `/${ControllerMethodsPrefix.tusUpload}`;
 
 @Injectable()
 export class TusService implements OnModuleInit {

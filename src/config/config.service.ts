@@ -6,6 +6,10 @@ import {
   DEFAULT_HOST,
   DEFAULT_IMAGE_STORE_SERVICE_HOST,
   DEFAULT_IMAGE_STORE_SERVICE_PORT,
+  DEFAULT_JWT_EXPIRES_IN,
+  DEFAULT_JWT_REFRESH_EXPIRES_IN,
+  DEFAULT_JWT_REFRESH_SECRET,
+  DEFAULT_JWT_SECRET,
   DEFAULT_MONGODB_URI,
   DEFAULT_PORT,
   DEFAULT_WS_HOST,
@@ -64,6 +68,10 @@ export class ConfigService {
   private _dbSynchronize: boolean = DEFAULT_DB_SYNCHRONIZE;
   private _imageStoreServicePort: number = DEFAULT_IMAGE_STORE_SERVICE_PORT;
   private _imageStoreServiceHost: string = DEFAULT_IMAGE_STORE_SERVICE_HOST;
+  private _jwtSecret: string = DEFAULT_JWT_SECRET;
+  private _jwtExpiresIn: string = DEFAULT_JWT_EXPIRES_IN;
+  private _jwtRefreshSecret: string = DEFAULT_JWT_REFRESH_SECRET;
+  private _jwtRefreshExpiresIn: string = DEFAULT_JWT_REFRESH_EXPIRES_IN;
 
   set port(port: string | number | undefined) {
     if (isValidPort(port, 'port', DEFAULT_PORT)) {
@@ -229,5 +237,65 @@ export class ConfigService {
 
   get imageStoreServiceUrl(): string {
     return `${this.imageStoreServiceHost}:${this.imageStoreServicePort}`;
+  }
+
+  set jwtSecret(jwtSecret: string | undefined) {
+    if (!jwtSecret) {
+      console.warn(
+        `No JWT secret provided, using default. THIS IS NOT SECURE FOR PRODUCTION.`,
+      );
+      this._jwtSecret = DEFAULT_JWT_SECRET;
+    } else {
+      this._jwtSecret = jwtSecret;
+    }
+  }
+
+  get jwtSecret(): string {
+    return this._jwtSecret;
+  }
+
+  set jwtExpiresIn(jwtExpiresIn: string | undefined) {
+    if (!jwtExpiresIn) {
+      console.warn(
+        `No JWT expiration time provided, using default ${DEFAULT_JWT_EXPIRES_IN}`,
+      );
+      this._jwtExpiresIn = DEFAULT_JWT_EXPIRES_IN;
+    } else {
+      this._jwtExpiresIn = jwtExpiresIn;
+    }
+  }
+
+  get jwtExpiresIn(): string {
+    return this._jwtExpiresIn;
+  }
+
+  set jwtRefreshSecret(jwtRefreshSecret: string | undefined) {
+    if (!jwtRefreshSecret) {
+      console.warn(
+        `No JWT refresh secret provided, using default. THIS IS NOT SECURE FOR PRODUCTION.`,
+      );
+      this._jwtRefreshSecret = DEFAULT_JWT_REFRESH_SECRET;
+    } else {
+      this._jwtRefreshSecret = jwtRefreshSecret;
+    }
+  }
+
+  get jwtRefreshSecret(): string {
+    return this._jwtRefreshSecret;
+  }
+
+  set jwtRefreshExpiresIn(jwtRefreshExpiresIn: string | undefined) {
+    if (!jwtRefreshExpiresIn) {
+      console.warn(
+        `No JWT refresh expiration time provided, using default ${DEFAULT_JWT_REFRESH_EXPIRES_IN}`,
+      );
+      this._jwtRefreshExpiresIn = DEFAULT_JWT_REFRESH_EXPIRES_IN;
+    } else {
+      this._jwtRefreshExpiresIn = jwtRefreshExpiresIn;
+    }
+  }
+
+  get jwtRefreshExpiresIn(): string {
+    return this._jwtRefreshExpiresIn;
   }
 }

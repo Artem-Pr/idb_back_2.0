@@ -16,6 +16,8 @@ import { values } from 'ramda';
 import { LoggerModule } from './logger/logger.module';
 import { SystemTestsModule } from './mainTests/systemTests.module';
 import { FilesDataWSModule } from './filesDataWS/filesDataWS.module';
+import { AuthModule } from './auth/auth.module';
+import { CleanupModule } from './cleanup/cleanup.module';
 
 @Module({
   imports: [
@@ -57,6 +59,8 @@ import { FilesDataWSModule } from './filesDataWS/filesDataWS.module';
     QueueModule,
     SystemTestsModule,
     FilesDataWSModule,
+    AuthModule,
+    CleanupModule,
   ],
 })
 export class AppModule {}

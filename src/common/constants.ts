@@ -26,6 +26,12 @@ export const DEFAULT_DB_NAME = 'IDBase';
 export const DEFAULT_DB_SYNCHRONIZE = false;
 export const DEFAULT_TIME_STAMP = '00:00:00.000';
 
+export const DEFAULT_JWT_SECRET = 'super-secret-jwt-key-change-in-production';
+export const DEFAULT_JWT_EXPIRES_IN = '15m';
+export const DEFAULT_JWT_REFRESH_SECRET =
+  'super-secret-refresh-key-change-in-production';
+export const DEFAULT_JWT_REFRESH_EXPIRES_IN = '2h';
+
 export enum Envs {
   DEV = 'development',
   DOCKER = 'docker',
@@ -46,6 +52,10 @@ export enum EnvConfigKeys {
   DB_SYNCHRONIZE = 'DB_SYNCHRONIZE',
   IMAGE_STORE_SERVICE_PORT = 'IMAGE_STORE_SERVICE_PORT',
   IMAGE_STORE_SERVICE_HOST = 'IMAGE_STORE_SERVICE_HOST',
+  JWT_SECRET = 'JWT_SECRET',
+  JWT_EXPIRES_IN = 'JWT_EXPIRES_IN',
+  JWT_REFRESH_SECRET = 'JWT_REFRESH_SECRET',
+  JWT_REFRESH_EXPIRES_IN = 'JWT_REFRESH_EXPIRES_IN',
 }
 
 export type PreviewServiceOptions = {
@@ -78,6 +88,9 @@ export enum DBCollections {
   temp = 'temp',
   keywords = 'keywords',
   paths = 'paths',
+  users = 'users',
+  refreshTokens = 'refresh_tokens',
+  blacklistedTokens = 'blacklisted_tokens',
 }
 
 export enum DBConfigConstants {
@@ -85,7 +98,7 @@ export enum DBConfigConstants {
   paths = 'paths',
 }
 
-export enum ControllerPrefix {
+export enum ControllerMethodsPrefix {
   keywords = 'keywords',
   oldKeywords = 'old-keywords',
   keywordsItem = 'keyword/:keyword', // TODO: rename to unused-keyword/:keyword
@@ -112,7 +125,24 @@ export enum ControllerPrefix {
   cleanTemp = 'clean-temp',
   updateMediaEntities = 'update-media-entities',
   testSystemMatchFiles = 'test-system/matching-files',
+  login = 'login',
+  register = 'register',
+  refresh = 'refresh',
+  logout = 'logout',
 }
+
+export enum ControllerPrefix {
+  auth = 'auth',
+}
+
+export const Paths = Object.freeze({
+  [ControllerPrefix.auth]: {
+    login: ControllerMethodsPrefix.login,
+    register: ControllerMethodsPrefix.register,
+    refresh: ControllerMethodsPrefix.refresh,
+    logout: ControllerMethodsPrefix.logout,
+  },
+});
 
 export enum PreviewPostfix {
   preview = 'preview',
@@ -179,6 +209,7 @@ export const Folders = Object.freeze({
 export enum Processors {
   exifProcessor = 'exif-processing',
   fileProcessor = 'file-processing',
+  cleanupProcessor = 'cleanup-processing',
 }
 
 export const Concurrency = Object.freeze({
