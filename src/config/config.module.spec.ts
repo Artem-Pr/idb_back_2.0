@@ -9,11 +9,45 @@ describe('ConfigModule', () => {
   let nestConfigService: NestConfigService;
 
   beforeEach(async () => {
+    // Mock environment variables to prevent console warnings
+    process.env[EnvConfigKeys.PORT] = '3000';
+    process.env[EnvConfigKeys.HOST] = 'http://localhost';
+    process.env[EnvConfigKeys.WS_PORT] = '3001';
+    process.env[EnvConfigKeys.WS_HOST] = 'ws://localhost';
+    process.env[EnvConfigKeys.NODE_ENV] = 'unit-test';
+    process.env[EnvConfigKeys.MONGODB_URI] = 'mongodb://localhost:27017/test';
+    process.env[EnvConfigKeys.DB_NAME] = 'test-db';
+    process.env[EnvConfigKeys.DB_SYNCHRONIZE] = 'false';
+    process.env[EnvConfigKeys.IMAGE_STORE_SERVICE_PORT] = '4000';
+    process.env[EnvConfigKeys.IMAGE_STORE_SERVICE_HOST] = 'localhost';
+    process.env[EnvConfigKeys.JWT_SECRET] = 'test-jwt-secret';
+    process.env[EnvConfigKeys.JWT_EXPIRES_IN] = '1h';
+    process.env[EnvConfigKeys.JWT_REFRESH_SECRET] = 'test-jwt-refresh-secret';
+    process.env[EnvConfigKeys.JWT_REFRESH_EXPIRES_IN] = '24h';
+
     const moduleRef =
       await Test.createTestingModule(ConfigModuleMetadata).compile();
 
     configService = moduleRef.get<ConfigService>(ConfigService);
     nestConfigService = moduleRef.get<NestConfigService>(NestConfigService);
+  });
+
+  afterEach(() => {
+    // Clean up environment variables after each test
+    delete process.env[EnvConfigKeys.PORT];
+    delete process.env[EnvConfigKeys.HOST];
+    delete process.env[EnvConfigKeys.WS_PORT];
+    delete process.env[EnvConfigKeys.WS_HOST];
+    delete process.env[EnvConfigKeys.NODE_ENV];
+    delete process.env[EnvConfigKeys.MONGODB_URI];
+    delete process.env[EnvConfigKeys.DB_NAME];
+    delete process.env[EnvConfigKeys.DB_SYNCHRONIZE];
+    delete process.env[EnvConfigKeys.IMAGE_STORE_SERVICE_PORT];
+    delete process.env[EnvConfigKeys.IMAGE_STORE_SERVICE_HOST];
+    delete process.env[EnvConfigKeys.JWT_SECRET];
+    delete process.env[EnvConfigKeys.JWT_EXPIRES_IN];
+    delete process.env[EnvConfigKeys.JWT_REFRESH_SECRET];
+    delete process.env[EnvConfigKeys.JWT_REFRESH_EXPIRES_IN];
   });
 
   it('should be defined', () => {

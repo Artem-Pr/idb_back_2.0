@@ -55,6 +55,7 @@ export class FilesController {
   ) {}
 
   @Post(ControllerMethodsPrefix.getFiles)
+  @HttpCode(HttpStatus.OK)
   @LogController(ControllerMethodsPrefix.getFiles)
   async getFiles(
     @Body() filesQuery: GetFilesInputDto,
@@ -78,8 +79,8 @@ export class FilesController {
 
   @Post(ControllerMethodsPrefix.uploadFile)
   @UseInterceptors(FileMediaInterceptor)
-  @LogController(ControllerMethodsPrefix.uploadFile)
   @HttpCode(HttpStatus.CREATED)
+  @LogController(ControllerMethodsPrefix.uploadFile)
   async uploadFile(
     @UploadedFile(
       new MulterFilenamePipe(),
