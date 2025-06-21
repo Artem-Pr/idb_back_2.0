@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ExifKeys } from './entities/exif-keys.entity';
 import { ExifKeysService } from './exif-keys.service';
+import { ExifKeysController } from './exif-keys.controller';
 import { ExifKeysFactory } from './factories/exif-keys.factory';
 import { ExifTypeDeterminationStrategy } from './strategies/exif-type-determination.strategy';
 import { ExifKeysRepository } from './repositories/exif-keys.repository';
@@ -9,6 +10,7 @@ import { CustomLogger } from 'src/logger/logger.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([ExifKeys])],
+  controllers: [ExifKeysController],
   providers: [
     ExifKeysService,
     ExifKeysFactory,

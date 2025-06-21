@@ -105,6 +105,7 @@ export enum ControllerMethodsPrefix {
   keywordsItem = 'keyword/:keyword', // TODO: rename to unused-keyword/:keyword
   paths = 'paths',
   pathsOld = 'paths-old',
+  exifKeys = 'exif-keys',
   unusedKeywords = 'unused-keywords',
   unusedKeywordsOld = 'unused-keywords-old',
   checkDirectory = 'check-directory',
