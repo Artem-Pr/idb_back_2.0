@@ -28,6 +28,7 @@ import { Media } from './entities/media.entity';
 import { DiscStorageService } from './discStorage.service';
 import { PathsService } from 'src/paths/paths.service';
 import { KeywordsService } from 'src/keywords/keywords.service';
+import { ExifKeysService } from './exif-keys/exif-keys.service';
 import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
 import { GetFilesInputDto } from './dto/get-files-input.dto';
 import { omit, clone } from 'ramda';
@@ -107,6 +108,7 @@ describe('FilesService', () => {
   let keywordsService: KeywordsService;
   let diskStorageService: DiscStorageService;
   let pathsService: PathsService;
+  let exifKeysService: ExifKeysService;
   let getUpdatedMediaList: jest.Mock<UpdateMedia[]>;
 
   beforeAll(async () => {
@@ -173,6 +175,14 @@ describe('FilesService', () => {
             addKeywords: jest.fn(),
           },
         },
+        {
+          provide: ExifKeysService,
+          useValue: {
+            processAndSaveExifKeys: jest.fn(),
+            getAllExifKeys: jest.fn(),
+            getExifKeysByType: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -181,6 +191,7 @@ describe('FilesService', () => {
     keywordsService = module.get<KeywordsService>(KeywordsService);
     pathsService = module.get<PathsService>(PathsService);
     diskStorageService = module.get<DiscStorageService>(DiscStorageService);
+    exifKeysService = module.get<ExifKeysService>(ExifKeysService);
     fileQueue = module.get<Queue<CreatePreviewJob>>(
       getQueueToken(Processors.fileProcessor),
     );
@@ -451,6 +462,19 @@ describe('FilesService', () => {
         newMedia1,
         newMedia2,
       ]);
+    });
+
+    it('should call exifKeysService.processAndSaveExifKeys with saved media', async () => {
+      jest.spyOn(exifKeysService, 'processAndSaveExifKeys');
+
+      const savedMedia = [newMedia1, newMedia2];
+      jest.spyOn(mediaDBService, 'addMediaToDB').mockResolvedValue(savedMedia);
+
+      await service['saveMediaListToDB'](mediaDB_UpdateMediaList);
+
+      expect(exifKeysService.processAndSaveExifKeys).toHaveBeenCalledWith(
+        savedMedia,
+      );
     });
   });
 

@@ -91,6 +91,7 @@ export enum DBCollections {
   users = 'users',
   refreshTokens = 'refresh_tokens',
   blacklistedTokens = 'blacklisted_tokens',
+  exifKeys = 'exif_keys',
 }
 
 export enum DBConfigConstants {

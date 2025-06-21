@@ -62,6 +62,7 @@ import type { UpdateFilesOutputDto } from './dto/update-files-output.dto';
 import type { GetFilesWithEmptyExifOutputDto } from './dto/get-files-with-empty-exif-output.dto';
 import { GetFilesDescriptionsInputDto } from './dto/get-files-descriptions-input.dto';
 import { GetFilesDescriptionsOutputDto } from './dto/get-files-descriptions-output.dto';
+import { ExifKeysService } from './exif-keys/exif-keys.service';
 
 interface FilePaths {
   filePath: DBFilePath;
@@ -82,6 +83,7 @@ export class FilesService {
     private diskStorageService: DiscStorageService,
     private pathsService: PathsService,
     private keywordsService: KeywordsService,
+    private exifKeysService: ExifKeysService,
   ) {}
 
   static applyUTCChangeDateToFileOutput(
@@ -184,6 +186,9 @@ export class FilesService {
   private async saveMediaListToDB(mediaList: UpdateMedia[]): Promise<Media[]> {
     const mewMediaList = mediaList.map(({ newMedia }) => newMedia);
     const updatedMediaList = await this.mediaDB.addMediaToDB(mewMediaList);
+
+    // Process and save EXIF keys from the newly saved media
+    await this.exifKeysService.processAndSaveExifKeys(updatedMediaList);
 
     return updatedMediaList;
   }

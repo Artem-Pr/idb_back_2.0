@@ -12,6 +12,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MediaTemp } from './entities/media-temp.entity';
 import { MediaDBService } from './mediaDB.service';
 import { Media } from './entities/media.entity';
+import { ExifKeysModule } from './exif-keys/exif-keys.module';
 import { DiscStorageService } from './discStorage.service';
 import { PathsService } from 'src/paths/paths.service';
 import { PathsModule } from 'src/paths/paths.module';
@@ -33,6 +34,7 @@ import { AuthModule } from 'src/auth/auth.module';
       { name: Processors.exifProcessor },
     ),
     TypeOrmModule.forFeature([MediaTemp, Media]),
+    ExifKeysModule,
     forwardRef(() => PathsModule),
     forwardRef(() => KeywordsModule),
     AuthModule,
@@ -48,6 +50,12 @@ import { AuthModule } from 'src/auth/auth.module';
     PathsService,
     TusService,
   ],
-  exports: [MediaDBService, DiscStorageService, FilesService, TusService],
+  exports: [
+    MediaDBService,
+    DiscStorageService,
+    FilesService,
+    TusService,
+    ExifKeysModule,
+  ],
 })
 export class FilesModule {}
