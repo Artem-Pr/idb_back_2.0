@@ -12,11 +12,14 @@ import { ExifKeysFactory } from './factories/exif-keys.factory';
 import { Result, success, failure } from './types/result.type';
 import { EXIF_KEYS_CONSTANTS } from './constants/exif-keys.constants';
 import { IExifKeysRepository } from './repositories/exif-keys.repository';
+import { MediaDBService } from '../mediaDB.service';
+import { SyncExifKeysOutputDto } from './dto/sync-exif-keys-output.dto';
 
 export interface IExifKeysService {
   processAndSaveExifKeys(mediaList: Media[]): Promise<Result<number>>;
   getAllExifKeys(): Promise<ExifKeys[]>;
   getExifKeysByType(type: ExifValueType): Promise<ExifKeys[]>;
+  syncExifKeysFromAllMedia(): Promise<SyncExifKeysOutputDto>;
 }
 
 export interface ExifKeyProcessingConfig {
@@ -35,6 +38,7 @@ export class ExifKeysService implements IExifKeysService {
     private readonly logger: CustomLogger,
     @Inject('EXIF_KEY_PROCESSING_CONFIG')
     private readonly config: ExifKeyProcessingConfig = {},
+    private readonly mediaDbService: MediaDBService,
   ) {}
 
   /**
@@ -113,6 +117,123 @@ export class ExifKeysService implements IExifKeysService {
   }
 
   /**
+   * Syncs EXIF keys from all media entities in the database
+   * Clears existing keys and rebuilds the collection from scratch
+   */
+  @LogMethod('syncExifKeysFromAllMedia')
+  async syncExifKeysFromAllMedia(): Promise<SyncExifKeysOutputDto> {
+    const startTime = Date.now();
+    let totalMediaProcessed = 0;
+    let mediaWithoutExif = 0;
+    let batchesProcessed = 0;
+    let totalExifKeysDiscovered = 0;
+    let newExifKeysSaved = 0;
+    const batchSize = 500;
+
+    try {
+      // Step 1: Clear existing exif keys
+      const clearResult = await this.exifKeysRepository.clearAll();
+      if (!clearResult.success) {
+        throw new Error(
+          `Failed to clear exif keys: ${clearResult.error.message}`,
+        );
+      }
+
+      this.logger.log('Cleared all existing exif keys');
+
+      // Step 2: Get total count for progress tracking
+      const totalCount = await this.mediaDbService.countAllMedia();
+      this.logger.log(`Found ${totalCount} media entities to process`);
+
+      if (totalCount === 0) {
+        return {
+          totalMediaProcessed: 0,
+          totalExifKeysDiscovered: 0,
+          newExifKeysSaved: 0,
+          mediaWithoutExif: 0,
+          processingTimeMs: Date.now() - startTime,
+          batchesProcessed: 0,
+          collectionCleared: true,
+        };
+      }
+
+      // Step 3: Process media in batches using efficient field selection
+      const allDiscoveredKeys = new Map<string, ExifValueType>();
+
+      for (let offset = 0; offset < totalCount; offset += batchSize) {
+        const batch = await this.mediaDbService.findMediaExifBatch(
+          batchSize,
+          offset,
+        );
+        batchesProcessed++;
+
+        this.logger.log(
+          `Processing batch ${batchesProcessed} (${batch.length} media entities) - ${Math.round((offset / totalCount) * 100)}% complete`,
+        );
+
+        // Count media without exif in this batch
+        const batchMediaWithoutExif = batch.filter(
+          (media) => !this.hasValidExifData(media),
+        ).length;
+        mediaWithoutExif += batchMediaWithoutExif;
+
+        // Extract keys from this batch using specialized method
+        const batchKeys = this.extractExifKeysFromExifBatch(batch);
+
+        // Merge with all discovered keys
+        for (const [key, type] of batchKeys.entries()) {
+          allDiscoveredKeys.set(key, type);
+        }
+
+        totalMediaProcessed += batch.length;
+      }
+
+      totalExifKeysDiscovered = allDiscoveredKeys.size;
+
+      // Step 4: Create and save all discovered keys
+      if (totalExifKeysDiscovered > 0) {
+        const keysToSave =
+          this.exifKeysFactory.createExifKeysFromMap(allDiscoveredKeys);
+        const saveResult = await this.exifKeysRepository.saveKeys(keysToSave);
+
+        if (!saveResult.success) {
+          throw new Error(
+            `Failed to save exif keys: ${saveResult.error.message}`,
+          );
+        }
+
+        newExifKeysSaved = keysToSave.length;
+        this.logger.log(`Successfully saved ${newExifKeysSaved} exif keys`);
+      }
+
+      const processingTimeMs = Date.now() - startTime;
+
+      this.logger.log(
+        `Sync completed: ${totalMediaProcessed} media processed, ${totalExifKeysDiscovered} keys discovered, ${newExifKeysSaved} keys saved in ${processingTimeMs}ms`,
+      );
+
+      return {
+        totalMediaProcessed,
+        totalExifKeysDiscovered,
+        newExifKeysSaved,
+        mediaWithoutExif,
+        processingTimeMs,
+        batchesProcessed,
+        collectionCleared: true,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.logError({
+        message: `Sync failed: ${errorMessage}`,
+        method: 'syncExifKeysFromAllMedia',
+      });
+
+      throw new Error(`Failed to sync exif keys: ${errorMessage}`);
+    }
+  }
+
+  /**
    * Validates input media list
    */
   private isValidMediaList(mediaList: Media[]): boolean {
@@ -142,7 +263,9 @@ export class ExifKeysService implements IExifKeysService {
   /**
    * Checks if media has valid EXIF data
    */
-  private hasValidExifData(media: Media): boolean {
+  private hasValidExifData(
+    media: Media | Pick<Media, '_id' | 'exif'>,
+  ): boolean {
     return media.exif && typeof media.exif === 'object';
   }
 
@@ -186,5 +309,25 @@ export class ExifKeysService implements IExifKeysService {
     if (this.config.enableLogging !== false) {
       this.logger.log(message);
     }
+  }
+
+  /**
+   * Extracts EXIF keys from batch of media exif data
+   */
+  private extractExifKeysFromExifBatch(
+    batchData: Pick<Media, '_id' | 'exif'>[],
+  ): Map<string, ExifValueType> {
+    const exifKeysMap = new Map<string, ExifValueType>();
+
+    for (const item of batchData) {
+      if (!this.hasValidExifData(item)) {
+        continue;
+      }
+
+      const exifData: Tags = item.exif;
+      this.processExifData(exifData, exifKeysMap);
+    }
+
+    return exifKeysMap;
   }
 }

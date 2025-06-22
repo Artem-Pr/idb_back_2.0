@@ -7,9 +7,12 @@ import { ExifKeysFactory } from './factories/exif-keys.factory';
 import { ExifTypeDeterminationStrategy } from './strategies/exif-type-determination.strategy';
 import { ExifKeysRepository } from './repositories/exif-keys.repository';
 import { CustomLogger } from 'src/logger/logger.service';
+import { MediaDBService } from '../mediaDB.service';
+import { Media } from '../entities/media.entity';
+import { MediaTemp } from '../entities/media-temp.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ExifKeys])],
+  imports: [TypeOrmModule.forFeature([ExifKeys, Media, MediaTemp])],
   controllers: [ExifKeysController],
   providers: [
     ExifKeysService,
@@ -17,6 +20,7 @@ import { CustomLogger } from 'src/logger/logger.service';
     ExifTypeDeterminationStrategy,
     ExifKeysRepository,
     CustomLogger,
+    MediaDBService,
     {
       provide: 'IExifKeysRepository',
       useClass: ExifKeysRepository,

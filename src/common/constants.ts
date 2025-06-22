@@ -106,6 +106,7 @@ export enum ControllerMethodsPrefix {
   paths = 'paths',
   pathsOld = 'paths-old',
   exifKeys = 'exif-keys',
+  syncExifKeys = 'sync-exif-keys',
   unusedKeywords = 'unused-keywords',
   unusedKeywordsOld = 'unused-keywords-old',
   checkDirectory = 'check-directory',

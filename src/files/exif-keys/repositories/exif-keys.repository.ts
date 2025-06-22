@@ -11,6 +11,7 @@ export interface IExifKeysRepository {
   findExistingKeyNames(): Promise<Result<Set<string>>>;
   saveKeys(keys: ExifKeys[]): Promise<Result<ExifKeys[]>>;
   findByNames(names: string[]): Promise<ExifKeys[]>;
+  clearAll(): Promise<Result<number>>;
 }
 
 @Injectable()
@@ -77,5 +78,18 @@ export class ExifKeysRepository implements IExifKeysRepository {
         name: { $in: names },
       },
     });
+  }
+
+  /**
+   * Clears all EXIF keys from the database
+   */
+  async clearAll(): Promise<Result<number>> {
+    try {
+      await this.repository.clear();
+      // MongoDB clear() doesn't return affected count, so we return 0 as success indicator
+      return success(0);
+    } catch (error) {
+      return failure(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 }

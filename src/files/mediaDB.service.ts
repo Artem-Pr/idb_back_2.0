@@ -182,6 +182,31 @@ export class MediaDBService extends MediaDBQueryCreators {
     }) as Promise<Pick<Media, 'filePath'>[]>;
   }
 
+  /**
+   * Efficiently retrieves media exif data in batches to prevent memory issues
+   * @param batchSize Number of entities to process at once (default: 1000)
+   * @param offset Starting offset for pagination
+   */
+  @LogMethod('mediaRepository.find.findMediaExifBatch')
+  async findMediaExifBatch(
+    batchSize: number = 1000,
+    offset: number = 0,
+  ): Promise<Pick<Media, '_id' | 'exif'>[]> {
+    return this.mediaRepository.find({
+      select: ['_id', 'exif'],
+      skip: offset,
+      take: batchSize,
+    }) as Promise<Pick<Media, '_id' | 'exif'>[]>;
+  }
+
+  /**
+   * Get total count of media entities for batch processing
+   */
+  @LogMethod('mediaRepository.count.countAllMedia')
+  async countAllMedia(): Promise<number> {
+    return this.mediaRepository.count();
+  }
+
   @LogMethod('mediaRepository.find.findNotEmptyPreviewsInDB')
   async findNotEmptyPreviewsInDB() {
     return this.mediaRepository.find({
