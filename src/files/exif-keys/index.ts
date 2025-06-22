@@ -2,6 +2,22 @@
 export { ExifKeysService, IExifKeysService } from './exif-keys.service';
 export { ExifKeysModule } from './exif-keys.module';
 
+// Command/Handler Pattern Components
+export {
+  ProcessExifKeysHandler,
+  ProcessExifKeysCommand,
+  ProcessExifKeysResult,
+} from './handlers/process-exif-keys.handler';
+export {
+  SyncExifKeysHandler,
+  SyncExifKeysCommand,
+  SyncMetrics,
+} from './handlers/sync-exif-keys.handler';
+export { ExifKeysQueryService } from './services/exif-keys-query.service';
+
+// Service Composition Components
+export { ExifDataExtractor } from './services/exif-data-extractor.service';
+
 // Repositories
 export {
   ExifKeysRepository,
