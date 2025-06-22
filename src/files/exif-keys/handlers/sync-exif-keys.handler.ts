@@ -7,6 +7,7 @@ import { MediaDBService } from '../../mediaDB.service';
 import { ExifKeysFactory } from '../factories/exif-keys.factory';
 import { ExifValueType } from '../entities/exif-keys.entity';
 import { ExifDataExtractor } from '../services/exif-data-extractor.service';
+import { ExifKeysValidationService } from '../services/exif-keys-validation.service';
 
 export interface SyncExifKeysCommand {
   batchSize?: number;
@@ -22,7 +23,7 @@ export interface SyncMetrics {
 
 /**
  * Handles synchronization of EXIF keys from all media entities
- * Uses ExifDataExtractor service to eliminate code duplication
+ * Uses ExifDataExtractor and ExifKeysValidationService to eliminate code duplication
  */
 @Injectable()
 export class SyncExifKeysHandler {
@@ -34,6 +35,7 @@ export class SyncExifKeysHandler {
     private readonly mediaDbService: MediaDBService,
     private readonly exifKeysFactory: ExifKeysFactory,
     private readonly exifDataExtractor: ExifDataExtractor,
+    private readonly validationService: ExifKeysValidationService,
     private readonly logger: CustomLogger,
   ) {}
 
@@ -42,17 +44,30 @@ export class SyncExifKeysHandler {
     command: SyncExifKeysCommand = {},
   ): Promise<SyncExifKeysOutputDto> {
     const startTime = Date.now();
-    const batchSize = command.batchSize ?? this.DEFAULT_BATCH_SIZE;
-
-    const metrics: SyncMetrics = {
-      totalMediaProcessed: 0,
-      mediaWithoutExif: 0,
-      batchesProcessed: 0,
-      totalExifKeysDiscovered: 0,
-      newExifKeysSaved: 0,
-    };
 
     try {
+      // Validate input using validation service
+      const validationResult =
+        this.validationService.validateSyncCommand(command);
+      if (!validationResult.isValid) {
+        const errorMessage = `Validation failed: ${validationResult.errors.join(', ')}`;
+        this.logger.logError({
+          message: errorMessage,
+          method: 'SyncExifKeysHandler.handle',
+        });
+        throw new Error(errorMessage);
+      }
+
+      const batchSize = command.batchSize ?? this.DEFAULT_BATCH_SIZE;
+
+      const metrics: SyncMetrics = {
+        totalMediaProcessed: 0,
+        mediaWithoutExif: 0,
+        batchesProcessed: 0,
+        totalExifKeysDiscovered: 0,
+        newExifKeysSaved: 0,
+      };
+
       // Step 1: Clear existing exif keys
       await this.clearExistingKeys();
 
@@ -119,6 +134,22 @@ export class SyncExifKeysHandler {
     const allDiscoveredKeys = new Map<string, ExifValueType>();
 
     for (let offset = 0; offset < totalCount; offset += batchSize) {
+      // Validate batch parameters using validation service
+      const batchValidation = this.validationService.validateBatchParameters(
+        batchSize,
+        offset,
+        totalCount,
+      );
+      if (!batchValidation.isValid) {
+        this.logger.logError({
+          message: `Batch validation failed: ${batchValidation.errors.join(', ')}`,
+          method: 'SyncExifKeysHandler.processBatches',
+        });
+        throw new Error(
+          `Invalid batch parameters: ${batchValidation.errors.join(', ')}`,
+        );
+      }
+
       const batch = await this.mediaDbService.findMediaExifBatch(
         batchSize,
         offset,

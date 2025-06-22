@@ -15,8 +15,19 @@ export {
 } from './handlers/sync-exif-keys.handler';
 export { ExifKeysQueryService } from './services/exif-keys-query.service';
 
-// Service Composition Components
+// Service Composition Components (Phase 2)
 export { ExifDataExtractor } from './services/exif-data-extractor.service';
+export {
+  ExifKeysValidationService,
+  ValidationResult,
+} from './services/exif-keys-validation.service';
+
+// Phase 3: Configuration, Events, and Metrics
+export { ExifKeysMetricsService } from './services/exif-keys-metrics.service';
+export { ExifKeysEventEmitterService } from './services/exif-keys-event-emitter.service';
+export * from './config/exif-processing.config';
+export * from './events/exif-keys-processed.event';
+export * from './events/exif-keys-sync.event';
 
 // Repositories
 export {
