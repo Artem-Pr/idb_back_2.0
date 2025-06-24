@@ -62,7 +62,7 @@ import type { UpdateFilesOutputDto } from './dto/update-files-output.dto';
 import type { GetFilesWithEmptyExifOutputDto } from './dto/get-files-with-empty-exif-output.dto';
 import { GetFilesDescriptionsInputDto } from './dto/get-files-descriptions-input.dto';
 import { GetFilesDescriptionsOutputDto } from './dto/get-files-descriptions-output.dto';
-import { ExifKeysService } from './exif-keys/exif-keys.service';
+import { ProcessExifKeysHandler } from './exif-keys/handlers/process-exif-keys.handler';
 
 interface FilePaths {
   filePath: DBFilePath;
@@ -83,7 +83,7 @@ export class FilesService {
     private diskStorageService: DiscStorageService,
     private pathsService: PathsService,
     private keywordsService: KeywordsService,
-    private exifKeysService: ExifKeysService,
+    private processExifKeysHandler: ProcessExifKeysHandler,
   ) {}
 
   static applyUTCChangeDateToFileOutput(
@@ -187,8 +187,14 @@ export class FilesService {
     const mewMediaList = mediaList.map(({ newMedia }) => newMedia);
     const updatedMediaList = await this.mediaDB.addMediaToDB(mewMediaList);
 
-    // Process and save EXIF keys from the newly saved media
-    await this.exifKeysService.processAndSaveExifKeys(updatedMediaList);
+    // Process and save EXIF keys from the newly saved media using modern handler
+    const result = await this.processExifKeysHandler.handle({
+      mediaList: updatedMediaList,
+    });
+
+    if (!result.success) {
+      throw new Error(`Failed to process EXIF keys: ${result.error.message}`);
+    }
 
     return updatedMediaList;
   }

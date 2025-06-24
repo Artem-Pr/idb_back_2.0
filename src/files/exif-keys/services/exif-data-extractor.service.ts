@@ -57,7 +57,7 @@ export class ExifDataExtractor {
    * Shared by both ProcessExifKeysHandler and SyncExifKeysHandler
    */
   hasValidExifData(media: Media | Pick<Media, '_id' | 'exif'>): boolean {
-    return media.exif && typeof media.exif === 'object';
+    return !!(media.exif && typeof media.exif === 'object');
   }
 
   /**

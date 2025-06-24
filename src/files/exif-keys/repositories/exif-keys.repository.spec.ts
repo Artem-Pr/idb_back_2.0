@@ -63,9 +63,7 @@ describe('ExifKeysRepository', () => {
 
   describe('findExistingKeyNames', () => {
     it('should return success result with key names set', async () => {
-      const mockKeys = [
-        { name: 'key1' }, { name: 'key2' }
-      ] as ExifKeys[];
+      const mockKeys = [{ name: 'key1' }, { name: 'key2' }] as ExifKeys[];
       mongoRepository.find.mockResolvedValue(mockKeys);
 
       const result = await repository.findExistingKeyNames();

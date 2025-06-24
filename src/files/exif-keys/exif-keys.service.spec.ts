@@ -42,6 +42,7 @@ import { ExifKeys, ExifValueType } from './entities/exif-keys.entity';
 import { Media } from '../entities/media.entity';
 import { SupportedImageMimetypes } from 'src/common/constants';
 import { success, failure } from './types/result.type';
+import { MediaDBService } from '../mediaDB.service';
 
 describe('ExifKeysService', () => {
   let service: ExifKeysService;
@@ -126,6 +127,11 @@ describe('ExifKeysService', () => {
       logEndpointError: jest.fn(),
     };
 
+    const mockMediaDBServiceProvider = {
+      countAllMedia: jest.fn(),
+      findMediaExifBatch: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ExifKeysService,
@@ -151,6 +157,10 @@ describe('ExifKeysService', () => {
             batchSize: 100,
             enableLogging: true,
           },
+        },
+        {
+          provide: MediaDBService,
+          useValue: mockMediaDBServiceProvider,
         },
       ],
     }).compile();

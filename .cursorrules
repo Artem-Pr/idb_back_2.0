@@ -1,0 +1,157 @@
+# Cursor Rules for IDB Back 2.0
+
+## Developer Context
+- **Primary Developer**: Senior Frontend React developer, Junior++ level in Backend development
+- **Communication Style**: Be objective and critical, not polite. Provide direct feedback and point out potential issues or improvements clearly.
+- **Learning Focus**: Prioritize backend best practices explanations, architectural reasoning, and potential pitfalls in NestJS/Node.js development.
+
+## Project Overview
+This is a NestJS backend application for an image database system with the following key features:
+- File upload and management with TUS protocol
+- EXIF data extraction and processing
+- Image preview generation
+- WebSocket support for real-time updates
+- Authentication and authorization system
+- Queue-based background processing
+
+## Technology Stack
+- **Framework**: NestJS with TypeScript
+- **Database**: MongoDB with TypeOrm (but some DB calls use directly MongoDB syntax without TypeOrm to improve performance, for example: Aggregations)
+- **Authentication**: JWT tokens with refresh token mechanism
+- **File Upload**: TUS protocol for resumable uploads
+- **Queue**: Bull queue for background processing
+- **Testing**: Jest with comprehensive unit and integration tests
+- **WebSocket**: Socket.io for real-time communication
+
+## Code Style and Standards
+
+### TypeScript
+- Use strict TypeScript configuration
+- Always define explicit return types for functions
+- Use proper typing, avoid `any` except when absolutely necessary
+- Prefer interfaces over types for object definitions
+- Use enums for constants when appropriate
+
+### NestJS Patterns
+- Follow NestJS folder structure conventions
+- Use dependency injection properly
+- Implement proper DTOs for all endpoints
+- Use decorators appropriately (@Injectable, @Controller, etc.)
+- Implement guards, interceptors, and pipes when needed
+- Use modules to organize functionality
+- Check exif-keys folder as example of preferable approaches and best practices (this is the newest part of project and contain last refactoring changes)
+
+### Architectural Patterns (Follow exif-keys example)
+- **Command/Handler Pattern**: Use handlers for business workflows with clear command/result interfaces
+- **Service Composition**: Eliminate code duplication through shared domain services
+- **Event-Driven Architecture**: Use custom event emitters for loose coupling and extensibility
+- **Configuration Factory Pattern**: Create type-safe configuration objects with factory methods
+- **Single Responsibility**: Each component should have one clear purpose (handlers, services, repositories)
+- **Metrics & Observability**: Implement comprehensive performance tracking and monitoring
+
+### File Organization
+- Group related functionality in modules
+- Keep controllers thin, business logic in services
+- Use separate files for DTOs, entities, and types
+- Place tests next to the files they test (*.spec.ts)
+- Use barrel exports (index.ts) for cleaner imports
+
+### Database
+- Use TypeORM entities with proper typing
+- For performance-critical operations, use direct MongoDB aggregations when needed
+- Implement repository pattern when needed
+- Use transactions for multi-document operations
+- Properly handle database errors
+
+### Error Handling
+- Use NestJS built-in exception filters
+- Create custom exceptions when needed
+- Always provide meaningful error messages
+- Log errors appropriately
+
+### Testing
+- Write comprehensive unit tests for all services
+- Use proper mocking with Jest
+- Test both happy path and error scenarios
+- Maintain high test coverage
+- Use descriptive test names
+- **Test Isolation**: Test each component in isolation (handlers, services separately)
+- **Integration Testing**: Test handler orchestration with real dependencies
+- **Event Testing**: Verify event emission and handling in tests
+
+### Security
+- Implement proper authentication and authorization
+- Validate all inputs using DTOs and pipes
+- Use role-based access control
+- Sanitize file uploads
+- Implement rate limiting where appropriate
+
+## Specific Guidelines
+
+### EXIF Processing
+- Handle EXIF data extraction carefully with proper error handling
+- Use the established factory pattern for EXIF key processing
+- Implement proper validation for EXIF data types
+- Use events for decoupled EXIF processing
+- **Follow exif-keys refactoring patterns**:
+  - Use Command/Handler pattern for business workflows
+  - Implement shared services for common operations (ExifDataExtractor, ValidationService)
+  - Use event-driven architecture for processing notifications
+  - Implement metrics collection for performance monitoring
+  - Use type-safe configuration objects
+
+### File Management
+- Always validate file types and sizes
+- Use proper file naming conventions
+- Implement cleanup for temporary files
+- Handle file operations with proper error handling
+
+### Queue Processing
+- Use proper job scheduling for background tasks
+- Implement retry mechanisms for failed jobs
+- Provide progress updates for long-running operations
+- Handle queue failures gracefully
+
+### WebSocket Implementation
+- Use proper room management for WebSocket connections
+- Implement authentication for WebSocket connections
+- Handle disconnections gracefully
+- Provide real-time updates for file processing
+
+## Code Review Checklist
+- [ ] Proper error handling implemented
+- [ ] Input validation with DTOs
+- [ ] Tests written and passing
+- [ ] Type safety maintained
+- [ ] Security considerations addressed
+- [ ] Performance implications considered
+- [ ] Documentation updated if needed
+
+## Common Patterns to Follow
+- Use async/await instead of Promises.then()
+- Implement proper logging throughout the application
+- Use configuration service for environment variables
+- Implement proper cleanup in lifecycle hooks
+- Use proper HTTP status codes in responses
+- **Modern Architecture Patterns** (based on exif-keys refactoring):
+  - Create focused handlers for business workflows (ProcessHandler, SyncHandler)
+  - Use service composition to eliminate code duplication
+  - Implement custom event emitters for decoupled communication
+  - Use factory patterns for creating configuration objects
+  - Add comprehensive metrics and monitoring to services
+  - Maintain backward compatibility during refactoring
+
+## Avoid
+- Using `any` type without justification
+- Skipping input validation
+- Not handling errors properly
+- Writing tests without proper mocking
+- Mixing business logic in controllers
+- Not following NestJS conventions
+- Hardcoding configuration values
+- **Anti-patterns from refactoring learnings**:
+  - Monolithic services with mixed concerns (see exif-keys before refactoring)
+  - Code duplication across similar operations
+  - Hard-to-test components with complex dependencies
+  - Missing observability and monitoring
+  - Breaking changes during refactoring 

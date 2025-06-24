@@ -89,6 +89,14 @@ export class ExifKeysRepository implements IExifKeysRepository {
       // MongoDB clear() doesn't return affected count, so we return 0 as success indicator
       return success(0);
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      // Handle "ns not found" error - collection doesn't exist yet, nothing to clear
+      if (errorMessage.includes('ns not found')) {
+        return success(0);
+      }
+
       return failure(error instanceof Error ? error : new Error(String(error)));
     }
   }

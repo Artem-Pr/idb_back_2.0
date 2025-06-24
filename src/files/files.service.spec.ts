@@ -33,6 +33,7 @@ import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
 import { GetFilesInputDto } from './dto/get-files-input.dto';
 import { omit, clone } from 'ramda';
 import { InternalServerErrorException } from '@nestjs/common';
+import { ProcessExifKeysHandler } from './exif-keys/handlers/process-exif-keys.handler';
 
 const exifJobResult: ExifData = {
   'test.jpg': exifDataMock,
@@ -108,15 +109,16 @@ describe('FilesService', () => {
   let keywordsService: KeywordsService;
   let diskStorageService: DiscStorageService;
   let pathsService: PathsService;
-  let exifKeysService: ExifKeysService;
+  let processExifKeysHandler: ProcessExifKeysHandler;
   let getUpdatedMediaList: jest.Mock<UpdateMedia[]>;
+  let module: TestingModule;
 
   beforeAll(async () => {
     addFileToDBTemp = jest.fn().mockReturnValue(mediaTempResponseMock);
     getSameFilesIfExist = jest.fn().mockReturnValue(mockDuplicates);
     getUpdatedMediaList = jest.fn().mockReturnValue([]);
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         FilesService,
         {
@@ -183,6 +185,12 @@ describe('FilesService', () => {
             getExifKeysByType: jest.fn(),
           },
         },
+        {
+          provide: ProcessExifKeysHandler,
+          useValue: {
+            handle: jest.fn().mockResolvedValue({ success: true, data: 0 }),
+          },
+        },
       ],
     }).compile();
 
@@ -191,7 +199,9 @@ describe('FilesService', () => {
     keywordsService = module.get<KeywordsService>(KeywordsService);
     pathsService = module.get<PathsService>(PathsService);
     diskStorageService = module.get<DiscStorageService>(DiscStorageService);
-    exifKeysService = module.get<ExifKeysService>(ExifKeysService);
+    processExifKeysHandler = module.get<ProcessExifKeysHandler>(
+      ProcessExifKeysHandler,
+    );
     fileQueue = module.get<Queue<CreatePreviewJob>>(
       getQueueToken(Processors.fileProcessor),
     );
@@ -464,17 +474,15 @@ describe('FilesService', () => {
       ]);
     });
 
-    it('should call exifKeysService.processAndSaveExifKeys with saved media', async () => {
-      jest.spyOn(exifKeysService, 'processAndSaveExifKeys');
-
+    it('should call processExifKeysHandler.handle with saved media', async () => {
       const savedMedia = [newMedia1, newMedia2];
       jest.spyOn(mediaDBService, 'addMediaToDB').mockResolvedValue(savedMedia);
 
       await service['saveMediaListToDB'](mediaDB_UpdateMediaList);
 
-      expect(exifKeysService.processAndSaveExifKeys).toHaveBeenCalledWith(
-        savedMedia,
-      );
+      expect(processExifKeysHandler.handle).toHaveBeenCalledWith({
+        mediaList: savedMedia,
+      });
     });
   });
 
