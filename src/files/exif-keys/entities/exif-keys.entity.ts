@@ -4,6 +4,7 @@ import type { ObjectId } from 'mongodb';
 
 export enum ExifValueType {
   STRING = 'string',
+  LONG_STRING = 'long_string',
   NUMBER = 'number',
   STRING_ARRAY = 'string[]',
   NOT_SUPPORTED = 'NOT_SUPPORTED',

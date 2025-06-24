@@ -12,6 +12,10 @@ export class ExifTypeDeterminationStrategy
     type: ExifValueType;
   }> = [
     {
+      check: (value: unknown) => this.isLongString(value),
+      type: ExifValueType.LONG_STRING,
+    },
+    {
       check: (value: unknown) => typeof value === 'string',
       type: ExifValueType.STRING,
     },
@@ -28,6 +32,10 @@ export class ExifTypeDeterminationStrategy
   determineType(value: unknown): ExifValueType {
     const matchedChecker = this.typeCheckers.find(({ check }) => check(value));
     return matchedChecker?.type ?? ExifValueType.NOT_SUPPORTED;
+  }
+
+  private isLongString(value: unknown): boolean {
+    return typeof value === 'string' && value.length > 30;
   }
 
   private isValidStringArray(value: unknown): boolean {

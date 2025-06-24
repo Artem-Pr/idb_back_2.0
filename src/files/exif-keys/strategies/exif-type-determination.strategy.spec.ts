@@ -10,7 +10,7 @@ describe('ExifTypeDeterminationStrategy', () => {
 
   describe('determineType', () => {
     describe('string values', () => {
-      it('should return STRING for string value', () => {
+      it('should return STRING for short string value', () => {
         const result = strategy.determineType('test string');
         expect(result).toBe(ExifValueType.STRING);
       });
@@ -23,6 +23,48 @@ describe('ExifTypeDeterminationStrategy', () => {
       it('should return STRING for string with special characters', () => {
         const result = strategy.determineType('test@#$%^&*()');
         expect(result).toBe(ExifValueType.STRING);
+      });
+
+      it('should return STRING for string with exactly 30 characters', () => {
+        const thirtyCharString = 'a'.repeat(30);
+        const result = strategy.determineType(thirtyCharString);
+        expect(result).toBe(ExifValueType.STRING);
+      });
+    });
+
+    describe('long string values', () => {
+      it('should return LONG_STRING for string with 31 characters', () => {
+        const thirtyOneCharString = 'a'.repeat(31);
+        const result = strategy.determineType(thirtyOneCharString);
+        expect(result).toBe(ExifValueType.LONG_STRING);
+      });
+
+      it('should return LONG_STRING for very long string', () => {
+        const longString =
+          'This is a very long string that contains more than thirty characters and should be classified as LONG_STRING type';
+        const result = strategy.determineType(longString);
+        expect(result).toBe(ExifValueType.LONG_STRING);
+      });
+
+      it('should return LONG_STRING for long string with special characters', () => {
+        const longString =
+          'This string has special chars @#$%^&*() and is longer than 30 characters';
+        const result = strategy.determineType(longString);
+        expect(result).toBe(ExifValueType.LONG_STRING);
+      });
+
+      it('should return LONG_STRING for long string with numbers', () => {
+        const longString =
+          'This string contains numbers 123456789 and is longer than 30 characters';
+        const result = strategy.determineType(longString);
+        expect(result).toBe(ExifValueType.LONG_STRING);
+      });
+
+      it('should return LONG_STRING for long string with whitespace', () => {
+        const longString =
+          '   This is a long string with leading and trailing whitespace   ';
+        const result = strategy.determineType(longString);
+        expect(result).toBe(ExifValueType.LONG_STRING);
       });
     });
 
@@ -77,6 +119,13 @@ describe('ExifTypeDeterminationStrategy', () => {
         // Note: Strategy only checks first element, so mixed arrays with string first
         // are considered string arrays
         const result = strategy.determineType(['string', 123, true]);
+        expect(result).toBe(ExifValueType.STRING_ARRAY);
+      });
+
+      it('should return STRING_ARRAY for array starting with long string', () => {
+        const longString =
+          'This is a very long string that is longer than 30 characters';
+        const result = strategy.determineType([longString, 'short']);
         expect(result).toBe(ExifValueType.STRING_ARRAY);
       });
     });
@@ -172,6 +221,37 @@ describe('ExifTypeDeterminationStrategy', () => {
         const result = strategy.determineType(NaN);
         expect(result).toBe(ExifValueType.NUMBER);
       });
+
+      describe('boundary conditions for string length', () => {
+        it('should return STRING for string with exactly 1 character', () => {
+          const result = strategy.determineType('a');
+          expect(result).toBe(ExifValueType.STRING);
+        });
+
+        it('should return STRING for string with exactly 29 characters', () => {
+          const twentyNineCharString = 'a'.repeat(29);
+          const result = strategy.determineType(twentyNineCharString);
+          expect(result).toBe(ExifValueType.STRING);
+        });
+
+        it('should return STRING for string with exactly 30 characters', () => {
+          const thirtyCharString = 'a'.repeat(30);
+          const result = strategy.determineType(thirtyCharString);
+          expect(result).toBe(ExifValueType.STRING);
+        });
+
+        it('should return LONG_STRING for string with exactly 31 characters', () => {
+          const thirtyOneCharString = 'a'.repeat(31);
+          const result = strategy.determineType(thirtyOneCharString);
+          expect(result).toBe(ExifValueType.LONG_STRING);
+        });
+
+        it('should return LONG_STRING for string with exactly 100 characters', () => {
+          const hundredCharString = 'a'.repeat(100);
+          const result = strategy.determineType(hundredCharString);
+          expect(result).toBe(ExifValueType.LONG_STRING);
+        });
+      });
     });
   });
 
@@ -186,6 +266,30 @@ describe('ExifTypeDeterminationStrategy', () => {
       expect(strategy.determineType([undefined])).toBe(
         ExifValueType.NOT_SUPPORTED,
       );
+    });
+
+    it('should validate long strings correctly', () => {
+      // Test the private isLongString method indirectly
+      expect(strategy.determineType('short')).toBe(ExifValueType.STRING);
+      expect(strategy.determineType('a'.repeat(30))).toBe(ExifValueType.STRING);
+      expect(strategy.determineType('a'.repeat(31))).toBe(
+        ExifValueType.LONG_STRING,
+      );
+      expect(
+        strategy.determineType(
+          'This is a very long string that exceeds thirty characters',
+        ),
+      ).toBe(ExifValueType.LONG_STRING);
+    });
+
+    it('should prioritize long string check over regular string check', () => {
+      // Ensure that long strings are classified as LONG_STRING, not STRING
+      const longString =
+        'This string is definitely longer than thirty characters and should be LONG_STRING';
+      expect(strategy.determineType(longString)).toBe(
+        ExifValueType.LONG_STRING,
+      );
+      expect(strategy.determineType(longString)).not.toBe(ExifValueType.STRING);
     });
   });
 });

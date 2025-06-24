@@ -70,6 +70,7 @@ This is a NestJS backend application for an image database system with the follo
 - Log errors appropriately
 
 ### Testing
+- Don't fix linter errors
 - Write comprehensive unit tests for all services
 - Use proper mocking with Jest
 - Test both happy path and error scenarios
