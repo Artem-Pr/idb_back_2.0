@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExifKeysValidationService } from './exif-keys-validation.service';
 import { ProcessExifKeysCommand } from '../handlers/process-exif-keys.handler';
 import { SyncExifKeysCommand } from '../handlers/sync-exif-keys.handler';
-import { Media } from '../../entities/media.entity';
+import { Media } from '../../files/entities/media.entity';
 import { ObjectId } from 'mongodb';
 import type { Tags } from 'exiftool-vendored';
 

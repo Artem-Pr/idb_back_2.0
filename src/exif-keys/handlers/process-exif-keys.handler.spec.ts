@@ -9,7 +9,7 @@ import { ExifKeysMetricsService } from '../services/exif-keys-metrics.service';
 import { ExifKeysEventEmitterService } from '../services/exif-keys-event-emitter.service';
 import { ProcessExifKeysConfig } from '../config/exif-processing.config';
 import { ExifKeys, ExifValueType } from '../entities/exif-keys.entity';
-import { Media } from '../../entities/media.entity';
+import { Media } from '../../files/entities/media.entity';
 import { success, failure } from '../types/result.type';
 import { ObjectId } from 'mongodb';
 

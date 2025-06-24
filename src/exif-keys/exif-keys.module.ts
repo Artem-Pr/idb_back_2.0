@@ -6,9 +6,9 @@ import { ExifKeysFactory } from './factories/exif-keys.factory';
 import { ExifTypeDeterminationStrategy } from './strategies/exif-type-determination.strategy';
 import { ExifKeysRepository } from './repositories/exif-keys.repository';
 import { CustomLogger } from 'src/logger/logger.service';
-import { MediaDBService } from '../mediaDB.service';
-import { Media } from '../entities/media.entity';
-import { MediaTemp } from '../entities/media-temp.entity';
+import { MediaDBService } from '../files/mediaDB.service';
+import { Media } from '../files/entities/media.entity';
+import { MediaTemp } from '../files/entities/media-temp.entity';
 
 // Import new handlers and services for Command/Handler pattern
 import { ProcessExifKeysHandler } from './handlers/process-exif-keys.handler';

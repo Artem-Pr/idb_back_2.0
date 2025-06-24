@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { Media } from '../../entities/media.entity';
+import { Media } from '../../files/entities/media.entity';
 import { ExifKeys, ExifValueType } from '../entities/exif-keys.entity';
 import { Result, success, failure } from '../types/result.type';
 import { IExifKeysRepository } from '../repositories/exif-keys.repository';

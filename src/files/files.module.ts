@@ -12,7 +12,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MediaTemp } from './entities/media-temp.entity';
 import { MediaDBService } from './mediaDB.service';
 import { Media } from './entities/media.entity';
-import { ExifKeysModule } from './exif-keys/exif-keys.module';
+import { ExifKeysModule } from '../exif-keys/exif-keys.module';
 import { DiscStorageService } from './discStorage.service';
 import { PathsService } from 'src/paths/paths.service';
 import { PathsModule } from 'src/paths/paths.module';

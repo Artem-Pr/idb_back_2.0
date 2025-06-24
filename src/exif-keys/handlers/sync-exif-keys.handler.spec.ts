@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SyncExifKeysHandler } from './sync-exif-keys.handler';
 import { IExifKeysRepository } from '../repositories/exif-keys.repository';
-import { MediaDBService } from '../../mediaDB.service';
+import { MediaDBService } from '../../files/mediaDB.service';
 import { ExifKeysFactory } from '../factories/exif-keys.factory';
 import { ExifDataExtractor } from '../services/exif-data-extractor.service';
 import { ExifKeysValidationService } from '../services/exif-keys-validation.service';
 import { CustomLogger } from 'src/logger/logger.service';
 import { ExifKeys, ExifValueType } from '../entities/exif-keys.entity';
-import { Media } from '../../entities/media.entity';
+import { Media } from '../../files/entities/media.entity';
 import { success, failure } from '../types/result.type';
 import { ObjectId } from 'mongodb';
 

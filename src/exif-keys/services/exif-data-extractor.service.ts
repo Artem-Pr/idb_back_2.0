@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import type { Tags } from 'exiftool-vendored';
-import { Media } from '../../entities/media.entity';
+import { Media } from '../../files/entities/media.entity';
 import { ExifValueType } from '../entities/exif-keys.entity';
 import {
   IExifTypeDeterminationStrategy,

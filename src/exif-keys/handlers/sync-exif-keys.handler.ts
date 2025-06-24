@@ -3,7 +3,7 @@ import { LogMethod } from 'src/logger/logger.decorator';
 import { CustomLogger } from 'src/logger/logger.service';
 import { SyncExifKeysOutputDto } from '../dto/sync-exif-keys-output.dto';
 import { IExifKeysRepository } from '../repositories/exif-keys.repository';
-import { MediaDBService } from '../../mediaDB.service';
+import { MediaDBService } from '../../files/mediaDB.service';
 import { ExifKeysFactory } from '../factories/exif-keys.factory';
 import { ExifValueType } from '../entities/exif-keys.entity';
 import { ExifDataExtractor } from '../services/exif-data-extractor.service';

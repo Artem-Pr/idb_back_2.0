@@ -62,7 +62,7 @@ import type { UpdateFilesOutputDto } from './dto/update-files-output.dto';
 import type { GetFilesWithEmptyExifOutputDto } from './dto/get-files-with-empty-exif-output.dto';
 import { GetFilesDescriptionsInputDto } from './dto/get-files-descriptions-input.dto';
 import { GetFilesDescriptionsOutputDto } from './dto/get-files-descriptions-output.dto';
-import { ProcessExifKeysHandler } from './exif-keys/handlers/process-exif-keys.handler';
+import { ProcessExifKeysHandler } from '../exif-keys/handlers/process-exif-keys.handler';
 
 interface FilePaths {
   filePath: DBFilePath;

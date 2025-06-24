@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExifDataExtractor } from './exif-data-extractor.service';
 import { ExifTypeDeterminationStrategy } from '../strategies/exif-type-determination.strategy';
 import { ExifValueType } from '../entities/exif-keys.entity';
-import { Media } from '../../entities/media.entity';
+import { Media } from '../../files/entities/media.entity';
 import { ObjectId } from 'mongodb';
 import type { Tags } from 'exiftool-vendored';
 

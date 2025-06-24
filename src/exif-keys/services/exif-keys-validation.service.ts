@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Media } from '../../entities/media.entity';
+import { Media } from '../../files/entities/media.entity';
 import { ProcessExifKeysCommand } from '../handlers/process-exif-keys.handler';
 import { SyncExifKeysCommand } from '../handlers/sync-exif-keys.handler';
 

@@ -32,7 +32,7 @@ import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
 import { GetFilesInputDto } from './dto/get-files-input.dto';
 import { omit, clone } from 'ramda';
 import { InternalServerErrorException } from '@nestjs/common';
-import { ProcessExifKeysHandler } from './exif-keys/handlers/process-exif-keys.handler';
+import { ProcessExifKeysHandler } from '../exif-keys/handlers/process-exif-keys.handler';
 
 const exifJobResult: ExifData = {
   'test.jpg': exifDataMock,
