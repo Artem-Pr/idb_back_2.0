@@ -5,8 +5,25 @@ import { ExifKeys, ExifValueType } from '../entities/exif-keys.entity';
 import { Result, success, failure } from '../types/result.type';
 import { EXIF_KEYS_CONSTANTS } from '../constants/exif-keys.constants';
 
+export interface PaginationOptions {
+  page?: number;
+  perPage?: number;
+  type?: ExifValueType;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  perPage: number;
+  totalPages: number;
+}
+
 export interface IExifKeysRepository {
   findAll(): Promise<ExifKeys[]>;
+  findPaginated(
+    options: PaginationOptions,
+  ): Promise<Result<PaginatedResult<ExifKeys>>>;
   findByType(type: ExifValueType): Promise<ExifKeys[]>;
   findExistingKeyNames(): Promise<Result<Set<string>>>;
   saveKeys(keys: ExifKeys[]): Promise<Result<ExifKeys[]>>;
@@ -26,6 +43,71 @@ export class ExifKeysRepository implements IExifKeysRepository {
    */
   async findAll(): Promise<ExifKeys[]> {
     return this.repository.find();
+  }
+
+  /**
+   * Finds EXIF keys with pagination and optional filtering
+   */
+  async findPaginated(
+    options: PaginationOptions,
+  ): Promise<Result<PaginatedResult<ExifKeys>>> {
+    try {
+      const { page = 1, perPage = 50, type } = options;
+      const skip = (page - 1) * perPage;
+
+      // Build match stage for filtering
+      const matchStage: any = {};
+      if (type) {
+        matchStage.type = type;
+      }
+
+      // Build aggregation pipeline with $facet for single query
+      const pipeline = [
+        ...(Object.keys(matchStage).length > 0 ? [{ $match: matchStage }] : []),
+        {
+          $facet: {
+            items: [
+              { $sort: { name: 1 } }, // Sort by name for consistent results
+              { $skip: skip },
+              { $limit: perPage },
+            ],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+      ];
+
+      // Execute aggregation
+      const result = await this.repository.aggregate(pipeline).toArray();
+
+      if (!result || result.length === 0) {
+        return success({
+          items: [],
+          totalCount: 0,
+          page,
+          perPage,
+          totalPages: 0,
+        });
+      }
+
+      const aggregationResult = result[0] as unknown as {
+        items: ExifKeys[];
+        totalCount: { count: number }[];
+      };
+
+      const { items, totalCount } = aggregationResult;
+      const count = totalCount[0]?.count || 0;
+      const totalPages = Math.ceil(count / perPage);
+
+      return success({
+        items,
+        totalCount: count,
+        page,
+        perPage,
+        totalPages,
+      });
+    } catch (error) {
+      return failure(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   /**

@@ -1,5 +1,4 @@
 // Main service and module
-export { ExifKeysService, IExifKeysService } from './exif-keys.service';
 export { ExifKeysModule } from './exif-keys.module';
 
 // Command/Handler Pattern Components

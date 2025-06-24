@@ -1,9 +1,19 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  UseGuards,
+  Query,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { ExifKeys } from './entities/exif-keys.entity';
 import { ControllerMethodsPrefix } from 'src/common/constants';
 import { LogController } from 'src/logger/logger.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { SyncExifKeysOutputDto } from './dto/sync-exif-keys-output.dto';
+import { GetExifKeysInputDto } from './dto/get-exif-keys-input.dto';
+import { GetExifKeysOutputDto } from './dto/get-exif-keys-output.dto';
 // Modern imports: Use handlers and services directly
 import { SyncExifKeysHandler } from './handlers/sync-exif-keys.handler';
 import { ExifKeysQueryService } from './services/exif-keys-query.service';
@@ -27,11 +37,24 @@ export class ExifKeysController {
   ) {}
 
   /**
-   * Get all EXIF keys from the database
-   * Uses the dedicated query service for read operations
+   * Get EXIF keys with pagination support
+   * Uses dedicated query service with filtering and pagination capabilities
    */
   @Get(ControllerMethodsPrefix.exifKeys)
   @LogController(ControllerMethodsPrefix.exifKeys)
+  @UsePipes(new ValidationPipe())
+  async getExifKeys(
+    @Query() query: GetExifKeysInputDto,
+  ): Promise<GetExifKeysOutputDto> {
+    return await this.queryService.getExifKeysPaginated(query);
+  }
+
+  /**
+   * Get all EXIF keys from the database (legacy endpoint - not recommended for large datasets)
+   * @deprecated Use getExifKeys with pagination instead
+   */
+  @Get(`${ControllerMethodsPrefix.exifKeys}/all`)
+  @LogController(`${ControllerMethodsPrefix.exifKeys}/all`)
   async getAllExifKeys(): Promise<ExifKeys[]> {
     return await this.queryService.getAllExifKeys();
   }

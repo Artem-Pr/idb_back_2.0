@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ExifKeys } from './entities/exif-keys.entity';
-import { ExifKeysService } from './exif-keys.service';
 import { ExifKeysController } from './exif-keys.controller';
 import { ExifKeysFactory } from './factories/exif-keys.factory';
 import { ExifTypeDeterminationStrategy } from './strategies/exif-type-determination.strategy';
@@ -26,9 +25,6 @@ import { ExifConfigurationFactory } from './config/exif-processing.config';
   imports: [TypeOrmModule.forFeature([ExifKeys, Media, MediaTemp])],
   controllers: [ExifKeysController],
   providers: [
-    // Original service (for backward compatibility during migration)
-    ExifKeysService,
-
     // New Command/Handler pattern components
     ProcessExifKeysHandler,
     SyncExifKeysHandler,
@@ -83,7 +79,6 @@ import { ExifConfigurationFactory } from './config/exif-processing.config';
     },
   ],
   exports: [
-    ExifKeysService,
     ProcessExifKeysHandler,
     SyncExifKeysHandler,
     ExifKeysQueryService,

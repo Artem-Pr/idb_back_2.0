@@ -45,6 +45,13 @@ describe('ExifKeysController', () => {
 
   const mockExifKeysQueryService = {
     getAllExifKeys: jest.fn().mockResolvedValue(mockExifKeys),
+    getExifKeysPaginated: jest.fn().mockResolvedValue({
+      exifKeys: [],
+      page: 1,
+      perPage: 50,
+      resultsCount: 10,
+      totalPages: 1,
+    }),
   };
 
   beforeEach(async () => {
@@ -119,6 +126,66 @@ describe('ExifKeysController', () => {
 
       await expect(controller.syncExifKeys()).rejects.toThrow('Sync failed');
       expect(syncHandler.handle).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getExifKeys', () => {
+    it('should return paginated EXIF keys with default parameters', async () => {
+      const mockExifKeys = [
+        { _id: 'id1' as any, name: 'Aperture', type: ExifValueType.NUMBER },
+        { _id: 'id2' as any, name: 'Camera', type: ExifValueType.STRING },
+      ];
+
+      const mockResponse = {
+        exifKeys: mockExifKeys,
+        page: 1,
+        perPage: 50,
+        resultsCount: 10,
+        totalPages: 1,
+      };
+
+      jest
+        .spyOn(queryService, 'getExifKeysPaginated')
+        .mockResolvedValue(mockResponse);
+
+      const result = await controller.getExifKeys({});
+
+      expect(queryService.getExifKeysPaginated).toHaveBeenCalledWith({});
+      expect(result).toBe(mockResponse);
+    });
+
+    it('should return paginated EXIF keys with custom parameters', async () => {
+      const query = {
+        page: 2,
+        perPage: 10,
+        type: ExifValueType.STRING,
+      };
+
+      const mockResponse = {
+        exifKeys: [],
+        page: 2,
+        perPage: 10,
+        resultsCount: 3,
+        totalPages: 1,
+      };
+
+      jest
+        .spyOn(queryService, 'getExifKeysPaginated')
+        .mockResolvedValue(mockResponse);
+
+      const result = await controller.getExifKeys(query);
+
+      expect(queryService.getExifKeysPaginated).toHaveBeenCalledWith(query);
+      expect(result).toBe(mockResponse);
+    });
+
+    it('should handle errors from query service', async () => {
+      const error = new Error('Database error');
+      jest.spyOn(queryService, 'getExifKeysPaginated').mockRejectedValue(error);
+
+      await expect(controller.getExifKeys({})).rejects.toThrow(
+        'Database error',
+      );
     });
   });
 });

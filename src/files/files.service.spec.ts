@@ -28,7 +28,6 @@ import { Media } from './entities/media.entity';
 import { DiscStorageService } from './discStorage.service';
 import { PathsService } from 'src/paths/paths.service';
 import { KeywordsService } from 'src/keywords/keywords.service';
-import { ExifKeysService } from './exif-keys/exif-keys.service';
 import type { UpdatedFilesInputDto } from './dto/update-files-input.dto';
 import { GetFilesInputDto } from './dto/get-files-input.dto';
 import { omit, clone } from 'ramda';
@@ -175,14 +174,6 @@ describe('FilesService', () => {
           provide: KeywordsService,
           useValue: {
             addKeywords: jest.fn(),
-          },
-        },
-        {
-          provide: ExifKeysService,
-          useValue: {
-            processAndSaveExifKeys: jest.fn(),
-            getAllExifKeys: jest.fn(),
-            getExifKeysByType: jest.fn(),
           },
         },
         {

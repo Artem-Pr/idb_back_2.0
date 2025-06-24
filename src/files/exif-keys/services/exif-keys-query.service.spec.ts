@@ -33,13 +33,14 @@ describe('ExifKeysQueryService', () => {
   ];
 
   beforeEach(async () => {
-    const mockRepositoryMethods = {
+    const mockExifKeysRepository = {
       findAll: jest.fn(),
       findByType: jest.fn(),
+      findByNames: jest.fn(),
       findExistingKeyNames: jest.fn(),
       saveKeys: jest.fn(),
-      findByNames: jest.fn(),
       clearAll: jest.fn(),
+      findPaginated: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -47,7 +48,7 @@ describe('ExifKeysQueryService', () => {
         ExifKeysQueryService,
         {
           provide: 'IExifKeysRepository',
-          useValue: mockRepositoryMethods,
+          useValue: mockExifKeysRepository,
         },
       ],
     }).compile();
@@ -335,6 +336,110 @@ describe('ExifKeysQueryService', () => {
       expect(namesResult.has('Model')).toBe(true);
       expect(namesResult.has('ISO')).toBe(true);
       expect(namesResult.has('Keywords')).toBe(true);
+    });
+  });
+
+  describe('getExifKeysPaginated', () => {
+    it('should return paginated EXIF keys with default parameters', async () => {
+      const mockExifKeys = [
+        { _id: 'id1' as any, name: 'Aperture', type: ExifValueType.NUMBER },
+        { _id: 'id2' as any, name: 'Camera', type: ExifValueType.STRING },
+      ];
+
+      const mockResult = success({
+        items: mockExifKeys,
+        totalCount: 10,
+        page: 1,
+        perPage: 50,
+        totalPages: 1,
+      });
+
+      mockRepository.findPaginated.mockResolvedValue(mockResult);
+
+      const result = await service.getExifKeysPaginated({});
+
+      expect(result).toEqual({
+        exifKeys: mockExifKeys,
+        page: 1,
+        perPage: 50,
+        resultsCount: 10,
+        totalPages: 1,
+      });
+
+      expect(mockRepository.findPaginated).toHaveBeenCalledWith({
+        page: 1,
+        perPage: 50,
+        type: undefined,
+      });
+    });
+
+    it('should return paginated EXIF keys with custom parameters', async () => {
+      const mockExifKeys = [
+        { _id: 'id1' as any, name: 'ISO', type: ExifValueType.NUMBER },
+      ];
+
+      const mockResult = success({
+        items: mockExifKeys,
+        totalCount: 100,
+        page: 2,
+        perPage: 10,
+        totalPages: 10,
+      });
+
+      mockRepository.findPaginated.mockResolvedValue(mockResult);
+
+      const result = await service.getExifKeysPaginated({
+        page: 2,
+        perPage: 10,
+        type: ExifValueType.NUMBER,
+      });
+
+      expect(result).toEqual({
+        exifKeys: mockExifKeys,
+        page: 2,
+        perPage: 10,
+        resultsCount: 100,
+        totalPages: 10,
+      });
+
+      expect(mockRepository.findPaginated).toHaveBeenCalledWith({
+        page: 2,
+        perPage: 10,
+        type: ExifValueType.NUMBER,
+      });
+    });
+
+    it('should throw error when repository fails', async () => {
+      const mockError = new Error('Database error');
+      const mockResult = failure(mockError);
+
+      mockRepository.findPaginated.mockResolvedValue(mockResult);
+
+      await expect(service.getExifKeysPaginated({})).rejects.toThrow(
+        'Failed to get paginated EXIF keys: Database error',
+      );
+    });
+
+    it('should handle empty results', async () => {
+      const mockResult = success({
+        items: [],
+        totalCount: 0,
+        page: 1,
+        perPage: 50,
+        totalPages: 0,
+      });
+
+      mockRepository.findPaginated.mockResolvedValue(mockResult);
+
+      const result = await service.getExifKeysPaginated({});
+
+      expect(result).toEqual({
+        exifKeys: [],
+        page: 1,
+        perPage: 50,
+        resultsCount: 0,
+        totalPages: 0,
+      });
     });
   });
 });
