@@ -44,6 +44,12 @@ import { MulterFilenamePipe } from 'src/common/validators';
 import { GetFilesDescriptionsInputDto } from './dto/get-files-descriptions-input.dto';
 import { GetFilesDescriptionsOutputDto } from './dto/get-files-descriptions-output.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { GetExifValuesInputDto } from './exif-values/dto/get-exif-values-input.dto';
+import { GetExifValuesOutputDto } from './exif-values/dto/get-exif-values-output.dto';
+import { GetExifValuesHandler } from './exif-values/handlers/get-exif-values.handler';
+import { GetExifValueRangeInputDto } from './exif-values/dto/get-exif-value-range-input.dto';
+import { GetExifValueRangeOutputDto } from './exif-values/dto/get-exif-value-range-output.dto';
+import { GetExifValueRangeHandler } from './exif-values/handlers/get-exif-value-range.handler';
 
 @Controller() // TODO : Define a POST endpoint at /files/uploadItem : @Controller('file')
 @UseGuards(JwtAuthGuard)
@@ -52,6 +58,8 @@ export class FilesController {
     private filesService: FilesService,
     private mediaDBService: MediaDBService,
     private tusService: TusService,
+    private getExifValuesHandler: GetExifValuesHandler,
+    private getExifValueRangeHandler: GetExifValueRangeHandler,
   ) {}
 
   @Post(ControllerMethodsPrefix.getFiles)
@@ -136,6 +144,24 @@ export class FilesController {
     @Query() query: GetFilesDescriptionsInputDto,
   ): Promise<GetFilesDescriptionsOutputDto> {
     return this.filesService.getFilesDescriptions(query);
+  }
+
+  @Get(ControllerMethodsPrefix.exifValues)
+  @LogController(ControllerMethodsPrefix.exifValues)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async getExifValues(
+    @Query() query: GetExifValuesInputDto,
+  ): Promise<GetExifValuesOutputDto> {
+    return this.getExifValuesHandler.handle(query);
+  }
+
+  @Get(ControllerMethodsPrefix.exifValueRange)
+  @LogController(ControllerMethodsPrefix.exifValueRange)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async getExifValueRange(
+    @Query() query: GetExifValueRangeInputDto,
+  ): Promise<GetExifValueRangeOutputDto> {
+    return this.getExifValueRangeHandler.handle(query);
   }
 
   @Get(ControllerMethodsPrefix.checkDuplicates)

@@ -13,6 +13,7 @@ import { MediaTemp } from './entities/media-temp.entity';
 import { MediaDBService } from './mediaDB.service';
 import { Media } from './entities/media.entity';
 import { ExifKeysModule } from '../exif-keys/exif-keys.module';
+import { ExifValuesModule } from './exif-values/exif-values.module';
 import { DiscStorageService } from './discStorage.service';
 import { PathsService } from 'src/paths/paths.service';
 import { PathsModule } from 'src/paths/paths.module';
@@ -35,6 +36,7 @@ import { AuthModule } from 'src/auth/auth.module';
     ),
     TypeOrmModule.forFeature([MediaTemp, Media]),
     ExifKeysModule,
+    ExifValuesModule,
     forwardRef(() => PathsModule),
     forwardRef(() => KeywordsModule),
     AuthModule,
@@ -56,6 +58,7 @@ import { AuthModule } from 'src/auth/auth.module';
     FilesService,
     TusService,
     ExifKeysModule,
+    ExifValuesModule,
   ],
 })
 export class FilesModule {}

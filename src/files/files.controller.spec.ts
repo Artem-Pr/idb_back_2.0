@@ -22,6 +22,8 @@ import type { FileNameWithExt, SupportedMimetypes } from 'src/common/types';
 import { HttpStatus } from '@nestjs/common';
 import type { GetFilesDescriptionsInputDto } from './dto/get-files-descriptions-input.dto';
 import type { GetFilesDescriptionsOutputDto } from './dto/get-files-descriptions-output.dto';
+import { GetExifValuesHandler } from './exif-values/handlers/get-exif-values.handler';
+import { GetExifValueRangeHandler } from './exif-values/handlers/get-exif-value-range.handler';
 
 describe('FilesController', () => {
   let filesController: FilesController;
@@ -50,6 +52,14 @@ describe('FilesController', () => {
       handle: jest.fn(),
     };
 
+    const mockGetExifValuesHandler = {
+      handle: jest.fn(),
+    };
+
+    const mockGetExifValueRangeHandler = {
+      handle: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [FilesController],
       providers: [
@@ -70,6 +80,14 @@ describe('FilesController', () => {
         {
           provide: TusService,
           useValue: mockTusService,
+        },
+        {
+          provide: GetExifValuesHandler,
+          useValue: mockGetExifValuesHandler,
+        },
+        {
+          provide: GetExifValueRangeHandler,
+          useValue: mockGetExifValueRangeHandler,
         },
       ],
     }).compile();
