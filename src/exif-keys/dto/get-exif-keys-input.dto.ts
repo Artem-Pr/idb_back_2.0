@@ -7,6 +7,10 @@ export class GetExifKeysInputDto {
   @IsOptional()
   type?: ExifValueType;
 
+  @IsString()
+  @IsOptional()
+  searchTerm?: string;
+
   @IsNumber()
   @IsOptional()
   @Transform(({ value }) => (value ? Number(value) : 1))

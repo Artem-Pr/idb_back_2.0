@@ -164,6 +164,76 @@ describe('ExifKeysRepository', () => {
       ]);
     });
 
+    it('should filter by searchTerm with case-insensitive regex', async () => {
+      const mockExifKeys = [
+        { _id: 'id1' as any, name: 'CameraModel', type: ExifValueType.STRING },
+      ];
+
+      const mockAggregationResult = [
+        {
+          items: mockExifKeys,
+          totalCount: [{ count: 1 }],
+        },
+      ];
+
+      mongoRepository.aggregate.mockReturnValue({
+        toArray: jest.fn().mockResolvedValue(mockAggregationResult),
+      } as any);
+
+      const result = await repository.findPaginated({
+        searchTerm: 'camera',
+      });
+
+      expect(result.success).toBe(true);
+      expect(mongoRepository.aggregate).toHaveBeenCalledWith([
+        { $match: { name: { $regex: 'camera', $options: 'i' } } },
+        {
+          $facet: {
+            items: [{ $sort: { name: 1 } }, { $skip: 0 }, { $limit: 50 }],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+      ]);
+    });
+
+    it('should filter by both type and searchTerm', async () => {
+      const mockExifKeys = [
+        { _id: 'id1' as any, name: 'Aperture', type: ExifValueType.NUMBER },
+      ];
+
+      const mockAggregationResult = [
+        {
+          items: mockExifKeys,
+          totalCount: [{ count: 1 }],
+        },
+      ];
+
+      mongoRepository.aggregate.mockReturnValue({
+        toArray: jest.fn().mockResolvedValue(mockAggregationResult),
+      } as any);
+
+      const result = await repository.findPaginated({
+        type: ExifValueType.NUMBER,
+        searchTerm: 'aper',
+      });
+
+      expect(result.success).toBe(true);
+      expect(mongoRepository.aggregate).toHaveBeenCalledWith([
+        {
+          $match: {
+            type: ExifValueType.NUMBER,
+            name: { $regex: 'aper', $options: 'i' },
+          },
+        },
+        {
+          $facet: {
+            items: [{ $sort: { name: 1 } }, { $skip: 0 }, { $limit: 50 }],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+      ]);
+    });
+
     it('should handle errors and return failure result', async () => {
       const error = new Error('Database error');
       mongoRepository.aggregate.mockReturnValue({

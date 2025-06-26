@@ -370,6 +370,7 @@ describe('ExifKeysQueryService', () => {
         page: 1,
         perPage: 50,
         type: undefined,
+        searchTerm: undefined,
       });
     });
 
@@ -406,6 +407,7 @@ describe('ExifKeysQueryService', () => {
         page: 2,
         perPage: 10,
         type: ExifValueType.NUMBER,
+        searchTerm: undefined,
       });
     });
 
@@ -439,6 +441,79 @@ describe('ExifKeysQueryService', () => {
         perPage: 50,
         resultsCount: 0,
         totalPages: 0,
+      });
+    });
+
+    it('should pass searchTerm to repository', async () => {
+      const mockExifKeys = [
+        { _id: 'id1' as any, name: 'CameraModel', type: ExifValueType.STRING },
+      ];
+
+      const mockResult = success({
+        items: mockExifKeys,
+        totalCount: 1,
+        page: 1,
+        perPage: 50,
+        totalPages: 1,
+      });
+
+      mockRepository.findPaginated.mockResolvedValue(mockResult);
+
+      const result = await service.getExifKeysPaginated({
+        searchTerm: 'camera',
+      });
+
+      expect(result).toEqual({
+        exifKeys: mockExifKeys,
+        page: 1,
+        perPage: 50,
+        resultsCount: 1,
+        totalPages: 1,
+      });
+
+      expect(mockRepository.findPaginated).toHaveBeenCalledWith({
+        page: 1,
+        perPage: 50,
+        type: undefined,
+        searchTerm: 'camera',
+      });
+    });
+
+    it('should pass both type and searchTerm to repository', async () => {
+      const mockExifKeys = [
+        { _id: 'id1' as any, name: 'Aperture', type: ExifValueType.NUMBER },
+      ];
+
+      const mockResult = success({
+        items: mockExifKeys,
+        totalCount: 1,
+        page: 1,
+        perPage: 10,
+        totalPages: 1,
+      });
+
+      mockRepository.findPaginated.mockResolvedValue(mockResult);
+
+      const result = await service.getExifKeysPaginated({
+        type: ExifValueType.NUMBER,
+        searchTerm: 'aper',
+        page: 1,
+        perPage: 10,
+      });
+
+      expect(result).toEqual({
+        exifKeys: mockExifKeys,
+        page: 1,
+        perPage: 10,
+        resultsCount: 1,
+        totalPages: 1,
+      });
+
+      expect(mockRepository.findPaginated).toHaveBeenCalledWith({
+        page: 1,
+        perPage: 10,
+        type: ExifValueType.NUMBER,
+        searchTerm: 'aper',
       });
     });
   });

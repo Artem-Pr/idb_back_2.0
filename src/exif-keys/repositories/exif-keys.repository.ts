@@ -9,6 +9,7 @@ export interface PaginationOptions {
   page?: number;
   perPage?: number;
   type?: ExifValueType;
+  searchTerm?: string;
 }
 
 export interface PaginatedResult<T> {
@@ -52,13 +53,17 @@ export class ExifKeysRepository implements IExifKeysRepository {
     options: PaginationOptions,
   ): Promise<Result<PaginatedResult<ExifKeys>>> {
     try {
-      const { page = 1, perPage = 50, type } = options;
+      const { page = 1, perPage = 50, type, searchTerm } = options;
       const skip = (page - 1) * perPage;
 
       // Build match stage for filtering
       const matchStage: any = {};
       if (type) {
         matchStage.type = type;
+      }
+      if (searchTerm) {
+        // Use case-insensitive regex for partial matching
+        matchStage.name = { $regex: searchTerm, $options: 'i' };
       }
 
       // Build aggregation pipeline with $facet for single query

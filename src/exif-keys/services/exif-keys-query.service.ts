@@ -21,12 +21,13 @@ export class ExifKeysQueryService {
   async getExifKeysPaginated(
     query: GetExifKeysInputDto,
   ): Promise<GetExifKeysOutputDto> {
-    const { page = 1, perPage = 50, type } = query;
+    const { page = 1, perPage = 50, type, searchTerm } = query;
 
     const options: PaginationOptions = {
       page,
       perPage,
       type,
+      searchTerm,
     };
 
     const result = await this.exifKeysRepository.findPaginated(options);
