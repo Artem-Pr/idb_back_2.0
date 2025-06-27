@@ -18,11 +18,15 @@ export class ExifValuesQueryService {
   async getExifValuesPaginated(
     query: GetExifValuesInputDto,
   ): Promise<GetExifValuesOutputDto> {
-    const { exifPropertyName, page = 1, perPage = 50 } = query;
+    const { exifPropertyName, searchTerm, page = 1, perPage = 50 } = query;
 
     // Validate input
     if (!this.validationService.validateExifPropertyName(exifPropertyName)) {
       throw new Error(`Invalid EXIF property name: ${exifPropertyName}`);
+    }
+
+    if (!this.validationService.validateSearchTerm(searchTerm)) {
+      throw new Error(`Invalid search term: ${searchTerm}`);
     }
 
     const paginationValidation =
@@ -37,6 +41,7 @@ export class ExifValuesQueryService {
     // Execute query - repository handles deduplication via aggregation pipeline
     const result = await this.repository.findExifValuesPaginated({
       exifPropertyName,
+      searchTerm,
       ...paginationOptions,
     });
 

@@ -9,6 +9,7 @@ export interface ExifValueResult {
 
 export interface ExifValuesPaginationOptions extends PaginationRequest {
   exifPropertyName: string;
+  searchTerm?: string;
 }
 
 export interface ExifValuesQueryResult {

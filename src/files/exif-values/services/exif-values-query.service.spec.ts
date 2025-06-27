@@ -43,6 +43,7 @@ describe('ExifValuesQueryService', () => {
     const mockExifValuesValidationService = {
       validateExifPropertyName: jest.fn(),
       validatePaginationParams: jest.fn(),
+      validateSearchTerm: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -77,6 +78,7 @@ describe('ExifValuesQueryService', () => {
 
     beforeEach(() => {
       mockValidationService.validateExifPropertyName.mockReturnValue(true);
+      mockValidationService.validateSearchTerm.mockReturnValue(true);
       mockValidationService.validatePaginationParams.mockReturnValue(
         mockValidationResult,
       );
@@ -110,6 +112,7 @@ describe('ExifValuesQueryService', () => {
       ).toHaveBeenCalledWith(1, 50);
       expect(mockRepository.findExifValuesPaginated).toHaveBeenCalledWith({
         exifPropertyName: 'Make',
+        searchTerm: undefined,
         page: 1,
         perPage: 50,
         skip: 0,
@@ -157,6 +160,7 @@ describe('ExifValuesQueryService', () => {
       // Assert
       expect(mockRepository.findExifValuesPaginated).toHaveBeenCalledWith({
         exifPropertyName: 'Make',
+        searchTerm: undefined,
         page: 1,
         perPage: 100,
         skip: 0,
@@ -261,6 +265,78 @@ describe('ExifValuesQueryService', () => {
       expect(result.values).toEqual([]);
       expect(result.totalCount).toBe(0);
       expect(result.totalPages).toBe(0);
+    });
+
+    it('should handle searchTerm parameter correctly', async () => {
+      // Arrange
+      const inputWithSearchTerm = {
+        exifPropertyName: 'Make',
+        searchTerm: 'Canon',
+        page: 1,
+        perPage: 50,
+      };
+      mockRepository.findExifValuesPaginated.mockResolvedValue(
+        success(mockExifValuesResult),
+      );
+
+      // Act
+      await service.getExifValuesPaginated(inputWithSearchTerm);
+
+      // Assert
+      expect(mockValidationService.validateSearchTerm).toHaveBeenCalledWith(
+        'Canon',
+      );
+      expect(mockRepository.findExifValuesPaginated).toHaveBeenCalledWith({
+        exifPropertyName: 'Make',
+        searchTerm: 'Canon',
+        page: 1,
+        perPage: 50,
+        skip: 0,
+      });
+    });
+
+    it('should throw error for invalid search term', async () => {
+      // Arrange
+      const inputWithInvalidSearchTerm = {
+        exifPropertyName: 'Make',
+        searchTerm: 'a'.repeat(2001), // Too long
+      };
+      mockValidationService.validateSearchTerm.mockReturnValue(false);
+
+      // Act & Assert
+      await expect(
+        service.getExifValuesPaginated(inputWithInvalidSearchTerm),
+      ).rejects.toThrow('Invalid search term:');
+
+      expect(mockValidationService.validateSearchTerm).toHaveBeenCalledWith(
+        inputWithInvalidSearchTerm.searchTerm,
+      );
+    });
+
+    it('should handle empty search term correctly', async () => {
+      // Arrange
+      const inputWithEmptySearchTerm = {
+        exifPropertyName: 'Make',
+        searchTerm: '',
+        page: 1,
+        perPage: 50,
+      };
+      mockRepository.findExifValuesPaginated.mockResolvedValue(
+        success(mockExifValuesResult),
+      );
+
+      // Act
+      await service.getExifValuesPaginated(inputWithEmptySearchTerm);
+
+      // Assert
+      expect(mockValidationService.validateSearchTerm).toHaveBeenCalledWith('');
+      expect(mockRepository.findExifValuesPaginated).toHaveBeenCalledWith({
+        exifPropertyName: 'Make',
+        searchTerm: '',
+        page: 1,
+        perPage: 50,
+        skip: 0,
+      });
     });
   });
 

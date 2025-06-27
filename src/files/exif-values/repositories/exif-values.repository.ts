@@ -32,11 +32,11 @@ export class ExifValuesRepository implements IExifValuesRepository {
     },
   ): Promise<Result<ExifValuesQueryResult>> {
     try {
-      const { exifPropertyName, skip, perPage } = options;
+      const { exifPropertyName, searchTerm, skip, perPage } = options;
       const exifFieldPath = `${this.config.database.exifFieldPrefix}${exifPropertyName}`;
 
       // Build aggregation pipeline with efficient array flattening for deduplication
-      const pipeline = [
+      const pipeline: any[] = [
         // Match documents that have the specified EXIF property
         {
           $match: {
@@ -59,26 +59,39 @@ export class ExifValuesRepository implements IExifValuesRepository {
             count: { $sum: 1 },
           },
         },
-        // Use $facet for efficient pagination
-        {
-          $facet: {
-            values: [
-              { $sort: { _id: 1 } }, // Sort by value for consistent results
-              { $skip: skip },
-              { $limit: perPage },
-              {
-                $project: {
-                  value: '$_id',
-                  count: 1,
-                  _id: 0,
-                },
-              },
-            ],
-            totalCount: [{ $count: 'count' }],
-            sampleValue: [{ $limit: 1 }, { $project: { value: '$_id' } }],
-          },
-        },
       ];
+
+      // Add searchTerm filtering if provided and not empty
+      if (searchTerm && searchTerm.length > 0) {
+        pipeline.push({
+          $match: {
+            _id: {
+              $regex: searchTerm,
+              $options: 'i', // Case-insensitive search
+            },
+          },
+        });
+      }
+
+      // Add facet stage for pagination
+      pipeline.push({
+        $facet: {
+          values: [
+            { $sort: { _id: 1 } }, // Sort by value for consistent results
+            { $skip: skip },
+            { $limit: perPage },
+            {
+              $project: {
+                value: '$_id',
+                count: 1,
+                _id: 0,
+              },
+            },
+          ],
+          totalCount: [{ $count: 'count' }],
+          sampleValue: [{ $limit: 1 }, { $project: { value: '$_id' } }],
+        },
+      });
 
       // Execute aggregation with timeout
       let timeoutId: NodeJS.Timeout | undefined;

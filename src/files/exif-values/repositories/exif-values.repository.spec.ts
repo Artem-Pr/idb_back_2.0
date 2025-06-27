@@ -195,6 +195,77 @@ describe('ExifValuesRepository', () => {
       }
     });
 
+    it('should apply searchTerm filter when provided', async () => {
+      // Arrange
+      const searchOptions = {
+        ...validOptions,
+        searchTerm: 'Canon',
+      };
+      mockToArray.mockResolvedValue(mockAggregationResult);
+
+      // Act
+      await repository.findExifValuesPaginated(searchOptions);
+
+      // Assert
+      expect(mockMediaRepository.aggregate).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            $match: { 'exif.Make': { $exists: true, $ne: null } },
+          }),
+          expect.objectContaining({
+            $group: {
+              _id: '$exif.Make',
+              count: { $sum: 1 },
+            },
+          }),
+          expect.objectContaining({
+            $match: {
+              _id: {
+                $regex: 'Canon',
+                $options: 'i',
+              },
+            },
+          }),
+        ]),
+      );
+    });
+
+    it('should not apply searchTerm filter when not provided', async () => {
+      // Arrange
+      mockToArray.mockResolvedValue(mockAggregationResult);
+
+      // Act
+      await repository.findExifValuesPaginated(validOptions);
+
+      // Assert
+      const aggregationCall = mockMediaRepository.aggregate.mock.calls[0][0];
+      const hasSearchTermFilter = aggregationCall.some(
+        (stage: any) =>
+          stage.$match && stage.$match._id && stage.$match._id.$regex,
+      );
+      expect(hasSearchTermFilter).toBe(false);
+    });
+
+    it('should not apply searchTerm filter when empty string is provided', async () => {
+      // Arrange
+      const emptySearchOptions = {
+        ...validOptions,
+        searchTerm: '',
+      };
+      mockToArray.mockResolvedValue(mockAggregationResult);
+
+      // Act
+      await repository.findExifValuesPaginated(emptySearchOptions);
+
+      // Assert
+      const aggregationCall = mockMediaRepository.aggregate.mock.calls[0][0];
+      const hasSearchTermFilter = aggregationCall.some(
+        (stage: any) =>
+          stage.$match && stage.$match._id && stage.$match._id.$regex,
+      );
+      expect(hasSearchTermFilter).toBe(false);
+    });
+
     it('should handle numeric value type determination', async () => {
       // Arrange
       const numericResult = [

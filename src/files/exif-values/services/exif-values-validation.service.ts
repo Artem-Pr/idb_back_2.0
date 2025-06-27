@@ -48,6 +48,25 @@ export class ExifValuesValidationService {
   }
 
   /**
+   * Validates search term parameter
+   */
+  validateSearchTerm(searchTerm?: string): boolean {
+    // Search term is optional
+    if (searchTerm === undefined || searchTerm === null) {
+      return true;
+    }
+
+    if (typeof searchTerm !== 'string') {
+      return false;
+    }
+
+    const { MAX_SEARCH_TERM_LENGTH } = EXIF_VALUES_CONSTANTS.VALIDATION;
+
+    // Allow empty strings, only check maximum length
+    return searchTerm.length <= MAX_SEARCH_TERM_LENGTH;
+  }
+
+  /**
    * Validates if the total count exceeds threshold for performance
    */
   shouldApplyPerformanceLimit(totalCount: number): boolean {

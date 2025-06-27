@@ -1,4 +1,10 @@
-import { IsString, IsNumber, IsOptional, Length } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  Length,
+  MaxLength,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { EXIF_VALUES_CONSTANTS } from '../constants/exif-values.constants';
 
@@ -9,6 +15,11 @@ export class GetExifValuesInputDto {
     EXIF_VALUES_CONSTANTS.VALIDATION.MAX_PROPERTY_NAME_LENGTH,
   )
   exifPropertyName: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(EXIF_VALUES_CONSTANTS.VALIDATION.MAX_SEARCH_TERM_LENGTH)
+  searchTerm?: string;
 
   @IsNumber()
   @IsOptional()
