@@ -14,6 +14,7 @@ import { IsValidMimeType } from 'src/common/validators/isValidMimeType.validator
 import { IsValidSorting } from 'src/common/validators/isValidSorting.validator';
 import { Type } from 'class-transformer';
 import type { Sort, SortingFieldListInputDto } from '../types';
+import { GetFilesExifFilterDto } from './get-files-exif-filter.dto';
 
 export class GetFilesFiltersInputDto {
   @IsOptional()
@@ -55,6 +56,12 @@ export class GetFilesFiltersInputDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => GetFilesExifFilterDto)
+  exif?: GetFilesExifFilterDto[];
 }
 
 export class GetFilesSortInputDto {

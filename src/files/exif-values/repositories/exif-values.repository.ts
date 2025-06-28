@@ -63,14 +63,21 @@ export class ExifValuesRepository implements IExifValuesRepository {
 
       // Add searchTerm filtering if provided and not empty
       if (searchTerm && searchTerm.length > 0) {
-        pipeline.push({
-          $match: {
-            _id: {
-              $regex: searchTerm,
-              $options: 'i', // Case-insensitive search
+        pipeline.push(
+          {
+            $addFields: {
+              searchField: { $toString: '$_id' }, // Convert to string for regex search, needed for numbers
             },
           },
-        });
+          {
+            $match: {
+              searchField: {
+                $regex: searchTerm,
+                $options: 'i', // Case-insensitive search
+              },
+            },
+          },
+        );
       }
 
       // Add facet stage for pagination

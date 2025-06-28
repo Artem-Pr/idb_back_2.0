@@ -14,6 +14,8 @@ import {
 } from 'src/common/constants';
 import { SupportedMimetypes } from 'src/common/types';
 import { escapeFilePathForRegex } from 'src/common/fileNameHelpers';
+import { ExifValueType } from 'src/exif-keys/entities/exif-keys.entity';
+import { GetFilesExifFilterDto } from './dto/get-files-exif-filter.dto';
 
 export type MongoFilterCondition = Partial<
   Record<
@@ -41,9 +43,11 @@ interface MongoAggregationIncomingProps {
 }
 
 type FilesFilter = Record<
-  Exclude<keyof GetFilesFiltersInputDto, 'includeAllSearchTags'>,
+  Exclude<keyof GetFilesFiltersInputDto, 'includeAllSearchTags' | 'exif'>,
   MongoFilterCondition
 >;
+
+const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export class MediaDBQueryCreators {
   ormFindByIdsQuery(ids: string[]) {
@@ -85,10 +89,73 @@ export class MediaDBQueryCreators {
     return {};
   }
 
+  private getMongoExifConditions(
+    exifFilters: GetFilesExifFilterDto[] | undefined,
+  ): MongoFilterCondition | null {
+    if (!exifFilters || exifFilters.length === 0) {
+      return null;
+    }
+
+    const exifConditions = exifFilters
+      .map((filter) => {
+        const { propertyName, propertyType, condition } = filter;
+        const field = `exif.${propertyName}`;
+
+        switch (propertyType) {
+          case ExifValueType.NOT_SUPPORTED:
+            return (
+              condition.isExist
+                ? { [field]: { $exists: true, $ne: null } }
+                : {
+                    $or: [
+                      { [field]: { $exists: false } },
+                      { [field]: { $eq: null } },
+                    ],
+                  }
+            ) as MongoFilterCondition;
+
+          case ExifValueType.STRING:
+          case ExifValueType.STRING_ARRAY:
+          case ExifValueType.NUMBER:
+            if (propertyType === ExifValueType.NUMBER && condition.rangeMode) {
+              if (!condition.rangeValues) {
+                return null;
+              }
+              const [min, max] = condition.rangeValues;
+              return { [field]: { $gte: min, $lte: max } };
+            }
+            return {
+              [field]: { $in: condition.values || [] },
+            } as MongoFilterCondition;
+
+          case ExifValueType.LONG_STRING:
+            if (condition.textValues && condition.textValues.length > 0) {
+              const regex = condition.textValues
+                .map((v) => `(${escapeRegex(v)})`)
+                .join('|');
+              return {
+                [field]: { $regex: regex, $options: 'i' },
+              } as MongoFilterCondition;
+            }
+            return null;
+
+          default:
+            return null;
+        }
+      })
+      .filter((c): c is MongoFilterCondition => c !== null);
+
+    if (exifConditions.length === 0) {
+      return null;
+    }
+
+    return { $and: exifConditions };
+  }
+
   getMongoFiltersConditions = (
     filesFilter: GetFilesFiltersInputDto,
   ): MongoFilterCondition[] => {
-    const allFilters: FilesFilter = {
+    const allFilters: Omit<FilesFilter, 'exif'> = {
       fileName: {
         originalName: { $regex: filesFilter.fileName, $options: 'i' },
       },
@@ -112,9 +179,16 @@ export class MediaDBQueryCreators {
       },
     };
 
-    return Object.keys(allFilters)
+    const conditions = Object.keys(allFilters)
       .filter((key) => filesFilter[key])
       .map((key) => allFilters[key]);
+
+    const exifConditions = this.getMongoExifConditions(filesFilter.exif);
+    if (exifConditions) {
+      conditions.push(exifConditions);
+    }
+
+    return conditions;
   };
 
   private getFolderPathExcludeSubFolderRegExp(folderPath: string): RegExp {

@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { BulkWriteResult, DeleteResult, MongoRepository } from 'typeorm';
-import { omit, uniq } from 'ramda';
+import { isEmpty, omit, uniq } from 'ramda';
 import { MediaTemp } from './entities/media-temp.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Tags } from 'exiftool-vendored';
@@ -490,19 +490,19 @@ export class MediaDBService extends MediaDBQueryCreators {
     pagination,
   }: GetFilesInputDto): GetFilesResponse {
     try {
-      const filtersQuery = this.getMongoFiltersConditions(filters);
-      const foldersQuery = this.getMongoFoldersCondition(folders);
+      const foldersConditions = this.getMongoFoldersCondition(folders);
+      const filtersConditions = this.getMongoFiltersConditions(filters);
+      const allConditions =
+        foldersConditions && !isEmpty(foldersConditions)
+          ? [...filtersConditions, foldersConditions]
+          : filtersConditions;
+
       const dynamicFolders = folders?.isDynamicFolders
-        ? await this.getDynamicFoldersRecursively(filtersQuery)
+        ? await this.getDynamicFoldersRecursively(allConditions)
         : [];
 
-      const conditionsArr: MongoFilterCondition[] = [
-        ...filtersQuery,
-        foldersQuery,
-      ];
-
       const aggregation = this.createMongoAggregationPipeline({
-        conditions: conditionsArr,
+        conditions: allConditions,
         sorting: this.getSortingObjectFromSortInputDto(sort),
         sample: randomSort ? { size: pagination.perPage } : undefined,
         facet: this.getMongoFilesFacet(pagination),
