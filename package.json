@@ -21,7 +21,12 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest",
-    "ts:check": "tsc --noEmit --project ./tsconfig.json"
+    "ts:check": "tsc --noEmit --project ./tsconfig.json",
+    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d migration.config.ts",
+    "migration:create": "typeorm-ts-node-commonjs migration:create",
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d migration.config.ts",
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d migration.config.ts",
+    "migration:show": "typeorm-ts-node-commonjs migration:show -d migration.config.ts"
   },
   "dependencies": {
     "@nestjs/bull": "^10.1.0",

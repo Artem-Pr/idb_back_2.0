@@ -44,16 +44,19 @@ describe('SyncExifKeysHandler', () => {
       _id: new ObjectId(),
       name: 'Make',
       type: ExifValueType.STRING,
+      typeConflicts: null,
     },
     {
       _id: new ObjectId(),
       name: 'Model',
       type: ExifValueType.STRING,
+      typeConflicts: null,
     },
     {
       _id: new ObjectId(),
       name: 'ISO',
       type: ExifValueType.NUMBER,
+      typeConflicts: null,
     },
   ];
 
@@ -61,7 +64,7 @@ describe('SyncExifKeysHandler', () => {
     const mockRepositoryMethods = {
       findAll: jest.fn(),
       findByType: jest.fn(),
-      findExistingKeyNames: jest.fn(),
+      findExistingKeys: jest.fn(),
       saveKeys: jest.fn(),
       findByNames: jest.fn(),
       clearAll: jest.fn(),
@@ -73,7 +76,7 @@ describe('SyncExifKeysHandler', () => {
     };
 
     const mockFactoryMethods = {
-      createExifKeysFromMap: jest.fn(),
+      createFromMap: jest.fn(),
       createExifKey: jest.fn(),
     };
 
@@ -166,7 +169,7 @@ describe('SyncExifKeysHandler', () => {
       mockMediaDbService.findMediaExifBatch.mockResolvedValue(mockMediaBatch);
       mockExtractor.hasValidExifData.mockReturnValue(true);
       mockExtractor.extractExifKeysFromExifBatch.mockReturnValue(exifKeysMap);
-      mockFactory.createExifKeysFromMap.mockReturnValue(mockExifKeys);
+      mockFactory.createFromMap.mockReturnValue(mockExifKeys);
       mockRepository.saveKeys.mockResolvedValue(success(mockExifKeys));
 
       // Act
@@ -278,7 +281,7 @@ describe('SyncExifKeysHandler', () => {
         .mockResolvedValueOnce([mockMediaBatch[1]]);
       mockExtractor.hasValidExifData.mockReturnValue(true);
       mockExtractor.extractExifKeysFromExifBatch.mockReturnValue(exifKeysMap);
-      mockFactory.createExifKeysFromMap.mockReturnValue([mockExifKeys[0]]);
+      mockFactory.createFromMap.mockReturnValue([mockExifKeys[0]]);
       mockRepository.saveKeys.mockResolvedValue(success([mockExifKeys[0]]));
 
       // Act
@@ -359,7 +362,7 @@ describe('SyncExifKeysHandler', () => {
       mockMediaDbService.findMediaExifBatch.mockResolvedValue(mockMediaBatch);
       mockExtractor.hasValidExifData.mockReturnValue(true);
       mockExtractor.extractExifKeysFromExifBatch.mockReturnValue(exifKeysMap);
-      mockFactory.createExifKeysFromMap.mockReturnValue([mockExifKeys[0]]);
+      mockFactory.createFromMap.mockReturnValue([mockExifKeys[0]]);
       mockRepository.saveKeys.mockResolvedValue(failure(saveError));
 
       // Act & Assert
@@ -387,7 +390,7 @@ describe('SyncExifKeysHandler', () => {
       mockMediaDbService.findMediaExifBatch.mockResolvedValue(mockMediaBatch);
       mockExtractor.hasValidExifData.mockReturnValue(true);
       mockExtractor.extractExifKeysFromExifBatch.mockReturnValue(exifKeysMap);
-      mockFactory.createExifKeysFromMap.mockReturnValue([mockExifKeys[0]]);
+      mockFactory.createFromMap.mockReturnValue([mockExifKeys[0]]);
       mockRepository.saveKeys.mockResolvedValue(success([mockExifKeys[0]]));
 
       // Act
@@ -419,7 +422,7 @@ describe('SyncExifKeysHandler', () => {
       mockMediaDbService.findMediaExifBatch.mockResolvedValue(mockMediaBatch);
       mockExtractor.hasValidExifData.mockReturnValue(true);
       mockExtractor.extractExifKeysFromExifBatch.mockReturnValue(exifKeysMap);
-      mockFactory.createExifKeysFromMap.mockReturnValue([mockExifKeys[0]]);
+      mockFactory.createFromMap.mockReturnValue([mockExifKeys[0]]);
       mockRepository.saveKeys.mockResolvedValue(success([mockExifKeys[0]]));
 
       // Act

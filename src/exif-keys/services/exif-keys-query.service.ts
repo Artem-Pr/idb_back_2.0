@@ -58,12 +58,15 @@ export class ExifKeysQueryService {
   }
 
   async getExistingKeyNames(): Promise<Set<string>> {
-    const result = await this.exifKeysRepository.findExistingKeyNames();
+    const result = await this.exifKeysRepository.findExistingKeys();
     if (!result.success) {
       throw new Error(
         `Failed to get existing key names: ${result.error.message}`,
       );
     }
-    return result.data;
+
+    // Convert Map to Set for backward compatibility
+    const keyNames = new Set(result.data.keys());
+    return keyNames;
   }
 }

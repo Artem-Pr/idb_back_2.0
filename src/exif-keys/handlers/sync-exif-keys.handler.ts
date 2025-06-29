@@ -186,8 +186,7 @@ export class SyncExifKeysHandler {
   private async saveDiscoveredKeys(
     allDiscoveredKeys: Map<string, ExifValueType>,
   ): Promise<number> {
-    const keysToSave =
-      this.exifKeysFactory.createExifKeysFromMap(allDiscoveredKeys);
+    const keysToSave = this.exifKeysFactory.createFromMap(allDiscoveredKeys);
     const saveResult = await this.exifKeysRepository.saveKeys(keysToSave);
 
     if (!saveResult.success) {

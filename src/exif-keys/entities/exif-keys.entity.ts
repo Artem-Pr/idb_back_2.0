@@ -1,16 +1,15 @@
-import { DBCollections } from 'src/common/constants';
 import { Entity, ObjectIdColumn, Column, Index } from 'typeorm';
 import type { ObjectId } from 'mongodb';
 
 export enum ExifValueType {
   STRING = 'string',
-  LONG_STRING = 'long_string',
   NUMBER = 'number',
-  STRING_ARRAY = 'string[]',
-  NOT_SUPPORTED = 'NOT_SUPPORTED',
+  STRING_ARRAY = 'string_array',
+  LONG_STRING = 'long_string',
+  NOT_SUPPORTED = 'not_supported',
 }
 
-@Entity(DBCollections.exifKeys)
+@Entity('exif_keys')
 export class ExifKeys {
   @ObjectIdColumn()
   _id: ObjectId;
@@ -19,6 +18,13 @@ export class ExifKeys {
   @Index({ unique: true })
   name: string;
 
-  @Column()
+  @Column({
+    type: 'enum',
+    enum: ExifValueType,
+    default: ExifValueType.STRING,
+  })
   type: ExifValueType;
+
+  @Column({ type: 'array', nullable: true, default: null })
+  typeConflicts: ExifValueType[] | null;
 }

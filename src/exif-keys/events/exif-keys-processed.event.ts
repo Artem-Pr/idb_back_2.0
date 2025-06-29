@@ -3,6 +3,8 @@
  * Phase 3: Event-driven architecture for monitoring and extensibility
  */
 
+import { ExifValueType } from '../entities/exif-keys.entity';
+
 export class ExifKeysProcessedEvent {
   constructor(
     public readonly processedCount: number,
@@ -49,8 +51,15 @@ export class ExifKeyDiscoveredEvent {
 
 export class ExifKeysSavedEvent {
   constructor(
-    public readonly savedKeys: string[],
-    public readonly savedCount: number,
-    public readonly timestamp: Date = new Date(),
+    public readonly savedKeyNames: string[],
+    public readonly count: number,
+  ) {}
+}
+
+export class ExifKeyTypeConflictEvent {
+  constructor(
+    public readonly keyName: string,
+    public readonly existingType: ExifValueType,
+    public readonly newType: ExifValueType,
   ) {}
 }

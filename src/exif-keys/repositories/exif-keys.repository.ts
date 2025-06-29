@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { MongoRepository } from 'typeorm';
 import { ExifKeys, ExifValueType } from '../entities/exif-keys.entity';
 import { Result, success, failure } from '../types/result.type';
-import { EXIF_KEYS_CONSTANTS } from '../constants/exif-keys.constants';
 
 export interface PaginationOptions {
   page?: number;
@@ -26,8 +25,9 @@ export interface IExifKeysRepository {
     options: PaginationOptions,
   ): Promise<Result<PaginatedResult<ExifKeys>>>;
   findByType(type: ExifValueType): Promise<ExifKeys[]>;
-  findExistingKeyNames(): Promise<Result<Set<string>>>;
+  findExistingKeys(): Promise<Result<Map<string, ExifKeys>>>;
   saveKeys(keys: ExifKeys[]): Promise<Result<ExifKeys[]>>;
+  updateKeys(keys: ExifKeys[]): Promise<Result<ExifKeys[]>>;
   findByNames(names: string[]): Promise<ExifKeys[]>;
   clearAll(): Promise<Result<number>>;
 }
@@ -125,16 +125,16 @@ export class ExifKeysRepository implements IExifKeysRepository {
   }
 
   /**
-   * Finds existing key names for duplicate checking
+   * Finds all existing keys and returns a map for quick lookups
    */
-  async findExistingKeyNames(): Promise<Result<Set<string>>> {
+  async findExistingKeys(): Promise<Result<Map<string, ExifKeys>>> {
     try {
-      const existingKeys = await this.repository.find({
-        select: EXIF_KEYS_CONSTANTS.DATABASE.SELECT_FIELDS,
-      });
-
-      const keyNames = new Set(existingKeys.map((key) => key.name));
-      return success(keyNames);
+      const existingKeys = await this.repository.find();
+      const keyMap = new Map<string, ExifKeys>();
+      for (const key of existingKeys) {
+        keyMap.set(key.name, key);
+      }
+      return success(keyMap);
     } catch (error) {
       return failure(error instanceof Error ? error : new Error(String(error)));
     }
@@ -144,6 +144,18 @@ export class ExifKeysRepository implements IExifKeysRepository {
    * Saves multiple EXIF keys to the database
    */
   async saveKeys(keys: ExifKeys[]): Promise<Result<ExifKeys[]>> {
+    try {
+      const savedKeys = await this.repository.save(keys);
+      return success(savedKeys);
+    } catch (error) {
+      return failure(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * Updates multiple existing EXIF keys
+   */
+  async updateKeys(keys: ExifKeys[]): Promise<Result<ExifKeys[]>> {
     try {
       const savedKeys = await this.repository.save(keys);
       return success(savedKeys);

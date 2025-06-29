@@ -13,16 +13,17 @@ describe('ExifKeysFactory', () => {
     factory = module.get<ExifKeysFactory>(ExifKeysFactory);
   });
 
-  describe('createExifKey', () => {
+  describe('create', () => {
     it('should create an ExifKey with the provided name and type', () => {
       const name = 'testKey';
       const type = ExifValueType.STRING;
 
-      const result = factory.createExifKey(name, type);
+      const result = factory.create(name, type);
 
       expect(result).toBeInstanceOf(ExifKeys);
       expect(result.name).toBe(name);
       expect(result.type).toBe(type);
+      expect(result.typeConflicts).toBe(null);
       expect(result._id).toBeUndefined(); // MongoDB will assign this
     });
 
@@ -30,34 +31,37 @@ describe('ExifKeysFactory', () => {
       const name = 'numericKey';
       const type = ExifValueType.NUMBER;
 
-      const result = factory.createExifKey(name, type);
+      const result = factory.create(name, type);
 
       expect(result.name).toBe(name);
       expect(result.type).toBe(type);
+      expect(result.typeConflicts).toBe(null);
     });
 
     it('should create ExifKey with STRING_ARRAY type', () => {
       const name = 'arrayKey';
       const type = ExifValueType.STRING_ARRAY;
 
-      const result = factory.createExifKey(name, type);
+      const result = factory.create(name, type);
 
       expect(result.name).toBe(name);
       expect(result.type).toBe(type);
+      expect(result.typeConflicts).toBe(null);
     });
 
     it('should create ExifKey with NOT_SUPPORTED type', () => {
       const name = 'unsupportedKey';
       const type = ExifValueType.NOT_SUPPORTED;
 
-      const result = factory.createExifKey(name, type);
+      const result = factory.create(name, type);
 
       expect(result.name).toBe(name);
       expect(result.type).toBe(type);
+      expect(result.typeConflicts).toBe(null);
     });
   });
 
-  describe('createExifKeysFromMap', () => {
+  describe('createFromMap', () => {
     it('should create an array of ExifKeys from a Map', () => {
       const exifKeysMap = new Map<string, ExifValueType>([
         ['key1', ExifValueType.STRING],
@@ -65,21 +69,24 @@ describe('ExifKeysFactory', () => {
         ['key3', ExifValueType.STRING_ARRAY],
       ]);
 
-      const result = factory.createExifKeysFromMap(exifKeysMap);
+      const result = factory.createFromMap(exifKeysMap);
 
       expect(result).toHaveLength(3);
       expect(result[0].name).toBe('key1');
       expect(result[0].type).toBe(ExifValueType.STRING);
+      expect(result[0].typeConflicts).toBe(null);
       expect(result[1].name).toBe('key2');
       expect(result[1].type).toBe(ExifValueType.NUMBER);
+      expect(result[1].typeConflicts).toBe(null);
       expect(result[2].name).toBe('key3');
       expect(result[2].type).toBe(ExifValueType.STRING_ARRAY);
+      expect(result[2].typeConflicts).toBe(null);
     });
 
     it('should return empty array for empty Map', () => {
       const exifKeysMap = new Map<string, ExifValueType>();
 
-      const result = factory.createExifKeysFromMap(exifKeysMap);
+      const result = factory.createFromMap(exifKeysMap);
 
       expect(result).toHaveLength(0);
       expect(result).toEqual([]);
@@ -90,11 +97,12 @@ describe('ExifKeysFactory', () => {
         ['singleKey', ExifValueType.NOT_SUPPORTED],
       ]);
 
-      const result = factory.createExifKeysFromMap(exifKeysMap);
+      const result = factory.createFromMap(exifKeysMap);
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('singleKey');
       expect(result[0].type).toBe(ExifValueType.NOT_SUPPORTED);
+      expect(result[0].typeConflicts).toBe(null);
     });
 
     it('should preserve order of entries from Map', () => {
@@ -104,11 +112,14 @@ describe('ExifKeysFactory', () => {
         ['thirdKey', ExifValueType.STRING_ARRAY],
       ]);
 
-      const result = factory.createExifKeysFromMap(exifKeysMap);
+      const result = factory.createFromMap(exifKeysMap);
 
       expect(result[0].name).toBe('firstKey');
+      expect(result[0].typeConflicts).toBe(null);
       expect(result[1].name).toBe('secondKey');
+      expect(result[1].typeConflicts).toBe(null);
       expect(result[2].name).toBe('thirdKey');
+      expect(result[2].typeConflicts).toBe(null);
     });
   });
 });

@@ -17,6 +17,7 @@ import {
   ExifKeysProcessingCompletedEvent,
   ExifKeysProcessingErrorEvent,
   ExifKeysSavedEvent,
+  ExifKeyTypeConflictEvent,
 } from '../events/exif-keys-processed.event';
 
 export interface ProcessExifKeysCommand {
@@ -123,7 +124,7 @@ export class ProcessExifKeysHandler {
         databaseOperations: 1,
       });
       const existingKeysResult =
-        await this.exifKeysRepository.findExistingKeyNames();
+        await this.exifKeysRepository.findExistingKeys();
       if (!existingKeysResult.success) {
         const error = existingKeysResult.error;
 
@@ -139,13 +140,13 @@ export class ProcessExifKeysHandler {
         return failure(error);
       }
 
-      // Filter out keys that already exist
-      const keysToSave = this.filterNewKeys(
+      // Reconcile new keys with existing ones
+      const { keysToCreate, keysToUpdate } = this.reconcileKeys(
         newExifKeysMap,
         existingKeysResult.data,
       );
 
-      if (keysToSave.length === 0) {
+      if (keysToCreate.length === 0 && keysToUpdate.length === 0) {
         this.logIfEnabled(EXIF_KEYS_CONSTANTS.LOG_MESSAGES.NO_NEW_KEYS_TO_SAVE);
 
         // Emit completion event
@@ -167,57 +168,94 @@ export class ProcessExifKeysHandler {
         return success({ processedCount: 0 });
       }
 
-      // Save new keys to database
-      this.metricsService.updateOperation(operationId, {
-        databaseOperations: 2,
-      });
-      const saveResult = await this.exifKeysRepository.saveKeys(keysToSave);
-      if (!saveResult.success) {
-        const error = saveResult.error;
+      let savedKeysCount = 0;
+      let updatedKeysCount = 0;
 
-        // Emit error event
+      // Save new keys to the database
+      if (keysToCreate.length > 0) {
+        const currentMetrics =
+          this.metricsService.getOperationMetrics(operationId);
+        this.metricsService.updateOperation(operationId, {
+          databaseOperations: (currentMetrics?.databaseOperations || 1) + 1,
+        });
+        const saveResult = await this.exifKeysRepository.saveKeys(keysToCreate);
+        if (!saveResult.success) {
+          const error = saveResult.error;
+
+          // Emit error event
+          this.eventEmitter.emit(
+            'exif.processing.error',
+            new ExifKeysProcessingErrorEvent(error, command.mediaList.length),
+          );
+
+          this.metricsService.updateOperation(operationId, { itemsErrored: 1 });
+          this.metricsService.completeOperation(operationId);
+
+          return failure(error);
+        }
+        savedKeysCount = saveResult.data.length;
+
+        const savedKeyNames = keysToCreate.map((key) => key.name);
         this.eventEmitter.emit(
-          'exif.processing.error',
-          new ExifKeysProcessingErrorEvent(error, command.mediaList.length),
+          'exif.keys.saved',
+          new ExifKeysSavedEvent(savedKeyNames, savedKeysCount),
         );
-
-        this.metricsService.updateOperation(operationId, { itemsErrored: 1 });
-        this.metricsService.completeOperation(operationId);
-
-        return failure(error);
       }
 
-      // Emit keys saved event
-      const savedKeyNames = keysToSave.map((key) => key.name);
-      this.eventEmitter.emit(
-        'exif.keys.saved',
-        new ExifKeysSavedEvent(savedKeyNames, keysToSave.length),
-      );
+      // Update keys with conflicts
+      if (keysToUpdate.length > 0) {
+        const currentMetrics =
+          this.metricsService.getOperationMetrics(operationId);
+        this.metricsService.updateOperation(operationId, {
+          databaseOperations: (currentMetrics?.databaseOperations || 1) + 1,
+        });
+        const updateResult =
+          await this.exifKeysRepository.updateKeys(keysToUpdate);
+        if (!updateResult.success) {
+          const error = updateResult.error;
+
+          // Emit error event
+          this.eventEmitter.emit(
+            'exif.processing.error',
+            new ExifKeysProcessingErrorEvent(error, command.mediaList.length),
+          );
+
+          this.metricsService.updateOperation(operationId, { itemsErrored: 1 });
+          this.metricsService.completeOperation(operationId);
+
+          return failure(error);
+        }
+        updatedKeysCount = updateResult.data.length;
+      }
 
       // Emit processing completed event
       this.eventEmitter.emit(
         'exif.processing.completed',
         new ExifKeysProcessingCompletedEvent(
-          keysToSave.length,
-          command.mediaList.length - keysToSave.length,
-          0,
+          savedKeysCount,
+          command.mediaList.length - (savedKeysCount + updatedKeysCount),
+          updatedKeysCount,
           0,
         ),
       );
 
       this.logIfEnabled(
-        EXIF_KEYS_CONSTANTS.LOG_MESSAGES.KEYS_SAVED(keysToSave.length),
+        EXIF_KEYS_CONSTANTS.LOG_MESSAGES.KEYS_SAVED(
+          savedKeysCount + updatedKeysCount,
+        ),
       );
 
       // Complete metrics tracking
       const metrics = this.metricsService.completeOperation(operationId);
       if (metrics && this.config.enableLogging) {
         this.logger.log(
-          `Processing completed in ${metrics.duration}ms: ${keysToSave.length} keys saved`,
+          `Processing completed in ${metrics.duration}ms: ${
+            savedKeysCount + updatedKeysCount
+          } keys processed`,
         );
       }
 
-      return success({ processedCount: keysToSave.length });
+      return success({ processedCount: savedKeysCount + updatedKeysCount });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -246,22 +284,55 @@ export class ProcessExifKeysHandler {
     }
   }
 
-  /**
-   * Filters out existing keys and returns only new ones
-   */
-  private filterNewKeys(
+  private reconcileKeys(
     newExifKeysMap: Map<string, ExifValueType>,
-    existingKeys: Set<string>,
-  ): ExifKeys[] {
-    const filteredKeysMap = new Map<string, ExifValueType>();
+    existingKeysMap: Map<string, ExifKeys>,
+  ): { keysToCreate: ExifKeys[]; keysToUpdate: ExifKeys[] } {
+    const keysToCreate: ExifKeys[] = [];
+    const keysToUpdate: ExifKeys[] = [];
 
-    for (const [keyName, keyType] of newExifKeysMap.entries()) {
-      if (!existingKeys.has(keyName)) {
-        filteredKeysMap.set(keyName, keyType);
+    for (const [keyName, newType] of newExifKeysMap.entries()) {
+      const existingKey = existingKeysMap.get(keyName);
+
+      if (!existingKey) {
+        // Key is new, add to creation list
+        keysToCreate.push(this.exifKeysFactory.create(keyName, newType));
+      } else {
+        // Key exists, check for type conflict
+        if (existingKey.type !== newType) {
+          this.logIfEnabled(
+            `Type conflict for key "${keyName}": existing type is ${existingKey.type}, new type is ${newType}`,
+          );
+          // Add to update list
+          const updatedKey = this.handleConflict(existingKey, newType);
+          keysToUpdate.push(updatedKey);
+
+          // Emit conflict event
+          this.eventEmitter.emit(
+            'exif.key.type_conflict',
+            new ExifKeyTypeConflictEvent(keyName, existingKey.type, newType),
+          );
+        }
       }
     }
 
-    return this.exifKeysFactory.createExifKeysFromMap(filteredKeysMap);
+    return { keysToCreate, keysToUpdate };
+  }
+
+  private handleConflict(
+    existingKey: ExifKeys,
+    newType: ExifValueType,
+  ): ExifKeys {
+    const updatedKey = { ...existingKey };
+    updatedKey.type = ExifValueType.NOT_SUPPORTED;
+
+    const existingConflicts = updatedKey.typeConflicts || [existingKey.type];
+    if (!existingConflicts.includes(newType)) {
+      existingConflicts.push(newType);
+    }
+    updatedKey.typeConflicts = existingConflicts;
+
+    return updatedKey;
   }
 
   /**

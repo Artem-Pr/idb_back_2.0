@@ -16,16 +16,19 @@ describe('ExifKeysController', () => {
       _id: new ObjectId(),
       name: 'Make',
       type: ExifValueType.STRING,
+      typeConflicts: null,
     },
     {
       _id: new ObjectId(),
       name: 'DateTimeOriginal',
       type: ExifValueType.STRING,
+      typeConflicts: null,
     },
     {
       _id: new ObjectId(),
       name: 'ISO',
       type: ExifValueType.NUMBER,
+      typeConflicts: null,
     },
   ];
 
@@ -132,8 +135,18 @@ describe('ExifKeysController', () => {
   describe('getExifKeys', () => {
     it('should return paginated EXIF keys with default parameters', async () => {
       const mockExifKeys = [
-        { _id: 'id1' as any, name: 'Aperture', type: ExifValueType.NUMBER },
-        { _id: 'id2' as any, name: 'Camera', type: ExifValueType.STRING },
+        {
+          _id: 'id1' as any,
+          name: 'Aperture',
+          type: ExifValueType.NUMBER,
+          typeConflicts: null,
+        },
+        {
+          _id: 'id2' as any,
+          name: 'Camera',
+          type: ExifValueType.STRING,
+          typeConflicts: null,
+        },
       ];
 
       const mockResponse = {

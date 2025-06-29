@@ -75,16 +75,19 @@ describe('ProcessExifKeysHandler', () => {
       _id: new ObjectId(),
       name: 'Make',
       type: ExifValueType.STRING,
+      typeConflicts: null,
     },
     {
       _id: new ObjectId(),
       name: 'Model',
       type: ExifValueType.STRING,
+      typeConflicts: null,
     },
     {
       _id: new ObjectId(),
       name: 'ISO',
       type: ExifValueType.NUMBER,
+      typeConflicts: null,
     },
   ];
 
@@ -92,15 +95,15 @@ describe('ProcessExifKeysHandler', () => {
     const mockRepositoryMethods = {
       findAll: jest.fn(),
       findByType: jest.fn(),
-      findExistingKeyNames: jest.fn(),
+      findExistingKeys: jest.fn(),
       saveKeys: jest.fn(),
       findByNames: jest.fn(),
       clearAll: jest.fn(),
     };
 
     const mockFactoryMethods = {
-      createExifKeysFromMap: jest.fn(),
-      createExifKey: jest.fn(),
+      createFromMap: jest.fn(),
+      create: jest.fn(),
     };
 
     const mockLoggerMethods = {
@@ -219,10 +222,15 @@ describe('ProcessExifKeysHandler', () => {
         errors: [],
       });
       mockExtractor.extractExifKeysFromMediaList.mockReturnValue(exifKeysMap);
-      mockRepository.findExistingKeyNames.mockResolvedValue(
-        success(new Set<string>()),
+      mockRepository.findExistingKeys.mockResolvedValue(
+        success(new Map<string, ExifKeys>()),
       );
-      mockFactory.createExifKeysFromMap.mockReturnValue(mockExifKeys);
+      // Mock individual create calls for each key
+      mockFactory.create
+        .mockReturnValueOnce(mockExifKeys[0]) // Make
+        .mockReturnValueOnce(mockExifKeys[1]) // Model
+        .mockReturnValueOnce(mockExifKeys[2]); // ISO
+      mockFactory.createFromMap.mockReturnValue(mockExifKeys);
       mockRepository.saveKeys.mockResolvedValue(success(mockExifKeys));
       mockMetrics.completeOperation.mockReturnValue({
         operationName: 'ProcessExifKeys',
@@ -250,7 +258,7 @@ describe('ProcessExifKeysHandler', () => {
       expect(mockExtractor.extractExifKeysFromMediaList).toHaveBeenCalledWith(
         mockMediaList,
       );
-      expect(mockRepository.findExistingKeyNames).toHaveBeenCalled();
+      expect(mockRepository.findExistingKeys).toHaveBeenCalled();
       expect(mockRepository.saveKeys).toHaveBeenCalledWith(mockExifKeys);
       expect(mockEventEmitter.emit).toHaveBeenCalledWith(
         'exif.processing.started',
@@ -314,18 +322,22 @@ describe('ProcessExifKeysHandler', () => {
         ['Make', ExifValueType.STRING],
         ['Model', ExifValueType.STRING],
       ]);
-      const existingKeys = new Set(['Make', 'Model']);
 
       mockValidation.validateProcessCommand.mockReturnValue({
         isValid: true,
         errors: [],
       });
       mockExtractor.extractExifKeysFromMediaList.mockReturnValue(exifKeysMap);
-      mockRepository.findExistingKeyNames.mockResolvedValue(
-        success(existingKeys),
+      // Mock that existing keys are found (all keys exist, so no new keys to save)
+      const existingKeysMap = new Map<string, ExifKeys>([
+        ['Make', mockExifKeys[0]],
+        ['Model', mockExifKeys[1]],
+      ]);
+      mockRepository.findExistingKeys.mockResolvedValue(
+        success(existingKeysMap),
       );
-      // Mock factory to return empty array when called with empty map (all keys filtered out)
-      mockFactory.createExifKeysFromMap.mockReturnValue([]);
+      // No factory calls expected since all keys already exist
+      mockFactory.createFromMap.mockReturnValue([]);
 
       // Act
       const result = await handler.handle(command);
@@ -349,7 +361,7 @@ describe('ProcessExifKeysHandler', () => {
         errors: [],
       });
       mockExtractor.extractExifKeysFromMediaList.mockReturnValue(exifKeysMap);
-      mockRepository.findExistingKeyNames.mockResolvedValue(
+      mockRepository.findExistingKeys.mockResolvedValue(
         failure(repositoryError),
       );
 
@@ -378,10 +390,11 @@ describe('ProcessExifKeysHandler', () => {
         errors: [],
       });
       mockExtractor.extractExifKeysFromMediaList.mockReturnValue(exifKeysMap);
-      mockRepository.findExistingKeyNames.mockResolvedValue(
-        success(new Set<string>()),
+      mockRepository.findExistingKeys.mockResolvedValue(
+        success(new Map<string, ExifKeys>()),
       );
-      mockFactory.createExifKeysFromMap.mockReturnValue([mockExifKeys[0]]);
+      mockFactory.create.mockReturnValue(mockExifKeys[0]);
+      mockFactory.createFromMap.mockReturnValue([mockExifKeys[0]]);
       mockRepository.saveKeys.mockResolvedValue(failure(repositoryError));
 
       // Act
@@ -429,10 +442,11 @@ describe('ProcessExifKeysHandler', () => {
         errors: [],
       });
       mockExtractor.extractExifKeysFromMediaList.mockReturnValue(exifKeysMap);
-      mockRepository.findExistingKeyNames.mockResolvedValue(
-        success(new Set<string>()),
+      mockRepository.findExistingKeys.mockResolvedValue(
+        success(new Map<string, ExifKeys>()),
       );
-      mockFactory.createExifKeysFromMap.mockReturnValue([mockExifKeys[0]]);
+      mockFactory.create.mockReturnValue(mockExifKeys[0]);
+      mockFactory.createFromMap.mockReturnValue([mockExifKeys[0]]);
       mockRepository.saveKeys.mockResolvedValue(success([mockExifKeys[0]]));
 
       // Act
@@ -460,10 +474,11 @@ describe('ProcessExifKeysHandler', () => {
         errors: [],
       });
       mockExtractor.extractExifKeysFromMediaList.mockReturnValue(exifKeysMap);
-      mockRepository.findExistingKeyNames.mockResolvedValue(
-        success(new Set<string>()),
+      mockRepository.findExistingKeys.mockResolvedValue(
+        success(new Map<string, ExifKeys>()),
       );
-      mockFactory.createExifKeysFromMap.mockReturnValue([mockExifKeys[0]]);
+      mockFactory.create.mockReturnValue(mockExifKeys[0]);
+      mockFactory.createFromMap.mockReturnValue([mockExifKeys[0]]);
       mockRepository.saveKeys.mockResolvedValue(success([mockExifKeys[0]]));
 
       // Act

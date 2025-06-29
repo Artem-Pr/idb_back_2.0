@@ -3,7 +3,6 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { MongoRepository } from 'typeorm';
 import { ExifKeysRepository } from './exif-keys.repository';
 import { ExifKeys, ExifValueType } from '../entities/exif-keys.entity';
-import { EXIF_KEYS_CONSTANTS } from '../constants/exif-keys.constants';
 
 describe('ExifKeysRepository', () => {
   let repository: ExifKeysRepository;
@@ -13,6 +12,7 @@ describe('ExifKeysRepository', () => {
     _id: 'test-id' as any,
     name: 'testKey',
     type: ExifValueType.STRING,
+    typeConflicts: null,
   };
 
   beforeEach(async () => {
@@ -304,19 +304,25 @@ describe('ExifKeysRepository', () => {
     });
   });
 
-  describe('findExistingKeyNames', () => {
-    it('should return success result with key names set', async () => {
-      const mockKeys = [{ name: 'key1' }, { name: 'key2' }] as ExifKeys[];
+  describe('findExistingKeys', () => {
+    it('should return success result with key names map', async () => {
+      const mockKeys = [
+        { name: 'key1', type: ExifValueType.STRING, typeConflicts: null },
+        { name: 'key2', type: ExifValueType.NUMBER, typeConflicts: null },
+      ] as ExifKeys[];
       mongoRepository.find.mockResolvedValue(mockKeys);
 
-      const result = await repository.findExistingKeyNames();
+      const result = await repository.findExistingKeys();
 
-      expect(mongoRepository.find).toHaveBeenCalledWith({
-        select: EXIF_KEYS_CONSTANTS.DATABASE.SELECT_FIELDS,
-      });
+      expect(mongoRepository.find).toHaveBeenCalledWith();
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data).toEqual(new Set(['key1', 'key2']));
+        expect(result.data).toBeInstanceOf(Map);
+        expect(result.data.size).toBe(2);
+        expect(result.data.has('key1')).toBe(true);
+        expect(result.data.has('key2')).toBe(true);
+        expect(result.data.get('key1')).toEqual(mockKeys[0]);
+        expect(result.data.get('key2')).toEqual(mockKeys[1]);
       }
     });
 
@@ -324,7 +330,7 @@ describe('ExifKeysRepository', () => {
       const error = new Error('Database error');
       mongoRepository.find.mockRejectedValue(error);
 
-      const result = await repository.findExistingKeyNames();
+      const result = await repository.findExistingKeys();
 
       expect(result.success).toBe(false);
       if (!result.success) {

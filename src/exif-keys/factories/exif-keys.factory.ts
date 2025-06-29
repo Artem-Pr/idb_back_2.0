@@ -3,16 +3,17 @@ import { ExifKeys, ExifValueType } from '../entities/exif-keys.entity';
 
 @Injectable()
 export class ExifKeysFactory {
-  createExifKey(name: string, type: ExifValueType): ExifKeys {
+  create(name: string, type: ExifValueType): ExifKeys {
     const exifKey = new ExifKeys();
     exifKey.name = name;
     exifKey.type = type;
+    exifKey.typeConflicts = null;
     return exifKey;
   }
 
-  createExifKeysFromMap(exifKeysMap: Map<string, ExifValueType>): ExifKeys[] {
+  createFromMap(exifKeysMap: Map<string, ExifValueType>): ExifKeys[] {
     return Array.from(exifKeysMap.entries()).map(([name, type]) =>
-      this.createExifKey(name, type),
+      this.create(name, type),
     );
   }
 }

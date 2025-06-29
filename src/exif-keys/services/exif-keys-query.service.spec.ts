@@ -14,21 +14,25 @@ describe('ExifKeysQueryService', () => {
       _id: new ObjectId(),
       name: 'Make',
       type: ExifValueType.STRING,
+      typeConflicts: null,
     },
     {
       _id: new ObjectId(),
       name: 'Model',
       type: ExifValueType.STRING,
+      typeConflicts: null,
     },
     {
       _id: new ObjectId(),
       name: 'ISO',
       type: ExifValueType.NUMBER,
+      typeConflicts: null,
     },
     {
       _id: new ObjectId(),
       name: 'Keywords',
       type: ExifValueType.STRING_ARRAY,
+      typeConflicts: null,
     },
   ];
 
@@ -37,7 +41,7 @@ describe('ExifKeysQueryService', () => {
       findAll: jest.fn(),
       findByType: jest.fn(),
       findByNames: jest.fn(),
-      findExistingKeyNames: jest.fn(),
+      findExistingKeys: jest.fn(),
       saveKeys: jest.fn(),
       clearAll: jest.fn(),
       findPaginated: jest.fn(),
@@ -248,22 +252,27 @@ describe('ExifKeysQueryService', () => {
     it('should return set of existing key names', async () => {
       // Arrange
       const existingNames = new Set(['Make', 'Model', 'ISO']);
-      mockRepository.findExistingKeyNames.mockResolvedValue(
-        success(existingNames),
-      );
+      const mockMap = new Map<string, ExifKeys>();
+      mockMap.set('Make', mockExifKeys[0]);
+      mockMap.set('Model', mockExifKeys[1]);
+      mockMap.set('ISO', mockExifKeys[2]);
+
+      mockRepository.findExistingKeys.mockResolvedValue(success(mockMap));
 
       // Act
       const result = await service.getExistingKeyNames();
 
       // Assert
       expect(result).toEqual(existingNames);
-      expect(mockRepository.findExistingKeyNames).toHaveBeenCalledTimes(1);
+      expect(mockRepository.findExistingKeys).toHaveBeenCalledTimes(1);
     });
 
     it('should return empty set if no keys exist', async () => {
       // Arrange
       const emptySet = new Set<string>();
-      mockRepository.findExistingKeyNames.mockResolvedValue(success(emptySet));
+      mockRepository.findExistingKeys.mockResolvedValue(
+        success(new Map<string, ExifKeys>()),
+      );
 
       // Act
       const result = await service.getExistingKeyNames();
@@ -271,31 +280,31 @@ describe('ExifKeysQueryService', () => {
       // Assert
       expect(result).toEqual(emptySet);
       expect(result.size).toBe(0);
-      expect(mockRepository.findExistingKeyNames).toHaveBeenCalledTimes(1);
+      expect(mockRepository.findExistingKeys).toHaveBeenCalledTimes(1);
     });
 
     it('should throw error when repository returns failure', async () => {
       // Arrange
       const error = new Error('Database connection failed');
-      mockRepository.findExistingKeyNames.mockResolvedValue(failure(error));
+      mockRepository.findExistingKeys.mockResolvedValue(failure(error));
 
       // Act & Assert
       await expect(service.getExistingKeyNames()).rejects.toThrow(
         'Failed to get existing key names: Database connection failed',
       );
-      expect(mockRepository.findExistingKeyNames).toHaveBeenCalledTimes(1);
+      expect(mockRepository.findExistingKeys).toHaveBeenCalledTimes(1);
     });
 
     it('should handle repository rejection', async () => {
       // Arrange
       const error = new Error('Repository method failed');
-      mockRepository.findExistingKeyNames.mockRejectedValue(error);
+      mockRepository.findExistingKeys.mockRejectedValue(error);
 
       // Act & Assert
       await expect(service.getExistingKeyNames()).rejects.toThrow(
         'Repository method failed',
       );
-      expect(mockRepository.findExistingKeyNames).toHaveBeenCalledTimes(1);
+      expect(mockRepository.findExistingKeys).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -307,14 +316,14 @@ describe('ExifKeysQueryService', () => {
         (key) => key.type === ExifValueType.STRING,
       );
       const specificKeys = [mockExifKeys[0], mockExifKeys[1]];
-      const existingNames = new Set(['Make', 'Model', 'ISO', 'Keywords']);
 
       mockRepository.findAll.mockResolvedValue(allKeys);
       mockRepository.findByType.mockResolvedValue(stringKeys);
       mockRepository.findByNames.mockResolvedValue(specificKeys);
-      mockRepository.findExistingKeyNames.mockResolvedValue(
-        success(existingNames),
-      );
+      const mockMap = new Map<string, ExifKeys>();
+      mockExifKeys.forEach((key) => mockMap.set(key.name, key));
+
+      mockRepository.findExistingKeys.mockResolvedValue(success(mockMap));
 
       // Act
       const allResult = await service.getAllExifKeys();
@@ -342,8 +351,18 @@ describe('ExifKeysQueryService', () => {
   describe('getExifKeysPaginated', () => {
     it('should return paginated EXIF keys with default parameters', async () => {
       const mockExifKeys = [
-        { _id: 'id1' as any, name: 'Aperture', type: ExifValueType.NUMBER },
-        { _id: 'id2' as any, name: 'Camera', type: ExifValueType.STRING },
+        {
+          _id: 'id1' as any,
+          name: 'Aperture',
+          type: ExifValueType.NUMBER,
+          typeConflicts: null,
+        },
+        {
+          _id: 'id2' as any,
+          name: 'Camera',
+          type: ExifValueType.STRING,
+          typeConflicts: null,
+        },
       ];
 
       const mockResult = success({
@@ -376,7 +395,12 @@ describe('ExifKeysQueryService', () => {
 
     it('should return paginated EXIF keys with custom parameters', async () => {
       const mockExifKeys = [
-        { _id: 'id1' as any, name: 'ISO', type: ExifValueType.NUMBER },
+        {
+          _id: 'id1' as any,
+          name: 'ISO',
+          type: ExifValueType.NUMBER,
+          typeConflicts: null,
+        },
       ];
 
       const mockResult = success({
@@ -446,7 +470,12 @@ describe('ExifKeysQueryService', () => {
 
     it('should pass searchTerm to repository', async () => {
       const mockExifKeys = [
-        { _id: 'id1' as any, name: 'CameraModel', type: ExifValueType.STRING },
+        {
+          _id: 'id1' as any,
+          name: 'CameraModel',
+          type: ExifValueType.STRING,
+          typeConflicts: null,
+        },
       ];
 
       const mockResult = success({
@@ -481,7 +510,12 @@ describe('ExifKeysQueryService', () => {
 
     it('should pass both type and searchTerm to repository', async () => {
       const mockExifKeys = [
-        { _id: 'id1' as any, name: 'Aperture', type: ExifValueType.NUMBER },
+        {
+          _id: 'id1' as any,
+          name: 'Aperture',
+          type: ExifValueType.NUMBER,
+          typeConflicts: null,
+        },
       ];
 
       const mockResult = success({

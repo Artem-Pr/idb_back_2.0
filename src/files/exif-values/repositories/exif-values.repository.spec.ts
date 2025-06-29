@@ -213,18 +213,32 @@ describe('ExifValuesRepository', () => {
             $match: { 'exif.Make': { $exists: true, $ne: null } },
           }),
           expect.objectContaining({
+            $unwind: {
+              path: '$exif.Make',
+              preserveNullAndEmptyArrays: true,
+            },
+          }),
+          expect.objectContaining({
             $group: {
               _id: '$exif.Make',
               count: { $sum: 1 },
             },
           }),
           expect.objectContaining({
+            $addFields: {
+              searchField: { $toString: '$_id' },
+            },
+          }),
+          expect.objectContaining({
             $match: {
-              _id: {
+              searchField: {
                 $regex: 'Canon',
                 $options: 'i',
               },
             },
+          }),
+          expect.objectContaining({
+            $facet: expect.any(Object),
           }),
         ]),
       );
@@ -241,7 +255,9 @@ describe('ExifValuesRepository', () => {
       const aggregationCall = mockMediaRepository.aggregate.mock.calls[0][0];
       const hasSearchTermFilter = aggregationCall.some(
         (stage: any) =>
-          stage.$match && stage.$match._id && stage.$match._id.$regex,
+          stage.$match &&
+          stage.$match.searchField &&
+          stage.$match.searchField.$regex,
       );
       expect(hasSearchTermFilter).toBe(false);
     });
@@ -261,7 +277,9 @@ describe('ExifValuesRepository', () => {
       const aggregationCall = mockMediaRepository.aggregate.mock.calls[0][0];
       const hasSearchTermFilter = aggregationCall.some(
         (stage: any) =>
-          stage.$match && stage.$match._id && stage.$match._id.$regex,
+          stage.$match &&
+          stage.$match.searchField &&
+          stage.$match.searchField.$regex,
       );
       expect(hasSearchTermFilter).toBe(false);
     });
