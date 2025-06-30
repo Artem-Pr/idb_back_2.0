@@ -26,7 +26,9 @@
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d migration.config.ts",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d migration.config.ts",
-    "migration:show": "typeorm-ts-node-commonjs migration:show -d migration.config.ts"
+    "migration:show": "typeorm-ts-node-commonjs migration:show -d migration.config.ts",
+    "create-test-user": "node scripts/create-test-user.js",
+    "check-users": "node scripts/check-users.js"
   },
   "dependencies": {
     "@nestjs/bull": "^10.1.0",

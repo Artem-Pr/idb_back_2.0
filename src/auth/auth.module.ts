@@ -11,6 +11,7 @@ import { RefreshToken } from './entities/refresh-token.entity';
 import { BlacklistedToken } from './entities/blacklisted-token.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
+import { WsJwtAuthGuard } from './guards/ws-jwt-auth.guard';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { LocalStrategy } from './strategies/local.strategy';
     ConfigModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, LocalStrategy, JwtStrategy, WsJwtAuthGuard],
+  exports: [AuthService, WsJwtAuthGuard],
 })
 export class AuthModule {}
